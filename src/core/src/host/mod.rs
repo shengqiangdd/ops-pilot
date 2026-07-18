@@ -1,9 +1,14 @@
 //! Host management: model, status enum, and CRUD service backed by SQLite.
+//!
+//! Credentials (password / private key) are stored encrypted at rest using
+//! AES-256-GCM via the `crypto` module.
 
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use uuid::Uuid;
+
+use crate::crypto::{self, CryptoError, MasterKey};
 
 /// Host status lifecycle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -51,6 +56,12 @@ pub struct Host {
     pub username: String,
     pub auth_method: String,
     pub status: HostStatus,
+    /// Decrypted password — only populated by `get_decrypted()`, `None` in list views.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    /// Decrypted private key — only populated by `get_decrypted()`, `None` in list views.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private_key: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -64,6 +75,10 @@ pub struct CreateHost {
     pub username: String,
     pub auth_method: String,
     pub status: Option<HostStatus>,
+    /// Plaintext password — will be encrypted before storage.
+    pub password: Option<String>,
+    /// Plaintext private key — will be encrypted before storage.
+    pub private_key: Option<String>,
 }
 
 /// Payload for updating an existing host. All fields optional (partial update).
@@ -75,6 +90,8 @@ pub struct UpdateHost {
     pub username: Option<String>,
     pub auth_method: Option<String>,
     pub status: Option<HostStatus>,
+    pub password: Option<String>,
+    pub private_key: Option<String>,
 }
 
 /// Error type for host operations.
@@ -88,16 +105,43 @@ pub enum HostError {
 
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
+
+    #[error("crypto error: {0}")]
+    Crypto(#[from] CryptoError),
+}
+
+/// Serialize credentials to a JSON blob for encryption.
+fn serialize_credentials(password: &Option<String>, private_key: &Option<String>) -> Option<Vec<u8>> {
+    if password.is_none() && private_key.is_none() {
+        return None;
+    }
+    let map = serde_json::json!({
+        "password": password,
+        "private_key": private_key,
+    });
+    serde_json::to_vec(&map).ok()
+}
+
+/// Deserialize credentials from a decrypted JSON blob.
+fn deserialize_credentials(data: &[u8]) -> (Option<String>, Option<String>) {
+    let map: serde_json::Value = serde_json::from_slice(data).unwrap_or(serde_json::Value::Null);
+    let password = map.get("password").and_then(|v| v.as_str()).map(String::from);
+    let private_key = map.get("private_key").and_then(|v| v.as_str()).map(String::from);
+    (password, private_key)
 }
 
 /// CRUD service for hosts, backed by SQLite.
 pub struct HostService {
     pool: SqlitePool,
+    key: MasterKey,
 }
 
 impl HostService {
     pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            key: MasterKey::load(),
+        }
     }
 
     /// Create a new host record.
@@ -120,8 +164,17 @@ impl HostService {
         let status = input.status.unwrap_or(HostStatus::Unknown);
         let status_str = status.as_str();
 
+        // Encrypt credentials
+        let (cred_blob, iv_blob) = match serialize_credentials(&input.password, &input.private_key) {
+            Some(plaintext) => {
+                let (ciphertext, iv) = crypto::encrypt(&plaintext, &self.key)?;
+                (Some(ciphertext), Some(iv))
+            }
+            None => (None, None),
+        };
+
         sqlx::query(
-            "INSERT INTO hosts (id, name, address, port, username, auth_method, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO hosts (id, name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&id)
         .bind(&input.name)
@@ -130,13 +183,15 @@ impl HostService {
         .bind(&input.username)
         .bind(&input.auth_method)
         .bind(status_str)
+        .bind(&cred_blob)
+        .bind(&iv_blob)
         .execute(&self.pool)
         .await?;
 
         self.get(&id).await
     }
 
-    /// Get a host by ID.
+    /// Get a host by ID (without decrypting credentials).
     pub async fn get(&self, id: &str) -> Result<Host, HostError> {
         let row: (String, String, String, i32, String, String, String, String, String) =
             sqlx::query_as(
@@ -155,6 +210,8 @@ impl HostService {
             username: row.4,
             auth_method: row.5,
             status: HostStatus::from_str(&row.6),
+            password: None,
+            private_key: None,
             created_at: NaiveDateTime::parse_from_str(&row.7, "%Y-%m-%d %H:%M:%S")
                 .unwrap_or_default(),
             updated_at: NaiveDateTime::parse_from_str(&row.8, "%Y-%m-%d %H:%M:%S")
@@ -162,7 +219,43 @@ impl HostService {
         })
     }
 
-    /// List all hosts.
+    /// Get a host by ID with decrypted credentials.
+    pub async fn get_decrypted(&self, id: &str) -> Result<Host, HostError> {
+        let row: (String, String, String, i32, String, String, String, Option<Vec<u8>>, Option<Vec<u8>>, String, String) =
+            sqlx::query_as(
+                "SELECT id, name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ?",
+            )
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or_else(|| HostError::NotFound(id.to_string()))?;
+
+        let (password, private_key) = match (row.7, row.8) {
+            (Some(ciphertext), Some(iv)) => {
+                let plaintext = crypto::decrypt(&ciphertext, &self.key, &iv)?;
+                deserialize_credentials(&plaintext)
+            }
+            _ => (None, None),
+        };
+
+        Ok(Host {
+            id: row.0,
+            name: row.1,
+            address: row.2,
+            port: row.3,
+            username: row.4,
+            auth_method: row.5,
+            status: HostStatus::from_str(&row.6),
+            password,
+            private_key,
+            created_at: NaiveDateTime::parse_from_str(&row.9, "%Y-%m-%d %H:%M:%S")
+                .unwrap_or_default(),
+            updated_at: NaiveDateTime::parse_from_str(&row.10, "%Y-%m-%d %H:%M:%S")
+                .unwrap_or_default(),
+        })
+    }
+
+    /// List all hosts (without decrypting credentials).
     pub async fn list(&self) -> Result<Vec<Host>, HostError> {
         let rows: Vec<(String, String, String, i32, String, String, String, String, String)> =
             sqlx::query_as(
@@ -181,6 +274,8 @@ impl HostService {
                 username: row.4,
                 auth_method: row.5,
                 status: HostStatus::from_str(&row.6),
+                password: None,
+                private_key: None,
                 created_at: NaiveDateTime::parse_from_str(&row.7, "%Y-%m-%d %H:%M:%S")
                     .unwrap_or_default(),
                 updated_at: NaiveDateTime::parse_from_str(&row.8, "%Y-%m-%d %H:%M:%S")
@@ -191,18 +286,40 @@ impl HostService {
 
     /// Update a host by ID (partial update).
     pub async fn update(&self, id: &str, input: UpdateHost) -> Result<Host, HostError> {
-        // Verify the host exists first.
-        let existing = self.get(id).await?;
+        // Fetch existing encrypted credentials so we can preserve them if not updated
+        let existing_row: (String, String, i32, String, String, String, Option<Vec<u8>>, Option<Vec<u8>>, String, String, String, String, String) =
+            sqlx::query_as(
+                "SELECT name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv, id, id, created_at, updated_at FROM hosts WHERE id = ?",
+            )
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or_else(|| HostError::NotFound(id.to_string()))?;
 
-        let name = input.name.unwrap_or(existing.name);
-        let address = input.address.unwrap_or(existing.address);
-        let port = input.port.unwrap_or(existing.port);
-        let username = input.username.unwrap_or(existing.username);
-        let auth_method = input.auth_method.unwrap_or(existing.auth_method);
-        let status = input.status.unwrap_or(existing.status);
+        let name = input.name.unwrap_or(existing_row.0);
+        let address = input.address.unwrap_or(existing_row.1);
+        let port = input.port.unwrap_or(existing_row.2);
+        let username = input.username.unwrap_or(existing_row.3);
+        let auth_method = input.auth_method.unwrap_or(existing_row.4);
+        let status = input.status.unwrap_or(HostStatus::from_str(&existing_row.5));
+
+        // Update credentials only if provided
+        let (cred_blob, iv_blob) = if input.password.is_some() || input.private_key.is_some() {
+            let plaintext = serialize_credentials(&input.password, &input.private_key);
+            match plaintext {
+                Some(pt) => {
+                    let (ct, iv) = crypto::encrypt(&pt, &self.key)?;
+                    (Some(ct), Some(iv))
+                }
+                None => (None, None),
+            }
+        } else {
+            // Preserve existing credentials
+            (existing_row.6, existing_row.7)
+        };
 
         sqlx::query(
-            "UPDATE hosts SET name = ?, address = ?, port = ?, username = ?, auth_method = ?, status = ?, updated_at = datetime('now') WHERE id = ?",
+            "UPDATE hosts SET name = ?, address = ?, port = ?, username = ?, auth_method = ?, status = ?, credentials_encrypted = ?, credentials_iv = ?, updated_at = datetime('now') WHERE id = ?",
         )
         .bind(&name)
         .bind(&address)
@@ -210,6 +327,8 @@ impl HostService {
         .bind(&username)
         .bind(&auth_method)
         .bind(status.as_str())
+        .bind(&cred_blob)
+        .bind(&iv_blob)
         .bind(id)
         .execute(&self.pool)
         .await?;
@@ -228,6 +347,26 @@ impl HostService {
             return Err(HostError::NotFound(id.to_string()));
         }
         Ok(())
+    }
+
+    /// Build an `SshConfig` from a host record (with decrypted credentials).
+    pub async fn ssh_config_for(&self, id: &str) -> Result<crate::ssh::SshConfig, HostError> {
+        let host = self.get_decrypted(id).await?;
+        let mut config = crate::ssh::SshConfig::new(&host.address, &host.username)
+            .port(host.port as u16);
+
+        if let Some(ref pw) = host.password {
+            config = config.password(pw);
+        }
+        if let Some(ref key) = host.private_key {
+            // Write the private key to a temp file and point key_path at it
+            let path = std::env::temp_dir().join(format!("ops_pilot_key_{}", host.id));
+            std::fs::write(&path, key)
+                .map_err(|e| HostError::InvalidInput(format!("failed to write temp key: {e}")))?;
+            config = config.key_path(path.to_string_lossy());
+        }
+
+        Ok(config)
     }
 }
 
@@ -249,6 +388,16 @@ mod tests {
             username: "admin".into(),
             auth_method: "password".into(),
             status: None,
+            password: None,
+            private_key: None,
+        }
+    }
+
+    fn sample_create_with_creds() -> CreateHost {
+        CreateHost {
+            password: Some("s3cret!".into()),
+            private_key: Some("-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----".into()),
+            ..sample_create()
         }
     }
 
@@ -341,6 +490,8 @@ mod tests {
                         username: None,
                         auth_method: None,
                         status: None,
+                        password: None,
+                        private_key: None,
                     }
                 },
             )
@@ -365,6 +516,8 @@ mod tests {
                     username: None,
                     auth_method: None,
                     status: None,
+                    password: None,
+                    private_key: None,
                 },
             )
             .await;
@@ -414,5 +567,109 @@ mod tests {
         assert_eq!(HostStatus::from_str("offline"), HostStatus::Offline);
         assert_eq!(HostStatus::from_str("maintenance"), HostStatus::Maintenance);
         assert_eq!(HostStatus::from_str("bogus"), HostStatus::Unknown);
+    }
+
+    // ── Credential encryption tests ─────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_create_host_with_credentials() {
+        let svc = setup().await;
+        let host = svc.create(sample_create_with_creds()).await.unwrap();
+
+        // get() should NOT return credentials
+        let fetched = svc.get(&host.id).await.unwrap();
+        assert!(fetched.password.is_none());
+        assert!(fetched.private_key.is_none());
+
+        // get_decrypted() SHOULD return credentials
+        let decrypted = svc.get_decrypted(&host.id).await.unwrap();
+        assert_eq!(decrypted.password.as_deref(), Some("s3cret!"));
+        assert!(decrypted.private_key.as_ref().unwrap().contains("RSA PRIVATE KEY"));
+    }
+
+    #[tokio::test]
+    async fn test_credentials_not_in_list() {
+        let svc = setup().await;
+        svc.create(sample_create_with_creds()).await.unwrap();
+
+        let hosts = svc.list().await.unwrap();
+        assert_eq!(hosts.len(), 1);
+        // List should not include credentials
+        assert!(hosts[0].password.is_none());
+        assert!(hosts[0].private_key.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_preserves_existing_credentials() {
+        let svc = setup().await;
+        let host = svc.create(sample_create_with_creds()).await.unwrap();
+
+        // Update only the name, credentials should be preserved
+        let updated = svc
+            .update(
+                &host.id,
+                UpdateHost {
+                    name: Some("new-name".into()),
+                    ..UpdateHost {
+                        name: None,
+                        address: None,
+                        port: None,
+                        username: None,
+                        auth_method: None,
+                        status: None,
+                        password: None,
+                        private_key: None,
+                    }
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(updated.name, "new-name");
+
+        // Credentials should still be there
+        let decrypted = svc.get_decrypted(&host.id).await.unwrap();
+        assert_eq!(decrypted.password.as_deref(), Some("s3cret!"));
+    }
+
+    #[tokio::test]
+    async fn test_update_credentials() {
+        let svc = setup().await;
+        let host = svc.create(sample_create_with_creds()).await.unwrap();
+
+        // Update credentials
+        svc.update(
+            &host.id,
+            UpdateHost {
+                password: Some("new_password".into()),
+                private_key: Some("new-key-data".into()),
+                ..UpdateHost {
+                    name: None,
+                    address: None,
+                    port: None,
+                    username: None,
+                    auth_method: None,
+                    status: None,
+                    password: None,
+                    private_key: None,
+                }
+            },
+        )
+        .await
+        .unwrap();
+
+        let decrypted = svc.get_decrypted(&host.id).await.unwrap();
+        assert_eq!(decrypted.password.as_deref(), Some("new_password"));
+        assert_eq!(decrypted.private_key.as_deref(), Some("new-key-data"));
+    }
+
+    #[tokio::test]
+    async fn test_host_without_credentials() {
+        let svc = setup().await;
+        let host = svc.create(sample_create()).await.unwrap();
+
+        let decrypted = svc.get_decrypted(&host.id).await.unwrap();
+        assert!(decrypted.password.is_none());
+        assert!(decrypted.private_key.is_none());
     }
 }

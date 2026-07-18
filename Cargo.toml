@@ -96,6 +96,9 @@ governor = "0.8"
 # Fuzzy matching
 fuzzy-matcher = "0.3"
 
+# Base64 encoding
+base64 = "0.22"
+
 # Terminal
 portable-pty = "0.8"
 
