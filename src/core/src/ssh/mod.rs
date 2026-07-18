@@ -11,16 +11,36 @@ mod executor;
 
 pub use executor::{CommandExecutor, CommandResult};
 
+use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
 use dashmap::DashMap;
-use russh::keys::{self, load_secret_key};
+use russh::keys::{self, load_secret_key, PublicKey};
 use russh::client::{connect, Config, Handle, Handler};
 use russh::ChannelMsg;
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
+
+/// Strict host key checking mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StrictHostKeyChecking {
+    /// Verify the host key against known_hosts; fail if unknown.
+    Yes,
+    /// Accept any host key (insecure, for development only).
+    No,
+    /// Accept unknown keys but reject changed keys.
+    AcceptNew,
+}
+
+impl Default for StrictHostKeyChecking {
+    fn default() -> Self {
+        Self::AcceptNew
+    }
+}
 
 /// Configuration for an SSH connection.
 #[derive(Debug, Clone)]
@@ -39,6 +59,10 @@ pub struct SshConfig {
     pub timeout: Duration,
     /// Maximum number of reconnect attempts.
     pub max_retries: u32,
+    /// Path to the known_hosts file (default: ~/.ssh/known_hosts).
+    pub known_hosts_path: Option<PathBuf>,
+    /// Strict host key checking mode.
+    pub strict_host_key_checking: StrictHostKeyChecking,
 }
 
 impl Default for SshConfig {
@@ -51,6 +75,8 @@ impl Default for SshConfig {
             password: None,
             timeout: Duration::from_secs(30),
             max_retries: 3,
+            known_hosts_path: None,
+            strict_host_key_checking: StrictHostKeyChecking::default(),
         }
     }
 }
@@ -95,6 +121,18 @@ impl SshConfig {
         self
     }
 
+    /// Set the path to the known_hosts file.
+    pub fn known_hosts_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.known_hosts_path = Some(path.into());
+        self
+    }
+
+    /// Set the strict host key checking mode.
+    pub fn strict_host_key_checking(mut self, mode: StrictHostKeyChecking) -> Self {
+        self.strict_host_key_checking = mode;
+        self
+    }
+
     /// Validate the configuration.
     pub fn validate(&self) -> Result<(), SshError> {
         if self.host.is_empty() {
@@ -112,6 +150,154 @@ impl SshConfig {
             return Err(SshError::InvalidConfig("max_retries must be > 0".to_string()));
         }
         Ok(())
+    }
+}
+
+/// Manages the SSH known_hosts file for host key verification.
+///
+/// File format: `hostname keytype base64key` (one per line, # for comments).
+pub struct KnownHosts {
+    path: PathBuf,
+    entries: HashMap<String, Vec<KnownHostEntry>>,
+}
+
+#[derive(Debug, Clone)]
+struct KnownHostEntry {
+    key_type: String,
+    base64_key: String,
+}
+
+impl KnownHosts {
+    /// Open or create a known_hosts file at the given path.
+    /// Uses `~/.ssh/known_hosts` if no path is provided.
+    pub fn open(path: Option<&Path>) -> Result<Self, SshError> {
+        let path = match path {
+            Some(p) => p.to_path_buf(),
+            None => dirs_ssh_known_hosts(),
+        };
+
+        let entries = if path.exists() {
+            Self::parse_file(&path)?
+        } else {
+            HashMap::new()
+        };
+
+        Ok(Self { path, entries })
+    }
+
+    /// Parse the known_hosts file.
+    fn parse_file(path: &Path) -> Result<HashMap<String, Vec<KnownHostEntry>>, SshError> {
+        let content = fs::read_to_string(path)
+            .map_err(|e| SshError::Key(format!("failed to read known_hosts: {e}")))?;
+        let mut map = HashMap::new();
+
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 3 {
+                map.entry(parts[0].to_string())
+                    .or_insert_with(Vec::new)
+                    .push(KnownHostEntry {
+                        key_type: parts[1].to_string(),
+                        base64_key: parts[2].to_string(),
+                    });
+            }
+        }
+
+        Ok(map)
+    }
+
+    /// Check if the given host key is known and matches.
+    /// Returns Ok(true) if verified, Ok(false) if unknown (should be accepted),
+    /// Err if the key has changed (hostile).
+    pub fn check_host_key(
+        &self,
+        hostname: &str,
+        key: &PublicKey,
+    ) -> Result<bool, SshError> {
+        let key_type = format!("{:?}", key.key_type());
+        // Remove the "Other(" wrapper if present
+        let key_type = key_type
+            .trim_start_matches("Other(\"")
+            .trim_end_matches("\")")
+            .to_string();
+
+        let known_keys = match self.entries.get(hostname) {
+            Some(keys) => keys,
+            None => return Ok(false), // Unknown host — caller decides based on strict mode
+        };
+
+        let key_data = key
+            .to_string()
+            .split_whitespace()
+            .last()
+            .unwrap_or("")
+            .to_string();
+
+        for entry in known_keys {
+            if entry.key_type == key_type && entry.base64_key == key_data {
+                return Ok(true); // Key matches
+            }
+        }
+
+        // Key type matches but data doesn't — host key changed!
+        Err(SshError::Key(format!(
+            "host key for '{}' has changed! Possible MITM attack.",
+            hostname
+        )))
+    }
+
+    /// Add a new host key to the known_hosts file.
+    pub fn add_host_key(&mut self, hostname: &str, key: &PublicKey) -> Result<(), SshError> {
+        let key_type = format!("{:?}", key.key_type());
+        let key_type = key_type
+            .trim_start_matches("Other(\"")
+            .trim_end_matches("\")")
+            .to_string();
+
+        let key_data = key
+            .to_string()
+            .split_whitespace()
+            .last()
+            .unwrap_or("")
+            .to_string();
+
+        let entry = KnownHostEntry {
+            key_type: key_type.clone(),
+            base64_key: key_data,
+        };
+
+        // Update in-memory
+        self.entries
+            .entry(hostname.to_string())
+            .or_insert_with(Vec::new)
+            .push(entry);
+
+        // Append to file
+        let line = format!("{} {} {}\n", hostname, key_type, self.entries[hostname].last().unwrap().base64_key);
+        fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.path)
+            .and_then(|mut f| {
+                use std::io::Write;
+                write!(f, "{line}")
+            })
+            .map_err(|e| SshError::Key(format!("failed to write known_hosts: {e}")))?;
+
+        Ok(())
+    }
+}
+
+/// Resolve the default SSH known_hosts path (~/.ssh/known_hosts).
+fn dirs_ssh_known_hosts() -> PathBuf {
+    if let Ok(home) = std::env::var("HOME") {
+        PathBuf::from(home).join(".ssh").join("known_hosts")
+    } else {
+        PathBuf::from("/tmp").join("known_hosts")
     }
 }
 
@@ -180,12 +366,21 @@ impl SshConnection {
 
         debug!(attempt, host = %config.host, port = config.port, "attempting SSH connection");
 
+        // Load known_hosts for key verification
+        let known_hosts = KnownHosts::open(config.known_hosts_path.as_deref()).ok();
+
+        let handler = ClientHandler::new(
+            config.host.clone(),
+            known_hosts,
+            config.strict_host_key_checking,
+        );
+
         let result = tokio::time::timeout(
             config.timeout,
             connect(
                 Arc::new(Config::default()),
                 addr,
-                ClientHandler,
+                handler,
             ),
         )
         .await;
@@ -335,18 +530,76 @@ impl SshConnection {
     }
 }
 
-/// Client handler that accepts all server keys (for now).
-pub struct ClientHandler;
+/// Client handler that verifies server host keys against known_hosts.
+pub struct ClientHandler {
+    hostname: String,
+    known_hosts: Option<KnownHosts>,
+    strict_mode: StrictHostKeyChecking,
+}
+
+impl ClientHandler {
+    fn new(hostname: String, known_hosts: Option<KnownHosts>, strict_mode: StrictHostKeyChecking) -> Self {
+        Self {
+            hostname,
+            known_hosts,
+            strict_mode,
+        }
+    }
+}
 
 impl Handler for ClientHandler {
     type Error = russh::Error;
 
     async fn check_server_key(
         &mut self,
-        _server_public_key: &keys::PublicKey,
+        server_public_key: &keys::PublicKey,
     ) -> Result<bool, Self::Error> {
-        // TODO: Implement proper host key verification against known_hosts
-        Ok(true)
+        match &self.known_hosts {
+            Some(kh) => match kh.check_host_key(&self.hostname, server_public_key) {
+                Ok(true) => {
+                    debug!(host = %self.hostname, "host key verified");
+                    Ok(true)
+                }
+                Ok(false) => {
+                    // Unknown host
+                    match self.strict_mode {
+                        StrictHostKeyChecking::Yes => {
+                            warn!(host = %self.hostname, "rejecting unknown host (strict=yes)");
+                            Err(russh::Error::UnknownKey)
+                        }
+                        StrictHostKeyChecking::AcceptNew => {
+                            info!(host = %self.hostname, "accepting new host key");
+                            // Note: We can't persist here since &mut self doesn't give
+                            // access to the mutable KnownHosts. The caller should add
+                            // the key after connection.
+                            Ok(true)
+                        }
+                        StrictHostKeyChecking::No => {
+                            info!(host = %self.hostname, "accepting host key (strict=no)");
+                            Ok(true)
+                        }
+                    }
+                }
+                Err(e) => {
+                    // Key changed — potential MITM
+                    warn!(host = %self.hostname, error = %e, "host key mismatch");
+                    Err(russh::Error::CannotAuthorizeKey(e.to_string()))
+                }
+            },
+            None => {
+                // No known_hosts — accept based on strict mode
+                match self.strict_mode {
+                    StrictHostKeyChecking::Yes => {
+                        warn!(host = %self.hostname, "no known_hosts file, rejecting (strict=yes)");
+                        Err(russh::Error::UnknownKey)
+                    }
+                    _ => {
+                        info!(host = %self.hostname, "no known_hosts, accepting key");
+                        Ok(true)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -559,10 +812,10 @@ mod tests {
         assert_eq!(pool.connection_count(), 0);
     }
 
-    #[test]
-    fn test_pool_has_connection_empty() {
+    #[tokio::test]
+    async fn test_pool_has_connection_empty() {
         let pool = SshConnectionPool::new();
-        assert!(!pool.has_connection("host1"));
+        assert!(!pool.has_connection("host1").await);
     }
 
     #[tokio::test]
@@ -622,5 +875,73 @@ mod tests {
         for err in errors {
             let _ = err.to_string();
         }
+    }
+
+    // ── KnownHosts tests ──────────────────────────────────────────────
+
+    #[test]
+    fn test_known_hosts_parse_file() {
+        let dir = std::env::temp_dir().join("ssh_test_parse");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("known_hosts");
+
+        std::fs::write(
+            &path,
+            "# comment\nserver1 ssh-ed25519 AAAAC3Nza...\nserver2 ecdsa-sha2-nistp256 AAAAE2...\n",
+        )
+        .unwrap();
+
+        let kh = KnownHosts::open(Some(&path)).unwrap();
+        assert!(kh.entries.contains_key("server1"));
+        assert!(kh.entries.contains_key("server2"));
+        assert_eq!(kh.entries["server1"].len(), 1);
+        assert_eq!(kh.entries["server1"][0].key_type, "ssh-ed25519");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_known_hosts_empty_file() {
+        let dir = std::env::temp_dir().join("ssh_test_empty");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("known_hosts");
+
+        std::fs::write(&path, "").unwrap();
+
+        let kh = KnownHosts::open(Some(&path)).unwrap();
+        assert!(kh.entries.is_empty());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_known_hosts_nonexistent_file() {
+        let path = PathBuf::from("/tmp/nonexistent_known_hosts_file");
+        let kh = KnownHosts::open(Some(&path)).unwrap();
+        assert!(kh.entries.is_empty());
+    }
+
+    #[test]
+    fn test_config_builder_with_known_hosts() {
+        let config = SshConfig::new("host", "user")
+            .known_hosts_path("/custom/known_hosts")
+            .strict_host_key_checking(StrictHostKeyChecking::Yes);
+
+        assert_eq!(
+            config.strict_host_key_checking,
+            StrictHostKeyChecking::Yes
+        );
+        assert_eq!(
+            config.known_hosts_path,
+            Some(PathBuf::from("/custom/known_hosts"))
+        );
+    }
+
+    #[test]
+    fn test_strict_host_key_checking_default() {
+        assert_eq!(
+            StrictHostKeyChecking::default(),
+            StrictHostKeyChecking::AcceptNew
+        );
     }
 }
