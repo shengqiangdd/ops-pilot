@@ -3,7 +3,6 @@ pub mod auth;
 pub mod crypto;
 pub mod db;
 pub mod docker;
-pub mod event;
 pub mod host;
 pub mod monitor;
 pub mod ssh;

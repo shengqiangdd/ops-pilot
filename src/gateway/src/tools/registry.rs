@@ -4,6 +4,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use serde_json::Value;
 use tokio::sync::RwLock;
+use tracing::debug;
 
 use ops_pilot_sdk::context::ModuleContext;
 use ops_pilot_sdk::traits::OpsModule;
@@ -12,13 +13,37 @@ use crate::routes::modules::ModuleManager;
 
 /// Central tool registry that aggregates tool definitions from all enabled
 /// modules and routes AI function calls back to the correct module.
+///
+/// Maintains an index cache (`tool_index`) mapping tool names to module names
+/// for O(1) lookups in `invoke_tool()`.
 pub struct ToolRegistry {
     manager: Arc<RwLock<ModuleManager>>,
+    /// Cache: tool_name → module_name for fast routing.
+    tool_index: RwLock<HashMap<String, String>>,
 }
 
 impl ToolRegistry {
     pub fn new(manager: Arc<RwLock<ModuleManager>>) -> Self {
-        Self { manager }
+        Self {
+            manager,
+            tool_index: RwLock::new(HashMap::new()),
+        }
+    }
+
+    /// Rebuild the tool index from the current enabled modules.
+    ///
+    /// Should be called after modules are enabled/disabled or at startup.
+    pub async fn rebuild_index(&self) {
+        let modules = self.collect_enabled_modules().await;
+        let mut index = HashMap::new();
+        for (module_name, module) in &modules {
+            for def in module.tools() {
+                index.insert(def.name.clone(), module_name.clone());
+            }
+        }
+        let mut guard = self.tool_index.write().await;
+        *guard = index;
+        debug!(tools = guard.len(), "tool index rebuilt");
     }
 
     /// Returns OpenAI-compatible function schemas for all enabled modules' tools.
@@ -49,11 +74,24 @@ impl ToolRegistry {
 
     /// Route a tool call to the correct module's `execute()` method.
     ///
-    /// The `name` is the tool name (not the module name). The registry looks up
-    /// which module owns that tool and delegates the call.
+    /// Uses the cached `tool_index` for O(1) module lookup. If the tool is
+    /// not in the index, falls back to a full scan (handles stale cache).
     pub async fn invoke_tool(&self, ctx: &ModuleContext, name: &str, params: Value) -> Result<Value> {
-        let modules = self.collect_enabled_modules().await;
+        // Fast path: check the index cache
+        let module_name = {
+            let index = self.tool_index.read().await;
+            index.get(name).cloned()
+        };
 
+        if let Some(mod_name) = module_name {
+            let modules = self.collect_enabled_modules().await;
+            if let Some((_name, module)) = modules.iter().find(|(n, _)| n == &mod_name) {
+                return module.execute(ctx, name, params).await;
+            }
+        }
+
+        // Slow path: tool not in index or module not found — full scan
+        let modules = self.collect_enabled_modules().await;
         for (_module_name, module) in &modules {
             for def in module.tools() {
                 if def.name == name {
@@ -299,5 +337,38 @@ mod tests {
         assert_eq!(tool["function"]["name"], "get_weather");
         assert_eq!(tool["function"]["description"], "Get weather for a city");
         assert_eq!(tool["function"]["parameters"]["type"], "object");
+    }
+
+    #[tokio::test]
+    async fn test_rebuild_index_populates_cache() {
+        let registry = build_registry(vec![
+            ("mod-x", vec![make_tool("x_tool", "X")], true),
+            ("mod-y", vec![make_tool("y_tool", "Y")], true),
+        ])
+        .await;
+
+        // Index should be empty before rebuild
+        assert!(registry.tool_index.read().await.is_empty());
+
+        registry.rebuild_index().await;
+
+        let index = registry.tool_index.read().await;
+        assert_eq!(index.len(), 2);
+        assert_eq!(index.get("x_tool").unwrap(), "mod-x");
+        assert_eq!(index.get("y_tool").unwrap(), "mod-y");
+    }
+
+    #[tokio::test]
+    async fn test_invoke_tool_uses_index_cache() {
+        let registry = build_registry(vec![
+            ("mod-fast", vec![make_tool("fast_tool", "Fast")], true),
+        ])
+        .await;
+
+        registry.rebuild_index().await;
+
+        let ctx = make_ctx("test").await;
+        let result = registry.invoke_tool(&ctx, "fast_tool", json!({})).await.unwrap();
+        assert_eq!(result["module"], "mod-fast");
     }
 }

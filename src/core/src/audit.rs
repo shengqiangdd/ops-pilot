@@ -1,7 +1,7 @@
 //! AuditTrail: writes audit entries to the database and publishes events.
 
 use crate::db::Database;
-use crate::event::EventBus;
+use ops_pilot_sdk::context::EventBus;
 use ops_pilot_sdk::events::OpsEvent;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqlitePool;
