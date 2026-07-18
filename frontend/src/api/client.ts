@@ -118,4 +118,31 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ message }),
     }),
+
+  // ── Vault ─────────────────────────────────────────────────────────────
+
+  getVaultStatus: (token: string) =>
+    requestWithAuth<{ unlocked: boolean; has_passphrase: boolean }>('/vault/status', token),
+
+  unlockVault: (token: string, loginPassword: string, passphrase: string) =>
+    requestWithAuth<{ status: string }>('/vault/unlock', token, {
+      method: 'POST',
+      body: JSON.stringify({ login_password: loginPassword, passphrase }),
+    }),
+
+  lockVault: (token: string) =>
+    requestWithAuth<{ status: string }>('/vault/lock', token, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
+  setVaultPassphrase: (token: string, loginPassword: string, passphrase: string, confirm: string) =>
+    requestWithAuth<{ status: string }>('/vault/set-passphrase', token, {
+      method: 'POST',
+      body: JSON.stringify({
+        login_password: loginPassword,
+        passphrase,
+        passphrase_confirm: confirm,
+      }),
+    }),
 };

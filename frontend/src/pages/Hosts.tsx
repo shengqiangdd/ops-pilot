@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import type { Host, CreateHostInput } from '../api/types';
+import { useVaultStore } from '../stores/useVaultStore';
 import { cn } from '../lib/cn';
 
 const EMPTY_FORM: CreateHostInput = {
@@ -19,6 +20,7 @@ export function HostsPage() {
   const [form, setForm] = useState<CreateHostInput>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const { isUnlocked } = useVaultStore();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,6 +111,13 @@ export function HostsPage() {
 
       {error && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+      )}
+
+      {!isUnlocked && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+          Vault is locked. Host credentials are encrypted at rest. Go to the{' '}
+          <strong>Vault</strong> tab to unlock and manage credentials.
+        </div>
       )}
 
       {showForm && (

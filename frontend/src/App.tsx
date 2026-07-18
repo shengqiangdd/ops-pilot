@@ -1,22 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ModuleBrowser } from './components/ModuleBrowser';
 import { HealthDashboard } from './components/HealthDashboard';
 import { AgentChat } from './components/AgentChat';
 import { HostsPage } from './pages/Hosts';
+import { VaultPage } from './pages/Vault';
 import { useAuthStore } from './stores/useAuthStore';
+import { useVaultStore } from './stores/useVaultStore';
 import { api } from './api/client';
 import { cn } from './lib/cn';
 
-type Tab = 'chat' | 'modules' | 'hosts' | 'health';
+type Tab = 'chat' | 'modules' | 'hosts' | 'vault' | 'health';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('modules');
   const { token, username, setAuth, logout } = useAuthStore();
+  const { isUnlocked, checkStatus } = useVaultStore();
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+
+  // Check vault status when token changes
+  useEffect(() => {
+    if (token) {
+      checkStatus();
+    }
+  }, [token, checkStatus]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +55,7 @@ export function App() {
               ['chat', 'Chat'],
               ['modules', 'Modules'],
               ['hosts', 'Hosts'],
+              ['vault', isUnlocked ? 'Vault \u{1f513}' : 'Vault \u{1f512}'],
               ['health', 'Health'],
             ] as const).map(([key, label]) => (
               <button
@@ -123,6 +134,7 @@ export function App() {
         {tab === 'chat' && <AgentChat />}
         {tab === 'modules' && <ModuleBrowser />}
         {tab === 'hosts' && <HostsPage />}
+        {tab === 'vault' && <VaultPage />}
         {tab === 'health' && <HealthDashboard />}
       </main>
     </div>
