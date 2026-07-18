@@ -81,12 +81,25 @@ async fn login_handler(
     Ok(Json(AuthResponse { token }))
 }
 
-fn auth_routes(service: Arc<AuthService>) -> Router {
+fn auth_routes(
+    service: Arc<AuthService>,
+    login_limiter: Arc<ops_pilot_gateway::middleware::rate_limit::LoginRateLimiter>,
+) -> Router {
     let state = AuthState { service };
-    Router::new()
-        .route("/api/auth/register", post(register_handler))
+
+    let login_router = Router::new()
         .route("/api/auth/login", post(login_handler))
-        .with_state(state)
+        .with_state(state.clone())
+        .layer(axum::middleware::from_fn_with_state(
+            login_limiter,
+            ops_pilot_gateway::middleware::rate_limit::rate_limit_middleware,
+        ));
+
+    let register_router = Router::new()
+        .route("/api/auth/register", post(register_handler))
+        .with_state(state);
+
+    register_router.merge(login_router)
 }
 
 // ── Health routes ───────────────────────────────────────────────────────────
@@ -180,6 +193,7 @@ async fn main() {
     let tool_registry = Arc::new(ToolRegistry::new(module_manager.clone()));
 
     let event_bus = EventBus::new(256);
+    let audit = Arc::new(ops_pilot_core::audit::AuditTrail::new(&db, event_bus.clone()));
     let ctx = Arc::new(ModuleContext::new(
         Arc::new(pool.clone()),
         event_bus,
@@ -218,15 +232,30 @@ async fn main() {
     let static_service = tower_http::services::ServeDir::new(&static_dir)
         .append_index_html_on_directories(true);
 
+    // Rate limiter for login endpoint: 5 requests/minute/IP
+    let login_limiter = ops_pilot_gateway::middleware::rate_limit::login_limiter();
+
+    // Host routes require JWT authentication
+    let auth_middleware_state = ops_pilot_gateway::middleware::AuthState {
+        service: auth_service.clone(),
+    };
+    let protected_hosts = host_routes(host_service).layer(
+        axum::middleware::from_fn_with_state(
+            auth_middleware_state,
+            ops_pilot_gateway::middleware::auth_middleware,
+        ),
+    );
+
     let app = Router::new()
         .route("/api/v1/health", get(health_handler))
-        .merge(auth_routes(auth_service.clone()))
-        .merge(host_routes(host_service))
+        .merge(auth_routes(auth_service.clone(), login_limiter))
+        .merge(protected_hosts)
         .merge(module_routes(module_manager, ctx.clone()))
         .merge(agent_routes(tool_registry, llm_client, ctx, pool))
         .merge(ops_pilot_gateway::terminal::terminal_routes(
             ssh_pool,
             auth_service,
+            audit,
         ))
         .fallback_service(static_service)
         .layer(CorsLayer::permissive())

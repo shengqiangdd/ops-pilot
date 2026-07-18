@@ -56,6 +56,7 @@ struct HostRow {
     username: String,
     auth_method: String,
     status: String,
+    owner_id: String,
     created_at: String,
     updated_at: String,
 }
@@ -70,6 +71,7 @@ struct HostRowWithCreds {
     username: String,
     auth_method: String,
     status: String,
+    owner_id: String,
     credentials_encrypted: Option<Vec<u8>>,
     credentials_iv: Option<Vec<u8>>,
     created_at: String,
@@ -86,6 +88,7 @@ impl HostRow {
             username: self.username,
             auth_method: self.auth_method,
             status: HostStatus::from_str(&self.status),
+            owner_id: self.owner_id,
             password: None,
             private_key: None,
             created_at: NaiveDateTime::parse_from_str(&self.created_at, "%Y-%m-%d %H:%M:%S")
@@ -114,6 +117,7 @@ impl HostRowWithCreds {
             username: self.username,
             auth_method: self.auth_method,
             status: HostStatus::from_str(&self.status),
+            owner_id: self.owner_id,
             password,
             private_key,
             created_at: NaiveDateTime::parse_from_str(&self.created_at, "%Y-%m-%d %H:%M:%S")
@@ -134,6 +138,9 @@ pub struct Host {
     pub username: String,
     pub auth_method: String,
     pub status: HostStatus,
+    /// Owner user ID — used for authorization checks, not serialized to API responses.
+    #[serde(skip)]
+    pub owner_id: String,
     /// Decrypted password — only populated by `get_decrypted()`, `None` in list views.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,
@@ -222,8 +229,8 @@ impl HostService {
         }
     }
 
-    /// Create a new host record.
-    pub async fn create(&self, input: CreateHost) -> Result<Host, HostError> {
+    /// Create a new host record owned by `owner_id`.
+    pub async fn create(&self, input: CreateHost, owner_id: &str) -> Result<Host, HostError> {
         if input.name.is_empty() {
             return Err(HostError::InvalidInput("name cannot be empty".into()));
         }
@@ -252,7 +259,7 @@ impl HostService {
         };
 
         sqlx::query(
-            "INSERT INTO hosts (id, name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO hosts (id, name, address, port, username, auth_method, status, owner_id, credentials_encrypted, credentials_iv) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&id)
         .bind(&input.name)
@@ -261,20 +268,22 @@ impl HostService {
         .bind(&input.username)
         .bind(&input.auth_method)
         .bind(status_str)
+        .bind(owner_id)
         .bind(&cred_blob)
         .bind(&iv_blob)
         .execute(&self.pool)
         .await?;
 
-        self.get(&id).await
+        self.get(&id, owner_id).await
     }
 
-    /// Get a host by ID (without decrypting credentials).
-    pub async fn get(&self, id: &str) -> Result<Host, HostError> {
+    /// Get a host by ID and owner (without decrypting credentials).
+    pub async fn get(&self, id: &str, owner_id: &str) -> Result<Host, HostError> {
         let row: HostRow = sqlx::query_as(
-            "SELECT id, name, address, port, username, auth_method, status, created_at, updated_at FROM hosts WHERE id = ?",
+            "SELECT id, name, address, port, username, auth_method, status, owner_id, created_at, updated_at FROM hosts WHERE id = ? AND owner_id = ?",
         )
         .bind(id)
+        .bind(owner_id)
         .fetch_optional(&self.pool)
         .await?
         .ok_or_else(|| HostError::NotFound(id.to_string()))?;
@@ -282,12 +291,13 @@ impl HostService {
         Ok(row.into_host())
     }
 
-    /// Get a host by ID with decrypted credentials.
-    pub async fn get_decrypted(&self, id: &str) -> Result<Host, HostError> {
+    /// Get a host by ID and owner with decrypted credentials.
+    pub async fn get_decrypted(&self, id: &str, owner_id: &str) -> Result<Host, HostError> {
         let row: HostRowWithCreds = sqlx::query_as(
-            "SELECT id, name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ?",
+            "SELECT id, name, address, port, username, auth_method, status, owner_id, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ? AND owner_id = ?",
         )
         .bind(id)
+        .bind(owner_id)
         .fetch_optional(&self.pool)
         .await?
         .ok_or_else(|| HostError::NotFound(id.to_string()))?;
@@ -295,24 +305,26 @@ impl HostService {
         row.into_host_with_creds(&self.key)
     }
 
-    /// List all hosts (without decrypting credentials).
-    pub async fn list(&self) -> Result<Vec<Host>, HostError> {
+    /// List hosts belonging to `owner_id` (without decrypting credentials).
+    pub async fn list_by_owner(&self, owner_id: &str) -> Result<Vec<Host>, HostError> {
         let rows: Vec<HostRow> = sqlx::query_as(
-            "SELECT id, name, address, port, username, auth_method, status, created_at, updated_at FROM hosts ORDER BY created_at DESC",
+            "SELECT id, name, address, port, username, auth_method, status, owner_id, created_at, updated_at FROM hosts WHERE owner_id = ? ORDER BY created_at DESC",
         )
+        .bind(owner_id)
         .fetch_all(&self.pool)
         .await?;
 
         Ok(rows.into_iter().map(HostRow::into_host).collect())
     }
 
-    /// Update a host by ID (partial update).
-    pub async fn update(&self, id: &str, input: UpdateHost) -> Result<Host, HostError> {
+    /// Update a host by ID and owner (partial update).
+    pub async fn update(&self, id: &str, owner_id: &str, input: UpdateHost) -> Result<Host, HostError> {
         // Fetch existing encrypted credentials so we can preserve them if not updated
         let existing: HostRowWithCreds = sqlx::query_as(
-            "SELECT id, name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ?",
+            "SELECT id, name, address, port, username, auth_method, status, owner_id, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ? AND owner_id = ?",
         )
         .bind(id)
+        .bind(owner_id)
         .fetch_optional(&self.pool)
         .await?
         .ok_or_else(|| HostError::NotFound(id.to_string()))?;
@@ -340,7 +352,7 @@ impl HostService {
         };
 
         sqlx::query(
-            "UPDATE hosts SET name = ?, address = ?, port = ?, username = ?, auth_method = ?, status = ?, credentials_encrypted = ?, credentials_iv = ?, updated_at = datetime('now') WHERE id = ?",
+            "UPDATE hosts SET name = ?, address = ?, port = ?, username = ?, auth_method = ?, status = ?, credentials_encrypted = ?, credentials_iv = ?, updated_at = datetime('now') WHERE id = ? AND owner_id = ?",
         )
         .bind(&name)
         .bind(&address)
@@ -351,16 +363,18 @@ impl HostService {
         .bind(&cred_blob)
         .bind(&iv_blob)
         .bind(id)
+        .bind(owner_id)
         .execute(&self.pool)
         .await?;
 
-        self.get(id).await
+        self.get(id, owner_id).await
     }
 
-    /// Delete a host by ID.
-    pub async fn delete(&self, id: &str) -> Result<(), HostError> {
-        let result = sqlx::query("DELETE FROM hosts WHERE id = ?")
+    /// Delete a host by ID and owner.
+    pub async fn delete(&self, id: &str, owner_id: &str) -> Result<(), HostError> {
+        let result = sqlx::query("DELETE FROM hosts WHERE id = ? AND owner_id = ?")
             .bind(id)
+            .bind(owner_id)
             .execute(&self.pool)
             .await?;
 
@@ -371,8 +385,8 @@ impl HostService {
     }
 
     /// Build an `SshConfig` from a host record (with decrypted credentials).
-    pub async fn ssh_config_for(&self, id: &str) -> Result<crate::ssh::SshConfig, HostError> {
-        let host = self.get_decrypted(id).await?;
+    pub async fn ssh_config_for(&self, id: &str, owner_id: &str) -> Result<crate::ssh::SshConfig, HostError> {
+        let host = self.get_decrypted(id, owner_id).await?;
         let mut config = crate::ssh::SshConfig::new(&host.address, &host.username)
             .port(host.port as u16);
 
@@ -380,7 +394,6 @@ impl HostService {
             config = config.password(pw);
         }
         if let Some(ref key) = host.private_key {
-            // Write the private key to a temp file and point key_path at it
             let path = std::env::temp_dir().join(format!("ops_pilot_key_{}", host.id));
             std::fs::write(&path, key)
                 .map_err(|e| HostError::InvalidInput(format!("failed to write temp key: {e}")))?;
@@ -395,6 +408,9 @@ impl HostService {
 mod tests {
     use super::*;
     use crate::db::Database;
+
+    const OWNER: &str = "user-001";
+    const OTHER_OWNER: &str = "user-002";
 
     async fn setup() -> HostService {
         let db = Database::open_in_memory().await.unwrap();
@@ -425,12 +441,13 @@ mod tests {
     #[tokio::test]
     async fn test_create_host() {
         let svc = setup().await;
-        let host = svc.create(sample_create()).await.unwrap();
+        let host = svc.create(sample_create(), OWNER).await.unwrap();
         assert_eq!(host.name, "web-server-1");
         assert_eq!(host.address, "192.168.1.10");
         assert_eq!(host.port, 22);
         assert_eq!(host.username, "admin");
         assert_eq!(host.status, HostStatus::Unknown);
+        assert_eq!(host.owner_id, OWNER);
     }
 
     #[tokio::test]
@@ -440,7 +457,7 @@ mod tests {
             port: None,
             ..sample_create()
         };
-        let host = svc.create(input).await.unwrap();
+        let host = svc.create(input, OWNER).await.unwrap();
         assert_eq!(host.port, 22);
     }
 
@@ -451,56 +468,67 @@ mod tests {
             name: String::new(),
             ..sample_create()
         };
-        assert!(svc.create(input).await.is_err());
+        assert!(svc.create(input, OWNER).await.is_err());
     }
 
     #[tokio::test]
     async fn test_get_host() {
         let svc = setup().await;
-        let created = svc.create(sample_create()).await.unwrap();
-        let fetched = svc.get(&created.id).await.unwrap();
+        let created = svc.create(sample_create(), OWNER).await.unwrap();
+        let fetched = svc.get(&created.id, OWNER).await.unwrap();
         assert_eq!(fetched.id, created.id);
         assert_eq!(fetched.name, "web-server-1");
     }
 
     #[tokio::test]
+    async fn test_get_host_wrong_owner() {
+        let svc = setup().await;
+        let created = svc.create(sample_create(), OWNER).await.unwrap();
+        let result = svc.get(&created.id, OTHER_OWNER).await;
+        assert!(matches!(result, Err(HostError::NotFound(_))));
+    }
+
+    #[tokio::test]
     async fn test_get_host_not_found() {
         let svc = setup().await;
-        let result = svc.get("nonexistent-id").await;
+        let result = svc.get("nonexistent-id", OWNER).await;
         assert!(matches!(result, Err(HostError::NotFound(_))));
     }
 
     #[tokio::test]
     async fn test_list_hosts_empty() {
         let svc = setup().await;
-        let hosts = svc.list().await.unwrap();
+        let hosts = svc.list_by_owner(OWNER).await.unwrap();
         assert!(hosts.is_empty());
     }
 
     #[tokio::test]
-    async fn test_list_hosts() {
+    async fn test_list_hosts_by_owner() {
         let svc = setup().await;
-        svc.create(sample_create()).await.unwrap();
+        svc.create(sample_create(), OWNER).await.unwrap();
         svc.create(CreateHost {
             name: "db-server".into(),
             address: "192.168.1.20".into(),
             ..sample_create()
-        })
+        }, OWNER)
         .await
         .unwrap();
+        // Different owner's host — should not appear
+        svc.create(sample_create(), OTHER_OWNER).await.unwrap();
 
-        let hosts = svc.list().await.unwrap();
+        let hosts = svc.list_by_owner(OWNER).await.unwrap();
         assert_eq!(hosts.len(), 2);
     }
 
     #[tokio::test]
     async fn test_update_host() {
         let svc = setup().await;
-        let created = svc.create(sample_create()).await.unwrap();
+        let created = svc.create(sample_create(), OWNER).await.unwrap();
 
         let updated = svc
             .update(
                 &created.id,
+                OWNER,
                 UpdateHost {
                     name: Some("renamed-server".into()),
                     status: Some(HostStatus::Online),
@@ -525,11 +553,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_update_host_wrong_owner() {
+        let svc = setup().await;
+        let created = svc.create(sample_create(), OWNER).await.unwrap();
+        let result = svc
+            .update(
+                &created.id,
+                OTHER_OWNER,
+                UpdateHost {
+                    name: Some("x".into()),
+                    ..UpdateHost {
+                        name: None,
+                        address: None,
+                        port: None,
+                        username: None,
+                        auth_method: None,
+                        status: None,
+                        password: None,
+                        private_key: None,
+                    }
+                },
+            )
+            .await;
+        assert!(matches!(result, Err(HostError::NotFound(_))));
+    }
+
+    #[tokio::test]
     async fn test_update_host_not_found() {
         let svc = setup().await;
         let result = svc
             .update(
                 "nonexistent",
+                OWNER,
                 UpdateHost {
                     name: Some("x".into()),
                     address: None,
@@ -548,15 +603,25 @@ mod tests {
     #[tokio::test]
     async fn test_delete_host() {
         let svc = setup().await;
-        let created = svc.create(sample_create()).await.unwrap();
-        svc.delete(&created.id).await.unwrap();
-        assert!(matches!(svc.get(&created.id).await, Err(HostError::NotFound(_))));
+        let created = svc.create(sample_create(), OWNER).await.unwrap();
+        svc.delete(&created.id, OWNER).await.unwrap();
+        assert!(matches!(svc.get(&created.id, OWNER).await, Err(HostError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn test_delete_host_wrong_owner() {
+        let svc = setup().await;
+        let created = svc.create(sample_create(), OWNER).await.unwrap();
+        let result = svc.delete(&created.id, OTHER_OWNER).await;
+        assert!(matches!(result, Err(HostError::NotFound(_))));
+        // Original should still exist
+        assert!(svc.get(&created.id, OWNER).await.is_ok());
     }
 
     #[tokio::test]
     async fn test_delete_host_not_found() {
         let svc = setup().await;
-        let result = svc.delete("nonexistent").await;
+        let result = svc.delete("nonexistent", OWNER).await;
         assert!(matches!(result, Err(HostError::NotFound(_))));
     }
 
@@ -595,15 +660,15 @@ mod tests {
     #[tokio::test]
     async fn test_create_host_with_credentials() {
         let svc = setup().await;
-        let host = svc.create(sample_create_with_creds()).await.unwrap();
+        let host = svc.create(sample_create_with_creds(), OWNER).await.unwrap();
 
         // get() should NOT return credentials
-        let fetched = svc.get(&host.id).await.unwrap();
+        let fetched = svc.get(&host.id, OWNER).await.unwrap();
         assert!(fetched.password.is_none());
         assert!(fetched.private_key.is_none());
 
         // get_decrypted() SHOULD return credentials
-        let decrypted = svc.get_decrypted(&host.id).await.unwrap();
+        let decrypted = svc.get_decrypted(&host.id, OWNER).await.unwrap();
         assert_eq!(decrypted.password.as_deref(), Some("s3cret!"));
         assert!(decrypted.private_key.as_ref().unwrap().contains("RSA PRIVATE KEY"));
     }
@@ -611,11 +676,10 @@ mod tests {
     #[tokio::test]
     async fn test_credentials_not_in_list() {
         let svc = setup().await;
-        svc.create(sample_create_with_creds()).await.unwrap();
+        svc.create(sample_create_with_creds(), OWNER).await.unwrap();
 
-        let hosts = svc.list().await.unwrap();
+        let hosts = svc.list_by_owner(OWNER).await.unwrap();
         assert_eq!(hosts.len(), 1);
-        // List should not include credentials
         assert!(hosts[0].password.is_none());
         assert!(hosts[0].private_key.is_none());
     }
@@ -623,12 +687,12 @@ mod tests {
     #[tokio::test]
     async fn test_update_preserves_existing_credentials() {
         let svc = setup().await;
-        let host = svc.create(sample_create_with_creds()).await.unwrap();
+        let host = svc.create(sample_create_with_creds(), OWNER).await.unwrap();
 
-        // Update only the name, credentials should be preserved
         let updated = svc
             .update(
                 &host.id,
+                OWNER,
                 UpdateHost {
                     name: Some("new-name".into()),
                     ..UpdateHost {
@@ -648,19 +712,18 @@ mod tests {
 
         assert_eq!(updated.name, "new-name");
 
-        // Credentials should still be there
-        let decrypted = svc.get_decrypted(&host.id).await.unwrap();
+        let decrypted = svc.get_decrypted(&host.id, OWNER).await.unwrap();
         assert_eq!(decrypted.password.as_deref(), Some("s3cret!"));
     }
 
     #[tokio::test]
     async fn test_update_credentials() {
         let svc = setup().await;
-        let host = svc.create(sample_create_with_creds()).await.unwrap();
+        let host = svc.create(sample_create_with_creds(), OWNER).await.unwrap();
 
-        // Update credentials
         svc.update(
             &host.id,
+            OWNER,
             UpdateHost {
                 password: Some("new_password".into()),
                 private_key: Some("new-key-data".into()),
@@ -679,7 +742,7 @@ mod tests {
         .await
         .unwrap();
 
-        let decrypted = svc.get_decrypted(&host.id).await.unwrap();
+        let decrypted = svc.get_decrypted(&host.id, OWNER).await.unwrap();
         assert_eq!(decrypted.password.as_deref(), Some("new_password"));
         assert_eq!(decrypted.private_key.as_deref(), Some("new-key-data"));
     }
@@ -687,9 +750,9 @@ mod tests {
     #[tokio::test]
     async fn test_host_without_credentials() {
         let svc = setup().await;
-        let host = svc.create(sample_create()).await.unwrap();
+        let host = svc.create(sample_create(), OWNER).await.unwrap();
 
-        let decrypted = svc.get_decrypted(&host.id).await.unwrap();
+        let decrypted = svc.get_decrypted(&host.id, OWNER).await.unwrap();
         assert!(decrypted.password.is_none());
         assert!(decrypted.private_key.is_none());
     }

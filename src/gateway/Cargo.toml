@@ -30,6 +30,7 @@ chrono.workspace = true
 
 futures-util = "0.3"
 russh.workspace = true
+governor.workspace = true
 
 ops-pilot-core = { path = "../core" }
 ops-pilot-sdk = { path = "../sdk" }

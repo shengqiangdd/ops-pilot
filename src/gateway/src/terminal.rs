@@ -9,6 +9,7 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use axum::http::StatusCode;
 use futures_util::{SinkExt, StreamExt};
+use ops_pilot_core::audit::AuditTrail;
 use ops_pilot_core::auth::AuthService;
 use ops_pilot_core::ssh::{SshConnectionPool, SshError};
 use russh::ChannelMsg;
@@ -202,7 +203,7 @@ pub struct TerminalQuery {
 
 /// Axum handler that upgrades an HTTP request to a WebSocket and bridges it
 /// to an SSH terminal session. Validates the JWT token from the `?token=`
-/// query parameter before upgrading.
+/// query parameter before upgrading. Logs audit events for connect/disconnect.
 pub async fn handle_ws_connection(
     ws: axum::extract::ws::WebSocketUpgrade,
     axum::extract::State(state): axum::extract::State<TerminalState>,
@@ -210,14 +211,33 @@ pub async fn handle_ws_connection(
     axum::extract::Query(query): axum::extract::Query<TerminalQuery>,
 ) -> Result<impl axum::response::IntoResponse, StatusCode> {
     let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
-    state
+    let claims = state
         .auth
         .verify_token(&token)
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
+    let user_id = claims.sub.clone();
+    let audit = state.audit.clone();
+    let resource = format!("host:{}", host_id);
+
+    // Log successful SSH connect
+    let _ = audit
+        .log(&user_id, "ssh.connect", &resource, "success")
+        .await;
+
     Ok(ws.on_upgrade(move |socket| async move {
-        if let Err(e) = WebSocketHandler::run(socket, state.pool, host_id.clone()).await {
-            error!(host_id = %host_id, error = %e, "terminal session error");
+        match WebSocketHandler::run(socket, state.pool, host_id.clone()).await {
+            Ok(()) => {
+                let _ = audit
+                    .log(&user_id, "ssh.disconnect", &resource, "success")
+                    .await;
+            }
+            Err(e) => {
+                error!(host_id = %host_id, error = %e, "terminal session error");
+                let _ = audit
+                    .log(&user_id, "ssh.disconnect", &resource, &format!("failure: {e}"))
+                    .await;
+            }
         }
     }))
 }
@@ -227,11 +247,16 @@ pub async fn handle_ws_connection(
 pub struct TerminalState {
     pub pool: Arc<SshConnectionPool>,
     pub auth: Arc<AuthService>,
+    pub audit: Arc<AuditTrail>,
 }
 
 /// Build the terminal routes sub-router.
-pub fn terminal_routes(pool: Arc<SshConnectionPool>, auth: Arc<AuthService>) -> axum::Router {
-    let state = TerminalState { pool, auth };
+pub fn terminal_routes(
+    pool: Arc<SshConnectionPool>,
+    auth: Arc<AuthService>,
+    audit: Arc<AuditTrail>,
+) -> axum::Router {
+    let state = TerminalState { pool, auth, audit };
     axum::Router::new()
         .route(
             "/api/terminal/{host_id}",
@@ -346,9 +371,12 @@ mod tests {
     #[tokio::test]
     async fn test_terminal_state_clone() {
         let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let db = ops_pilot_core::db::Database::open_in_memory().await.unwrap();
+        let bus = ops_pilot_sdk::context::EventBus::new(16);
         let state = TerminalState {
             pool: Arc::new(SshConnectionPool::new()),
             auth: Arc::new(AuthService::new(pool, "test-secret".into())),
+            audit: Arc::new(AuditTrail::new(&db, bus)),
         };
         let cloned = state.clone();
         assert_eq!(cloned.pool.connection_count(), 0);

@@ -4,6 +4,8 @@
 //! verifies it with `AuthService`, and inserts the `UserIdClaims` into the
 //! request extensions so downstream handlers can access the authenticated user.
 
+pub mod rate_limit;
+
 use axum::{
     extract::{FromRequestParts, Request, State},
     http::header::AUTHORIZATION,
