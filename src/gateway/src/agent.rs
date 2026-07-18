@@ -103,7 +103,7 @@ impl AgentSession {
         ctx: &ops_pilot_sdk::context::ModuleContext,
     ) -> Result<AgentResponse> {
         self.messages.push(Message::user(user_message));
-        self.truncuate_if_needed();
+        self.truncate_if_needed();
 
         let tools = self.tool_registry.get_tools_for_llm().await;
         let mut turn_count = 0;
@@ -190,7 +190,7 @@ impl AgentSession {
                 }
 
                 turn_count += 1;
-                self.truncuate_if_needed();
+                self.truncate_if_needed();
             } else {
                 // No tool calls — final text response
                 self.messages.push(Message::assistant(&completion.content));
@@ -213,20 +213,28 @@ impl AgentSession {
     }
 
     /// Truncate oldest messages (after system prompt) when approaching token limit.
-    fn truncuate_if_needed(&mut self) {
+    ///
+    /// Preserves tool_call/tool_result atomicity: if the oldest message is an
+    /// Assistant with tool_calls, we also remove the following User tool_result
+    /// to avoid orphaned results that would confuse the LLM.
+    fn truncate_if_needed(&mut self) {
         let estimated = self.estimate_tokens();
         if estimated <= self.config.max_tokens {
             return;
         }
 
         let before = self.messages.len();
-        // Always keep the system prompt (index 0)
-        // Drop oldest user/assistant messages in pairs to keep conversation coherent
+        // Always keep the system prompt (index 0).
         while self.estimate_tokens() > self.config.max_tokens && self.messages.len() > 2 {
-            // Remove the message after system prompt
-            self.messages.remove(1);
-            // If the next message is a tool call result pair, remove it too
-            if self.messages.len() > 1 && self.messages[1].role == Role::User {
+            // messages[1] is the oldest non-system message
+            if self.messages[1].role == Role::Assistant && self.messages[1].tool_calls.is_some() {
+                // This is a tool_call Assistant — remove it AND the next tool_result User
+                self.messages.remove(1); // Assistant with tool_calls
+                if self.messages.len() > 1 && self.messages[1].role == Role::User {
+                    self.messages.remove(1); // User tool_result
+                }
+            } else {
+                // Normal message — safe to remove
                 self.messages.remove(1);
             }
         }
