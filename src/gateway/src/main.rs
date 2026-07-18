@@ -12,6 +12,7 @@ use ops_pilot_core::db::Database;
 use ops_pilot_core::ssh::SshConnectionPool;
 use ops_pilot_gateway::agent::{AgentConfig, AgentOrchestrator};
 use ops_pilot_gateway::routes::agent::agent_routes;
+use ops_pilot_gateway::routes::hosts::host_routes;
 use ops_pilot_gateway::routes::modules::{module_routes, ModuleManager};
 use ops_pilot_gateway::tools::registry::ToolRegistry;
 use ops_pilot_sdk::context::{EventBus, ModuleContext};
@@ -171,6 +172,7 @@ async fn main() {
     .expect("failed to create agent_sessions table");
 
     let auth_service = Arc::new(AuthService::new(pool.clone(), jwt_secret));
+    let host_service = Arc::new(ops_pilot_core::host::HostService::new(pool.clone()));
     let ssh_pool = Arc::new(SshConnectionPool::new());
 
     let module_loader = ops_pilot_sdk::loader::ModuleLoader::new();
@@ -204,6 +206,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/v1/health", get(health_handler))
         .merge(auth_routes(auth_service.clone()))
+        .merge(host_routes(host_service))
         .merge(module_routes(module_manager, ctx.clone()))
         .merge(agent_routes(tool_registry, llm_client, ctx, pool))
         .merge(ops_pilot_gateway::terminal::terminal_routes(
