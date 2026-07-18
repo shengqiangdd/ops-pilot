@@ -1,198 +1,146 @@
-<div align="center">
-
 # OpsPilot
 
-### AI-Powered Modular Infrastructure Operations Platform
+> AI 驱动的基础设施运维助手 — 通过自然语言管理服务器、容器和监控。
 
-[![Rust](https://img.shields.io/badge/Rust-1.75+-orange?logo=rust)](https://www.rust-lang.org/)
-[![CI](https://img.shields.io/github/actions/workflow/status/OWNER/ops-pilot/ci.yml?label=CI&logo=github)](https://github.com/OWNER/ops-pilot/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/OWNER/ops-pilot?style=social)](https://github.com/OWNER/ops-pilot)
-
-</div>
-
----
-
-**OpsPilot** is an open-source, AI-powered infrastructure operations platform that unifies server management, monitoring, incident response, and cost optimization into a single, extensible system. Built in Rust for performance and reliability, it features a pluggable module architecture that lets you tailor the platform to your exact operational needs — from automated root cause analysis to natural language infrastructure control. Whether you manage three servers or three thousand, OpsPilot gives you a single pane of glass with AI-assisted intelligence.
-
----
-
-## ✨ Features
-
-- 🧠 **AI-Powered Operations** — Natural language infrastructure control, automated RCA, and intelligent remediation powered by LLMs (Ollama, OpenAI, DeepSeek, MiMo)
-- 🔌 **Modular Architecture** — Plugin system with hot-loadable modules; extend functionality without touching core code
-- 🖥️ **Unified Infrastructure View** — SSH terminal, Docker management, and host monitoring in one dashboard
-- 📊 **Cost Intelligence** — FinOps module for cloud spend analysis, anomaly detection, and optimization recommendations
-- 🔒 **Security-First** — JWT authentication, RBAC, full audit trail, and secrets vault integration
-- 🌐 **Real-Time Web UI** — React dashboard with live terminal, topology visualization, and interactive charts
-- 🐳 **One-Command Deploy** — Docker Compose or bare metal; SQLite for small setups, PostgreSQL for scale
-- 📡 **MCP Protocol Support** — Connect external AI tools and agents via the Model Context Protocol
-
----
-
-## 🏗️ Architecture
+## 架构概览
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Web UI (React)                       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │Dashboard │ │ Terminal │ │Topology  │ │ Cost Analytics│  │
-│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ REST / WebSocket
-┌──────────────────────────┴──────────────────────────────────┐
-│                     Core Engine (Rust)                       │
-│  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐  │
-│  │ Connection   │ │  Event Bus   │ │   Audit Trail      │  │
-│  │   Pool       │ │  (tokio)     │ │   (append-only)    │  │
-│  └──────────────┘ └──────────────┘ └────────────────────┘  │
-│  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐  │
-│  │  Monitoring  │ │   Secrets    │ │   Scheduler        │  │
-│  │   Engine     │ │   Vault      │ │                    │  │
-│  └──────────────┘ └──────────────┘ └────────────────────┘  │
-└──────────┬───────────────┬───────────────┬─────────────────┘
-           │               │               │
-    ┌──────┴──────┐ ┌──────┴──────┐ ┌──────┴──────┐
-    │ Module SDK  │ │ AI Gateway  │ │  Data Layer │
-    │ (trait defs)│ │ (LLM route) │ │ (SQLite/PG) │
-    └──────┬──────┘ └──────┬──────┘ └─────────────┘
-           │               │
-    ┌──────┴───────────────┴──────┐
-    │      Pluggable Modules      │
-    │ ┌─────┐ ┌─────┐ ┌───────┐  │
-    │ │ rca │ │finop│ │ sec   │  │
-    │ └─────┘ └─────┘ └───────┘  │
-    │ ┌──────┐ ┌───────────────┐  │
-    │ │ topo │ │  chatops      │  │
-    │ └──────┘ └───────────────┘  │
-    └─────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    ops-pilot-app                        │
+│       React 18 + Vite 6 + Tailwind CSS 3 + ReactFlow  │
+│       Zustand 状态管理 · React Query · React Router 7  │
+└──────────────────────────┬──────────────────────────────┘
+                           │ REST API + WebSocket
+┌──────────────────────────▼──────────────────────────────┐
+│                   ops-pilot-gateway                     │
+│   Axum 0.8 HTTP 服务 · JWT 认证中间件                   │
+│   ┌────────────┐ ┌──────────┐ ┌────────────────────┐   │
+│   │ Agent ReAct│ │ LLM Chat │ │ Terminal WS→SSH    │   │
+│   │   Loop     │ │ Service  │ │ Proxy              │   │
+│   └─────┬──────┘ └────┬─────┘ └────────┬───────────┘   │
+│         └─────────────┼────────────────┘                │
+│         ┌─────────────▼────────────────┐                │
+│         │      ToolRegistry            │                │
+│         │  路由 tool call → module      │                │
+│         └─────────────┬────────────────┘                │
+└───────────────────────┼─────────────────────────────────┘
+                        │
+┌───────────────────────▼─────────────────────────────────┐
+│                    ops-pilot-sdk                        │
+│  OpsModule trait · EventBus · ModuleLoader · Context    │
+└───────────────────────┬─────────────────────────────────┘
+                        │
+┌───────────────────────▼─────────────────────────────────┐
+│                    ops-pilot-core                       │
+│  SSH (russh) · Docker (bollard) · Auth (argon2+JWT)   │
+│  Host CRUD · SQLite · CommandExecutor · EventBus       │
+└─────────────────────────────────────────────────────────┘
 ```
 
----
+## 模块说明
 
-## 🚀 Quick Start
+| Crate | 说明 |
+|-------|------|
+| `ops-pilot-core` | 核心层：SSH 连接管理、Docker 容器操作、Host CRUD、用户认证、SQLite 数据库、事件总线 |
+| `ops-pilot-sdk` | SDK 层：`OpsModule` trait 定义、模块加载器、事件系统、模块上下文、工具定义 |
+| `ops-pilot-gateway` | 网关层：Axum HTTP API、Agent ReAct 循环、LLM 集成、WebSocket 终端、工具路由 |
+| `ops-pilot-app` | 前端应用：React SPA，包含主机管理、AI 对话、工作流编辑器、用户认证 |
 
-### Docker Compose (Recommended)
+## 模块系统
+
+每个运维模块实现 `OpsModule` trait，声明自己的工具（tool），由 Gateway 的 `ToolRegistry` 自动聚合并路由 AI 的工具调用：
+
+```rust
+#[async_trait]
+pub trait OpsModule: Send + Sync + 'static {
+    fn name(&self) -> &str;
+    fn version(&self) -> &str;
+    fn description(&self) -> &str;
+    fn dependencies(&self) -> Vec<&str>;
+    fn tools(&self) -> Vec<ToolDefinition>;
+    async fn execute(&self, ctx: &ModuleContext, tool: &str, params: Value) -> Result<Value>;
+    async fn on_event(&self, ctx: &ModuleContext, event: &OpsEvent) -> Option<ModuleAction>;
+    async fn health_check(&self, ctx: &ModuleContext) -> HealthStatus;
+}
+```
+
+模块工具通过 JSON Schema 描述参数，Agent 在 ReAct 循环中自动发现并调用。
+
+## 快速开始
+
+### 前置条件
+
+- Rust 1.85+（2024 Edition）
+- Node.js 20+
+- SQLite（通过 `libsqlite3-sys` 捆绑编译）
+
+### 后端
 
 ```bash
-git clone https://github.com/OWNER/ops-pilot.git
-cd ops-pilot
-cp .env.example .env
-# Edit .env with your settings
-docker compose up -d
+# 构建所有 crate
+cargo build --workspace
+
+# 运行测试
+cargo test --workspace
+
+# 启动网关服务
+cargo run -p ops-pilot-gateway
 ```
 
-Open **http://localhost:3000** — the Web UI is ready.
-
-### Manual Install
-
-**Prerequisites:** Rust 1.75+, Node.js 20+, SQLite
+### 前端
 
 ```bash
-# Clone and build
-git clone https://github.com/OWNER/ops-pilot.git
-cd ops-pilot
-cargo build --release
-
-# Build frontend
-cd frontend && npm install && npm run build && cd ..
-
-# Initialize database
-./target/release/ops-pilot init
-
-# Start the server
-./target/release/ops-pilot serve --config config.toml
+cd ops-pilot-app
+npm install
+npm run dev     # Vite 开发服务器 http://localhost:5173
+npm run build   # 生产构建输出到 dist/
 ```
 
-### First Steps
+## API 端点
 
-1. Open the Web UI and log in (default: `admin` / `ops-pilot`)
-2. Add a host via **Hosts → Add Host** or use the CLI: `ops-pilot host add --name my-server --ip 192.168.1.100`
-3. Connect and get a terminal: click the host card → **Connect**
-4. Try AI chat: type "what's the CPU usage on my-server?" in the AI Chat panel
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/auth/register` | 用户注册 |
+| POST | `/api/auth/login` | 登录获取 JWT |
+| GET | `/api/hosts` | 列出所有主机 |
+| POST | `/api/hosts` | 创建主机 |
+| PUT | `/api/hosts/:id` | 更新主机 |
+| DELETE | `/api/hosts/:id` | 删除主机 |
+| GET | `/api/modules` | 列出已加载模块 |
+| GET | `/api/modules/:name` | 模块详情 |
+| POST | `/api/modules/:name/enable` | 启用模块 |
+| POST | `/api/modules/:name/disable` | 禁用模块 |
+| GET | `/api/modules/:name/health` | 模块健康检查 |
+| POST | `/api/agent/session` | 创建 Agent 会话 |
+| POST | `/api/agent/chat/:session_id` | 向 Agent 发送消息 |
+| DELETE | `/api/agent/session/:session_id` | 关闭会话 |
+| GET | `/ws/terminal/:host_id` | WebSocket SSH 终端 |
 
----
+## 配置
 
-## 📦 Module Ecosystem
+通过环境变量配置网关：
 
-| Module | Description | Status |
-|--------|-------------|--------|
-| **mod-core** | Host management, SSH connections, Docker control, monitoring | ✅ Core |
-| **mod-rca** | Automated root cause analysis with AI-powered log correlation | 🚧 In Development |
-| **mod-finops** | Cloud cost analysis, anomaly detection, optimization recommendations | 🚧 In Development |
-| **mod-security** | Vulnerability scanning, compliance checks, secrets rotation | 📋 Planned |
-| **mod-topo** | Network topology discovery, dependency mapping, visualization | 📋 Planned |
-| **mod-chatops** | Slack/Discord/Telegram integration, incident workflows, on-call | 📋 Planned |
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `DATABASE_URL` | `sqlite:ops_pilot.db` | SQLite 连接串 |
+| `JWT_SECRET` | （必填） | JWT 签名密钥 |
+| `LLM_PROVIDER` | `openai` | LLM 提供商：`openai` / `ollama` / `mimo` |
+| `LLM_API_KEY` | （openai 必填） | LLM API 密钥 |
+| `LLM_MODEL` | `gpt-4` | 聊天模型名称 |
+| `HOST` | `0.0.0.0` | 监听地址 |
+| `PORT` | `8080` | 监听端口 |
+| `OPSPILOT_MASTER_KEY` | （推荐） | 主机凭证加密主密钥（Base64 编码的 32 字节密钥） |
 
-Build your own modules with the [Module SDK](docs/MODULE_SDK.md).
+## 安全
 
----
+- 密码使用 **Argon2id** 哈希
+- JWT Token 有效期 24 小时
+- 所有受保护路由需要 `Authorization: Bearer <token>`
+- SSH 连接支持密码和公钥认证
+- SSH 主机密钥验证（`known_hosts`）— 防止中间人攻击
+- 主机凭证 AES-256-GCM 加密存储（需设置 `OPSPILOT_MASTER_KEY` 环境变量）
+- `russh` 升级至 0.62.x，修复 OOM DoS 和用户名状态绕过漏洞
 
-## 🛠️ Tech Stack
+## License
 
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | Rust (axum, tokio, russh) |
-| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS |
-| **Database** | SQLite (default) / PostgreSQL |
-| **Terminal** | WebSocket + xterm.js |
-| **Topology** | React Flow |
-| **Charts** | Recharts |
-| **State** | Zustand + TanStack Query |
-| **LLM Providers** | Ollama, OpenAI, DeepSeek, MiMo |
-| **Container Runtime** | Docker API |
-| **SSH** | russh (pure Rust SSH client) |
-
----
-
-## ⚖️ Comparison
-
-| Feature | **OpsPilot** | SmartBox | K8sGPT | NetBox | Cleric |
-|---------|:----------:|:--------:|:------:|:------:|:------:|
-| Infrastructure-as-Code | ✅ | ✅ | ❌ | ❌ | ❌ |
-| AI-Powered RCA | ✅ | ❌ | ✅ | ❌ | ✅ |
-| SSH Terminal | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Docker Management | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Cost Optimization | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Topology Visualization | ✅ | ❌ | ❌ | ✅ | ❌ |
-| Module/Plugin System | ✅ | ❌ | ❌ | ✅ | ❌ |
-| ChatOps Integration | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Multi-LLM Support | ✅ | ❌ | ✅ | ❌ | ✅ |
-| Web UI | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Self-Hosted | ✅ | ✅ | ✅ | ✅ | ✅ |
-| License | MIT | MIT | Apache-2.0 | BSD-3 | MIT |
-
----
-
-## 📖 Documentation
-
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Module SDK Guide](docs/MODULE_SDK.md)
-- [API Reference](docs/API_REFERENCE.md)
-- [Project Roadmap](docs/ROADMAP.md)
-- [Contributing Guide](docs/CONTRIBUTING.md)
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! See the [Contributing Guide](docs/CONTRIBUTING.md) for development setup, coding standards, and PR process.
-
-```bash
-# Quick start for contributors
-git clone https://github.com/OWNER/ops-pilot.git
-cd ops-pilot
-make dev  # Sets up everything
-```
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-<div align="center">
-  <sub>Built with 🦀 Rust and ❤️ by the OpsPilot community</sub>
-</div>
+Apache License 2.0 — 详见 [LICENSE](LICENSE)。
