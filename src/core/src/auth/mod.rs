@@ -32,6 +32,15 @@ pub enum AuthError {
 
     #[error("jwt error: {0}")]
     Jwt(#[from] jsonwebtoken::errors::Error),
+
+    #[error("vault not set up for this user")]
+    VaultNotSetup,
+
+    #[error("vault passphrase is incorrect")]
+    VaultPassphraseMismatch,
+
+    #[error("passphrase too short (minimum 8 characters)")]
+    PassphraseTooShort,
 }
 
 /// A registered user.
@@ -42,6 +51,10 @@ pub struct User {
     pub email: String,
     #[serde(skip_serializing)]
     pub password_hash: String,
+    #[serde(skip_serializing)]
+    pub vault_key_encrypted: Option<String>,
+    #[serde(skip_serializing)]
+    pub vault_password_hash: Option<String>,
     pub created_at: String,
 }
 
@@ -106,6 +119,8 @@ impl AuthService {
                 username: username.to_string(),
                 email: email.to_string(),
                 password_hash: hash,
+                vault_key_encrypted: None,
+                vault_password_hash: None,
                 created_at: chrono::Utc::now().to_rfc3339(),
             }),
             Err(sqlx::Error::Database(db_err)) => {
@@ -161,6 +176,178 @@ impl AuthService {
         )?;
         Ok(token_data.claims)
     }
+
+    // ── Vault operations ──────────────────────────────────────────────────
+
+    /// Derive a 32-byte key from a passphrase using argon2id.
+    fn derive_key_from_passphrase(passphrase: &str, salt: &str) -> Result<[u8; 32], AuthError> {
+        let mut key = [0u8; 32];
+        Argon2::default()
+            .hash_password_into(passphrase.as_bytes(), salt.as_bytes(), &mut key)
+            .map_err(|e| AuthError::PasswordHash(e.to_string()))?;
+        Ok(key)
+    }
+
+    /// Set or update the vault passphrase for a user.
+    ///
+    /// 1. Derive vault_key = argon2id(passphrase, salt1)
+    /// 2. Derive vault_password_hash = argon2id(passphrase, salt2)
+    /// 3. intermediate_key = argon2id(login_password, salt3)
+    /// 4. vault_key_encrypted = aes_gcm_encrypt(vault_key, intermediate_key)
+    /// 5. Store vault_key_encrypted + vault_password_hash in users table
+    pub async fn set_vault_passphrase(
+        &self,
+        user_id: &str,
+        login_password: &str,
+        passphrase: &str,
+    ) -> Result<(), AuthError> {
+        if passphrase.len() < 8 {
+            return Err(AuthError::PassphraseTooShort);
+        }
+
+        // Verify login password is correct first
+        let user: User = sqlx::query_as("SELECT * FROM users WHERE id = ?")
+            .bind(user_id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or(AuthError::InvalidCredentials)?;
+
+        let parsed_hash =
+            PasswordHash::new(&user.password_hash).map_err(|e| AuthError::PasswordHash(e.to_string()))?;
+        Argon2::default()
+            .verify_password(login_password.as_bytes(), &parsed_hash)
+            .map_err(|_| AuthError::InvalidCredentials)?;
+
+        // Generate three random salts
+        let salt1 = SaltString::generate(&mut rand::thread_rng());
+        let salt2 = SaltString::generate(&mut rand::thread_rng());
+        let salt3 = SaltString::generate(&mut rand::thread_rng());
+
+        // Derive vault_key from passphrase
+        let vault_key = Self::derive_key_from_passphrase(passphrase, salt1.as_str())?;
+
+        // Derive vault_password_hash from passphrase (different salt)
+        let vault_password_hash = Argon2::default()
+            .hash_password(passphrase.as_bytes(), &salt2)
+            .map_err(|e| AuthError::PasswordHash(e.to_string()))?
+            .to_string();
+
+        // Derive intermediate_key from login_password (different salt)
+        let intermediate_bytes = Self::derive_key_from_passphrase(login_password, salt3.as_str())?;
+        let intermediate_master = crate::crypto::MasterKey::from_bytes(intermediate_bytes);
+
+        // Encrypt vault_key with intermediate_key
+        let (ciphertext, iv) = crate::crypto::encrypt(&vault_key, &intermediate_master)
+            .map_err(|e| AuthError::PasswordHash(format!("encryption error: {e}")))?;
+
+        // Encode as base64 for storage
+        let ct_b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &ciphertext);
+        let iv_b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &iv);
+        let vault_key_encrypted = format!("{salt1}:{salt3}:{ct_b64}:{iv_b64}");
+
+        sqlx::query(
+            "UPDATE users SET vault_key_encrypted = ?, vault_password_hash = ? WHERE id = ?",
+        )
+        .bind(&vault_key_encrypted)
+        .bind(&vault_password_hash)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Verify vault passphrase and return the decrypted vault key.
+    ///
+    /// 1. Verify login password is correct
+    /// 2. Verify argon2id(passphrase, salt2) == vault_password_hash
+    /// 3. Parse vault_key_encrypted to extract salt1, salt3, ciphertext, iv
+    /// 4. intermediate_key = argon2id(login_password, salt3)
+    /// 5. vault_key = aes_gcm_decrypt(vault_key_encrypted, intermediate_key)
+    /// 6. Return vault_key
+    pub async fn unlock_vault(
+        &self,
+        user_id: &str,
+        login_password: &str,
+        passphrase: &str,
+    ) -> Result<[u8; 32], AuthError> {
+        // Fetch user
+        let user: User = sqlx::query_as("SELECT * FROM users WHERE id = ?")
+            .bind(user_id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or(AuthError::InvalidCredentials)?;
+
+        // Verify login password first
+        let parsed_login_hash =
+            PasswordHash::new(&user.password_hash).map_err(|e| AuthError::PasswordHash(e.to_string()))?;
+        Argon2::default()
+            .verify_password(login_password.as_bytes(), &parsed_login_hash)
+            .map_err(|_| AuthError::InvalidCredentials)?;
+
+        // Verify vault is set up
+        let vault_password_hash = user.vault_password_hash.as_ref()
+            .ok_or(AuthError::VaultNotSetup)?;
+
+        // Verify passphrase
+        let parsed_hash = PasswordHash::new(vault_password_hash)
+            .map_err(|e| AuthError::PasswordHash(e.to_string()))?;
+        Argon2::default()
+            .verify_password(passphrase.as_bytes(), &parsed_hash)
+            .map_err(|_| AuthError::VaultPassphraseMismatch)?;
+
+        // Parse vault_key_encrypted
+        let vault_key_encrypted = user.vault_key_encrypted.as_ref()
+            .ok_or(AuthError::VaultNotSetup)?;
+
+        let parts: Vec<&str> = vault_key_encrypted.splitn(4, ':').collect();
+        if parts.len() != 4 {
+            return Err(AuthError::VaultNotSetup);
+        }
+        let (salt1, salt3, ct_b64, iv_b64) = (parts[0], parts[1], parts[2], parts[3]);
+
+        let ciphertext = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, ct_b64)
+            .map_err(|e| AuthError::PasswordHash(format!("base64 decode error: {e}")))?;
+        let iv = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, iv_b64)
+            .map_err(|e| AuthError::PasswordHash(format!("base64 decode error: {e}")))?;
+
+        // Derive intermediate_key from login_password
+        let intermediate_bytes = Self::derive_key_from_passphrase(login_password, salt3)?;
+        let intermediate_master = crate::crypto::MasterKey::from_bytes(intermediate_bytes);
+
+        // Decrypt vault_key
+        let vault_key_bytes = crate::crypto::decrypt(&ciphertext, &intermediate_master, &iv)
+            .map_err(|_| AuthError::VaultPassphraseMismatch)?;
+
+        if vault_key_bytes.len() != 32 {
+            return Err(AuthError::VaultNotSetup);
+        }
+
+        let mut vault_key = [0u8; 32];
+        vault_key.copy_from_slice(&vault_key_bytes);
+
+        // Verify the vault_key by re-deriving from passphrase and comparing
+        let verify_key = Self::derive_key_from_passphrase(passphrase, salt1)?;
+        if vault_key != verify_key {
+            return Err(AuthError::VaultNotSetup);
+        }
+
+        Ok(vault_key)
+    }
+
+    /// Check if a user has vault set up (has vault_password_hash).
+    pub async fn has_vault(&self, user_id: &str) -> Result<bool, AuthError> {
+        let row: Option<(Option<String>,)> = sqlx::query_as(
+            "SELECT vault_password_hash FROM users WHERE id = ?",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        match row {
+            Some((Some(_),)) => Ok(true),
+            _ => Ok(false),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -175,6 +362,8 @@ mod tests {
                 username TEXT NOT NULL UNIQUE,
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
+                vault_key_encrypted TEXT,
+                vault_password_hash TEXT,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )",
         )
@@ -271,5 +460,107 @@ mod tests {
         let deserialized: UserIdClaims = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.sub, "user-123");
         assert_eq!(deserialized.exp, 10086400);
+    }
+
+    // ── Vault tests ─────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_set_vault_passphrase() {
+        let pool = setup_db().await;
+        let svc = AuthService::new(pool, "secret".into());
+
+        let user = svc.register("vault_user", "v@test.com", "password123").await.unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass").await.unwrap();
+
+        assert!(svc.has_vault(&user.id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_unlock_vault_correct_passphrase() {
+        let pool = setup_db().await;
+        let svc = AuthService::new(pool, "secret".into());
+
+        let user = svc.register("unlock_user", "u@test.com", "password123").await.unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass").await.unwrap();
+
+        let key = svc.unlock_vault(&user.id, "password123", "my-vault-pass").await.unwrap();
+        assert_eq!(key.len(), 32);
+    }
+
+    #[tokio::test]
+    async fn test_unlock_vault_wrong_passphrase() {
+        let pool = setup_db().await;
+        let svc = AuthService::new(pool, "secret".into());
+
+        let user = svc.register("wrong_pass", "w@test.com", "password123").await.unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass").await.unwrap();
+
+        let result = svc.unlock_vault(&user.id, "password123", "wrong-passphrase").await;
+        assert!(matches!(result, Err(AuthError::VaultPassphraseMismatch)));
+    }
+
+    #[tokio::test]
+    async fn test_unlock_vault_not_setup() {
+        let pool = setup_db().await;
+        let svc = AuthService::new(pool, "secret".into());
+
+        let user = svc.register("no_vault", "n@test.com", "password123").await.unwrap();
+        let result = svc.unlock_vault(&user.id, "password123", "anything").await;
+        assert!(matches!(result, Err(AuthError::VaultNotSetup)));
+    }
+
+    #[tokio::test]
+    async fn test_unlock_vault_wrong_login_password() {
+        let pool = setup_db().await;
+        let svc = AuthService::new(pool, "secret".into());
+
+        let user = svc.register("wrong_login", "wl@test.com", "password123").await.unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass").await.unwrap();
+
+        let result = svc.unlock_vault(&user.id, "wrongpassword", "my-vault-pass").await;
+        assert!(matches!(result, Err(AuthError::InvalidCredentials)));
+    }
+
+    #[tokio::test]
+    async fn test_update_vault_passphrase() {
+        let pool = setup_db().await;
+        let svc = AuthService::new(pool, "secret".into());
+
+        let user = svc.register("update_vault", "uv@test.com", "password123").await.unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "old-pass").await.unwrap();
+
+        let old_key = svc.unlock_vault(&user.id, "password123", "old-pass").await.unwrap();
+
+        // Update passphrase
+        svc.set_vault_passphrase(&user.id, "password123", "new-pass").await.unwrap();
+
+        // Old passphrase should fail
+        let result = svc.unlock_vault(&user.id, "password123", "old-pass").await;
+        assert!(matches!(result, Err(AuthError::VaultPassphraseMismatch)));
+
+        // New passphrase should work
+        let new_key = svc.unlock_vault(&user.id, "password123", "new-pass").await.unwrap();
+        assert_eq!(new_key.len(), 32);
+        // Keys should be different since salts are random
+        assert_ne!(old_key, new_key);
+    }
+
+    #[tokio::test]
+    async fn test_vault_passphrase_too_short() {
+        let pool = setup_db().await;
+        let svc = AuthService::new(pool, "secret".into());
+
+        let user = svc.register("short_pass", "sp@test.com", "password123").await.unwrap();
+        let result = svc.set_vault_passphrase(&user.id, "password123", "short").await;
+        assert!(matches!(result, Err(AuthError::PassphraseTooShort)));
+    }
+
+    #[tokio::test]
+    async fn test_has_vault_false_by_default() {
+        let pool = setup_db().await;
+        let svc = AuthService::new(pool, "secret".into());
+
+        let user = svc.register("no_vault2", "nv2@test.com", "password123").await.unwrap();
+        assert!(!svc.has_vault(&user.id).await.unwrap());
     }
 }

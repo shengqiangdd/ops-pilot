@@ -6,3 +6,4 @@ pub mod docker;
 pub mod host;
 pub mod monitor;
 pub mod ssh;
+pub mod vault;

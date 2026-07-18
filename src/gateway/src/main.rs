@@ -14,6 +14,7 @@ use ops_pilot_gateway::agent::{AgentConfig, AgentOrchestrator};
 use ops_pilot_gateway::routes::agent::agent_routes;
 use ops_pilot_gateway::routes::hosts::host_routes;
 use ops_pilot_gateway::routes::modules::{module_routes, ModuleManager};
+use ops_pilot_gateway::routes::vault::vault_routes;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
 use ops_pilot_sdk::context::{EventBus, ModuleContext};
 use serde::Deserialize;
@@ -185,7 +186,8 @@ async fn main() {
     .expect("failed to create agent_sessions table");
 
     let auth_service = Arc::new(AuthService::new(pool.clone(), jwt_secret));
-    let host_service = Arc::new(ops_pilot_core::host::HostService::new(pool.clone()));
+    let vault_keys = Arc::new(ops_pilot_core::vault::VaultKeyManager::new());
+    let host_service = Arc::new(ops_pilot_core::host::HostService::new(pool.clone(), vault_keys.clone()));
     let ssh_pool = Arc::new(SshConnectionPool::new());
 
     let module_loader = ops_pilot_sdk::loader::ModuleLoader::new();
@@ -235,13 +237,21 @@ async fn main() {
     // Rate limiter for login endpoint: 5 requests/minute/IP
     let login_limiter = ops_pilot_gateway::middleware::rate_limit::login_limiter();
 
-    // Host routes require JWT authentication
+    // Host + Vault routes require JWT authentication
     let auth_middleware_state = ops_pilot_gateway::middleware::AuthState {
         service: auth_service.clone(),
     };
     let protected_hosts = host_routes(host_service).layer(
         axum::middleware::from_fn_with_state(
-            auth_middleware_state,
+            auth_middleware_state.clone(),
+            ops_pilot_gateway::middleware::auth_middleware,
+        ),
+    );
+
+    // Vault routes require JWT authentication
+    let protected_vault = vault_routes(auth_service.clone(), vault_keys.clone()).layer(
+        axum::middleware::from_fn_with_state(
+            auth_middleware_state.clone(),
             ops_pilot_gateway::middleware::auth_middleware,
         ),
     );
@@ -250,6 +260,7 @@ async fn main() {
         .route("/api/v1/health", get(health_handler))
         .merge(auth_routes(auth_service.clone(), login_limiter))
         .merge(protected_hosts)
+        .merge(protected_vault)
         .merge(module_routes(module_manager, ctx.clone()))
         .merge(agent_routes(tool_registry, llm_client, ctx, pool))
         .merge(ops_pilot_gateway::terminal::terminal_routes(

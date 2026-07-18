@@ -6,6 +6,7 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::crypto::{self, CryptoError, MasterKey};
@@ -219,14 +220,24 @@ fn deserialize_credentials(data: &[u8]) -> (Option<String>, Option<String>) {
 pub struct HostService {
     pool: SqlitePool,
     key: MasterKey,
+    vault_keys: Arc<crate::vault::VaultKeyManager>,
 }
 
 impl HostService {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: SqlitePool, vault_keys: Arc<crate::vault::VaultKeyManager>) -> Self {
         Self {
             pool,
             key: MasterKey::load(),
+            vault_keys,
         }
+    }
+
+    /// Resolve the encryption key for a given owner: vault key if unlocked, else MasterKey.
+    fn resolve_key(&self, owner_id: &str) -> MasterKey {
+        self.vault_keys
+            .get(owner_id)
+            .map(MasterKey::from_bytes)
+            .unwrap_or_else(|| MasterKey::from_bytes(*self.key.as_bytes()))
     }
 
     /// Create a new host record owned by `owner_id`.
@@ -249,10 +260,11 @@ impl HostService {
         let status = input.status.unwrap_or(HostStatus::Unknown);
         let status_str = status.as_str();
 
-        // Encrypt credentials
+        // Encrypt credentials using vault key if unlocked, else MasterKey
+        let enc_key = self.resolve_key(owner_id);
         let (cred_blob, iv_blob) = match serialize_credentials(&input.password, &input.private_key) {
             Some(plaintext) => {
-                let (ciphertext, iv) = crypto::encrypt(&plaintext, &self.key)?;
+                let (ciphertext, iv) = crypto::encrypt(&plaintext, &enc_key)?;
                 (Some(ciphertext), Some(iv))
             }
             None => (None, None),
@@ -302,7 +314,8 @@ impl HostService {
         .await?
         .ok_or_else(|| HostError::NotFound(id.to_string()))?;
 
-        row.into_host_with_creds(&self.key)
+        let dec_key = self.resolve_key(owner_id);
+        row.into_host_with_creds(&dec_key)
     }
 
     /// List hosts belonging to `owner_id` (without decrypting credentials).
@@ -337,11 +350,12 @@ impl HostService {
         let status = input.status.unwrap_or(HostStatus::from_str(&existing.status));
 
         // Update credentials only if provided
+        let enc_key = self.resolve_key(owner_id);
         let (cred_blob, iv_blob) = if input.password.is_some() || input.private_key.is_some() {
             let plaintext = serialize_credentials(&input.password, &input.private_key);
             match plaintext {
                 Some(pt) => {
-                    let (ct, iv) = crypto::encrypt(&pt, &self.key)?;
+                    let (ct, iv) = crypto::encrypt(&pt, &enc_key)?;
                     (Some(ct), Some(iv))
                 }
                 None => (None, None),
@@ -414,7 +428,7 @@ mod tests {
 
     async fn setup() -> HostService {
         let db = Database::open_in_memory().await.unwrap();
-        HostService::new(db.pool)
+        HostService::new(db.pool, Arc::new(crate::vault::VaultKeyManager::new()))
     }
 
     fn sample_create() -> CreateHost {

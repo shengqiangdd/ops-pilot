@@ -136,7 +136,8 @@ mod tests {
 
     async fn setup_with_auth() -> (axum::Router, Arc<AuthService>) {
         let db = Database::open_in_memory().await.unwrap();
-        let service = Arc::new(HostService::new(db.pool.clone()));
+        let vault_keys = Arc::new(ops_pilot_core::vault::VaultKeyManager::new());
+        let service = Arc::new(HostService::new(db.pool.clone(), vault_keys));
         let auth = Arc::new(AuthService::new(db.pool, TEST_SECRET.into()));
 
         // Register and login a test user

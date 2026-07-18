@@ -107,6 +107,8 @@ mod tests {
                 username TEXT NOT NULL UNIQUE,
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
+                vault_key_encrypted TEXT,
+                vault_password_hash TEXT,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )",
         )
