@@ -7,9 +7,9 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use crate::agent::{AgentConfig, AgentOrchestrator, AgentResponse};
+use crate::agent::{AgentConfig, AgentOrchestrator};
 use crate::llm::LlmClient;
 use crate::tools::registry::ToolRegistry;
 
@@ -32,13 +32,13 @@ pub struct CreateSessionRequest {
 }
 
 /// Request body for sending a chat message.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChatRequest {
     pub message: String,
 }
 
 /// Response for session creation.
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SessionResponse {
     pub session_id: String,
 }
@@ -121,6 +121,7 @@ pub fn agent_routes(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent::AgentResponse;
     use crate::llm::{CompletionResponse, FunctionCall, LlmError, Message, Role, ToolCall};
     use async_trait::async_trait;
     use axum::body::Body;
@@ -133,6 +134,7 @@ mod tests {
     use sqlx::SqlitePool;
     use std::path::PathBuf;
     use std::pin::Pin;
+    use std::sync::Arc;
     use tower::ServiceExt;
 
     // ── Mock LLM ───────────────────────────────────────────────────────
@@ -263,7 +265,7 @@ mod tests {
             .unwrap();
         let resp = app.clone().oneshot(req).await.unwrap();
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
-        let session: SessionResponse = serde_json::from_slice(&body).unwrap;
+        let session: SessionResponse = serde_json::from_slice(&body).unwrap();
 
         // Send message
         let req = Request::builder()

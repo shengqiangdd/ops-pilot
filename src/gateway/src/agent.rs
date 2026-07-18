@@ -12,7 +12,7 @@ use tokio::sync::RwLock;
 use tracing::{info, warn};
 use uuid::Uuid;
 
-use crate::llm::{CompletionResponse, LlmClient, LlmError, Message, Role, ToolCall};
+use crate::llm::{LlmClient, Message, Role, ToolCall};
 use crate::tools::registry::ToolRegistry;
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ impl AgentSession {
 
         let tools = self.tool_registry.get_tools_for_llm().await;
         let mut turn_count = 0;
-        let mut truncated = false;
+        let truncated = false;
 
         loop {
             if turn_count >= self.config.max_turns {
@@ -344,6 +344,9 @@ mod tests {
     use serde_json::json;
     use sqlx::SqlitePool;
     use std::path::PathBuf;
+    use std::pin::Pin;
+
+    use crate::llm::{CompletionResponse, LlmError};
 
     // ── Mock LLM Client ────────────────────────────────────────────────
 
@@ -381,7 +384,7 @@ mod tests {
         fn sequence(responses: Vec<CompletionResponse>) -> Self {
             Self {
                 responses: std::sync::Mutex::new(responses),
-            },
+            }
         }
     }
 

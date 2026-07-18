@@ -218,8 +218,9 @@ impl KnownHosts {
         hostname: &str,
         key: &PublicKey,
     ) -> Result<bool, SshError> {
-        let key_type = format!("{:?}", key.key_type());
-        // Remove the "Other(" wrapper if present
+        // ssh_key 0.7: use algorithm() which returns Algorithm enum, format it
+        let key_type = format!("{:?}", key.algorithm());
+        // Remove the "Other(" wrapper if present (for custom algorithms)
         let key_type = key_type
             .trim_start_matches("Other(\"")
             .trim_end_matches("\")")
@@ -230,10 +231,12 @@ impl KnownHosts {
             None => return Ok(false), // Unknown host — caller decides based on strict mode
         };
 
+        // ssh_key 0.7: encode_openssh returns "ssh-ed25519 AAAA... comment"
         let key_data = key
-            .to_string()
+            .to_openssh()
+            .unwrap_or_default()
             .split_whitespace()
-            .last()
+            .nth(1) // skip algorithm prefix, take the base64 key
             .unwrap_or("")
             .to_string();
 
@@ -252,16 +255,17 @@ impl KnownHosts {
 
     /// Add a new host key to the known_hosts file.
     pub fn add_host_key(&mut self, hostname: &str, key: &PublicKey) -> Result<(), SshError> {
-        let key_type = format!("{:?}", key.key_type());
+        let key_type = format!("{:?}", key.algorithm());
         let key_type = key_type
             .trim_start_matches("Other(\"")
             .trim_end_matches("\")")
             .to_string();
 
         let key_data = key
-            .to_string()
+            .to_openssh()
+            .unwrap_or_default()
             .split_whitespace()
-            .last()
+            .nth(1)
             .unwrap_or("")
             .to_string();
 
@@ -583,7 +587,7 @@ impl Handler for ClientHandler {
                 Err(e) => {
                     // Key changed — potential MITM
                     warn!(host = %self.hostname, error = %e, "host key mismatch");
-                    Err(russh::Error::CannotAuthorizeKey(e.to_string()))
+                    Err(russh::Error::UnknownKey)
                 }
             },
             None => {

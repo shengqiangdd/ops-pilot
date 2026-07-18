@@ -3,9 +3,10 @@
 //! Provides [`DockerClient`] for listing, starting, stopping, restarting
 //! containers and collecting resource statistics.
 
-use bollard::container::{
-    ListContainersOptions, RestartContainerOptions, StartContainerOptions, StatsOptions,
-    StopContainerOptions,
+use bollard::models::{ContainerStatsResponse, ContainerSummary};
+use bollard::query_parameters::{
+    ListContainersOptionsBuilder, RestartContainerOptionsBuilder, StartContainerOptionsBuilder,
+    StatsOptionsBuilder, StopContainerOptionsBuilder,
 };
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
@@ -129,19 +130,18 @@ impl DockerClient {
     /// List all running containers.
     pub async fn list_containers(&self) -> Result<Vec<Container>, DockerError> {
         let mut filters = HashMap::new();
-        filters.insert("status", vec!["running"]);
+        filters.insert("status".to_string(), vec!["running".to_string()]);
 
-        let options = Some(ListContainersOptions {
-            all: false,
-            filters,
-            ..Default::default()
-        });
+        let options = ListContainersOptionsBuilder::new()
+            .all(false)
+            .filters(&filters)
+            .build();
 
-        let summaries = self.docker.list_containers(options).await?;
+        let summaries = self.docker.list_containers(Some(options)).await?;
 
         summaries
             .into_iter()
-            .map(|c| {
+            .map(|c: ContainerSummary| {
                 let id = c.id.ok_or_else(|| DockerError::MissingField("id".into()))?;
                 let names = c.names.ok_or_else(|| DockerError::MissingField("names".into()))?;
                 let name = names
@@ -153,7 +153,11 @@ impl DockerClient {
 
                 let image = c.image.unwrap_or_default();
                 let status = c.status.unwrap_or_default();
-                let state = c.state.unwrap_or_default();
+                // ContainerSummaryStateEnum is an enum, convert to string
+                let state = c
+                    .state
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "unknown".to_string());
                 let created = c.created.unwrap_or(0);
 
                 Ok(Container {
@@ -171,22 +175,25 @@ impl DockerClient {
     /// Start a container by ID.
     pub async fn start_container(&self, id: &str) -> Result<(), DockerError> {
         self.docker
-            .start_container(id, None::<StartContainerOptions<String>>)
+            .start_container(
+                id,
+                Some(StartContainerOptionsBuilder::new().build()),
+            )
             .await?;
         Ok(())
     }
 
     /// Stop a container by ID. Uses the default 10-second timeout.
     pub async fn stop_container(&self, id: &str) -> Result<(), DockerError> {
-        let options = Some(StopContainerOptions { t: 10 });
-        self.docker.stop_container(id, options).await?;
+        let options = StopContainerOptionsBuilder::new().t(10).build();
+        self.docker.stop_container(id, Some(options)).await?;
         Ok(())
     }
 
     /// Restart a container by ID. Uses the default 10-second timeout.
     pub async fn restart_container(&self, id: &str) -> Result<(), DockerError> {
-        let options = Some(RestartContainerOptions { t: 10 });
-        self.docker.restart_container(id, options).await?;
+        let options = RestartContainerOptionsBuilder::new().t(10).build();
+        self.docker.restart_container(id, Some(options)).await?;
         Ok(())
     }
 
@@ -197,12 +204,9 @@ impl DockerClient {
     pub async fn container_stats(&self, id: &str) -> Result<ContainerStats, DockerError> {
         use futures_util::StreamExt;
 
-        let options = Some(StatsOptions {
-            stream: false,
-            one_shot: true,
-        });
+        let options = StatsOptionsBuilder::new().stream(false).one_shot(true).build();
 
-        let mut stream = self.docker.stats(id, options);
+        let mut stream = self.docker.stats(id, Some(options));
         let stats = stream
             .next()
             .await
@@ -211,14 +215,34 @@ impl DockerClient {
         Self::parse_stats(&stats)
     }
 
-    /// Parse a bollard `Stats` response into our [`ContainerStats`].
-    fn parse_stats(stats: &bollard::container::Stats) -> Result<ContainerStats, DockerError> {
+    /// Parse a bollard `ContainerStatsResponse` into our [`ContainerStats`].
+    fn parse_stats(stats: &ContainerStatsResponse) -> Result<ContainerStats, DockerError> {
         // CPU ----------------------------------------------------------
-        let cpu_delta = stats.cpu_stats.cpu_usage.total_usage as f64
-            - stats.precpu_stats.cpu_usage.total_usage as f64;
-        let system_delta = stats.cpu_stats.system_cpu_usage.unwrap_or(0) as f64
-            - stats.precpu_stats.system_cpu_usage.unwrap_or(0) as f64;
-        let num_cpus = stats.cpu_stats.online_cpus.unwrap_or(1) as f64;
+        let cpu_stats = stats
+            .cpu_stats
+            .as_ref()
+            .ok_or_else(|| DockerError::MissingField("cpu_stats".into()))?;
+        let precpu_stats = stats
+            .precpu_stats
+            .as_ref()
+            .ok_or_else(|| DockerError::MissingField("precpu_stats".into()))?;
+
+        let cpu_usage = cpu_stats
+            .cpu_usage
+            .as_ref()
+            .ok_or_else(|| DockerError::MissingField("cpu_stats.cpu_usage".into()))?;
+        let precpu_usage = precpu_stats
+            .cpu_usage
+            .as_ref()
+            .ok_or_else(|| DockerError::MissingField("precpu_stats.cpu_usage".into()))?;
+
+        let cpu_delta =
+            (cpu_usage.total_usage.unwrap_or(0) as i64 - precpu_usage.total_usage.unwrap_or(0) as i64)
+                .max(0) as f64;
+        let system_delta = (cpu_stats.system_cpu_usage.unwrap_or(0) as i64
+            - precpu_stats.system_cpu_usage.unwrap_or(0) as i64)
+            .max(0) as f64;
+        let num_cpus = cpu_stats.online_cpus.unwrap_or(1) as f64;
 
         let cpu_percent = if system_delta > 0.0 && cpu_delta >= 0.0 {
             (cpu_delta / system_delta) * num_cpus * 100.0
@@ -227,8 +251,12 @@ impl DockerClient {
         };
 
         // Memory -------------------------------------------------------
-        let usage_bytes = stats.memory_stats.usage.unwrap_or(0);
-        let limit_bytes = stats.memory_stats.limit.unwrap_or(1);
+        let mem_stats = stats
+            .memory_stats
+            .as_ref()
+            .ok_or_else(|| DockerError::MissingField("memory_stats".into()))?;
+        let usage_bytes = mem_stats.usage.unwrap_or(0);
+        let limit_bytes = mem_stats.limit.unwrap_or(1);
         let usage_percent = if limit_bytes > 0 {
             (usage_bytes as f64 / limit_bytes as f64) * 100.0
         } else {
@@ -239,8 +267,8 @@ impl DockerClient {
         let (mut rx_bytes, mut tx_bytes) = (0u64, 0u64);
         if let Some(networks) = &stats.networks {
             for iface in networks.values() {
-                rx_bytes += iface.rx_bytes;
-                tx_bytes += iface.tx_bytes;
+                rx_bytes += iface.rx_bytes.unwrap_or(0);
+                tx_bytes += iface.tx_bytes.unwrap_or(0);
             }
         }
 
@@ -263,6 +291,10 @@ impl DockerClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bollard::models::{
+        ContainerCpuStats, ContainerCpuUsage, ContainerMemoryStats, ContainerNetworkStats,
+        ContainerThrottlingData,
+    };
 
     // -- Error type tests -------------------------------------------------
 
@@ -375,127 +407,100 @@ mod tests {
 
     // -- Stats parsing tests ----------------------------------------------
 
-    /// Build a fully-specified `bollard::container::Stats` with sensible defaults,
-    /// since `Stats` does not implement `Default`.
-    fn make_stats() -> bollard::container::Stats {
-        bollard::container::Stats {
-            read: String::new(),
-            preread: String::new(),
-            num_procs: 0,
-            pids_stats: bollard::container::PidsStats {
-                current: None,
-                limit: None,
-            },
-            network: None,
-            networks: None,
-            memory_stats: bollard::container::MemoryStats {
+    /// Helper to build a `ContainerStatsResponse` with sensible defaults.
+    fn make_stats() -> ContainerStatsResponse {
+        ContainerStatsResponse {
+            cpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    percpu_usage: None,
+                    usage_in_usermode: Some(0),
+                    total_usage: Some(0),
+                    usage_in_kernelmode: Some(0),
+                }),
+                system_cpu_usage: Some(0),
+                online_cpus: Some(1),
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            precpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    percpu_usage: None,
+                    usage_in_usermode: Some(0),
+                    total_usage: Some(0),
+                    usage_in_kernelmode: Some(0),
+                }),
+                system_cpu_usage: Some(0),
+                online_cpus: Some(1),
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            memory_stats: Some(ContainerMemoryStats {
                 stats: None,
                 max_usage: Some(0),
                 usage: Some(0),
                 failcnt: None,
-                limit: Some(1),
-                commit: None,
-                commit_peak: None,
-                commitbytes: None,
-                commitpeakbytes: None,
-                privateworkingset: None,
-            },
-            blkio_stats: bollard::container::BlkioStats {
-                io_service_bytes_recursive: None,
-                io_serviced_recursive: None,
-                io_queue_recursive: None,
-                io_service_time_recursive: None,
-                io_wait_time_recursive: None,
-                io_merged_recursive: None,
-                io_time_recursive: None,
-                sectors_recursive: None,
-            },
-            cpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    percpu_usage: None,
-                    usage_in_usermode: 0,
-                    total_usage: 0,
-                    usage_in_kernelmode: 0,
-                },
-                system_cpu_usage: Some(0),
-                online_cpus: Some(1),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            precpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    percpu_usage: None,
-                    usage_in_usermode: 0,
-                    total_usage: 0,
-                    usage_in_kernelmode: 0,
-                },
-                system_cpu_usage: Some(0),
-                online_cpus: Some(1),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            storage_stats: bollard::container::StorageStats {
-                read_count_normalized: None,
-                read_size_bytes: None,
-                write_count_normalized: None,
-                write_size_bytes: None,
-            },
-            name: String::new(),
-            id: String::new(),
+                 limit: Some(1),
+                ..Default::default()
+             }),
+            networks: None,
+            name: None,
+            id: None,
+            read: None,
+            preread: None,
+            pids_stats: None,
+            blkio_stats: None,
+            num_procs: None,
+            storage_stats: None,
         }
     }
 
     #[test]
     fn parse_stats_with_zero_deltas() {
-        let stats = bollard::container::Stats {
-            cpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 100,
+        let stats = ContainerStatsResponse {
+            cpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(100),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: Some(1000),
                 online_cpus: Some(2),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            precpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 100,
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            precpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(100),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: Some(1000),
                 online_cpus: Some(2),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            memory_stats: bollard::container::MemoryStats {
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            memory_stats: Some(ContainerMemoryStats {
                 usage: Some(50_000_000),
                 max_usage: Some(100_000_000),
                 stats: None,
                 failcnt: None,
                 limit: Some(512_000_000),
-                commit: None,
-                commit_peak: None,
-                commitbytes: None,
-                commitpeakbytes: None,
-                privateworkingset: None,
-            },
+                ..Default::default()
+            }),
             networks: None,
             ..make_stats()
         };
@@ -511,49 +516,45 @@ mod tests {
 
     #[test]
     fn parse_stats_with_cpu_increase() {
-        let stats = bollard::container::Stats {
-            cpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 200,
+        let stats = ContainerStatsResponse {
+            cpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(200),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: Some(2000),
                 online_cpus: Some(4),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            precpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 100,
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            precpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(100),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: Some(1000),
                 online_cpus: Some(4),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            memory_stats: bollard::container::MemoryStats {
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            memory_stats: Some(ContainerMemoryStats {
                 usage: Some(100_000_000),
                 max_usage: Some(200_000_000),
                 stats: None,
                 failcnt: None,
                 limit: Some(1_000_000_000),
-                commit: None,
-                commit_peak: None,
-                commitbytes: None,
-                commitpeakbytes: None,
-                privateworkingset: None,
-            },
+                ..Default::default()
+            }),
             networks: None,
             ..make_stats()
         };
@@ -568,74 +569,74 @@ mod tests {
         let mut networks = HashMap::new();
         networks.insert(
             "eth0".to_string(),
-            bollard::container::NetworkStats {
-                rx_bytes: 1000,
-                rx_packets: 10,
-                rx_errors: 0,
-                rx_dropped: 0,
-                tx_bytes: 500,
-                tx_packets: 5,
-                tx_errors: 0,
-                tx_dropped: 0,
+            ContainerNetworkStats {
+                rx_bytes: Some(1000),
+                rx_packets: Some(10),
+                rx_errors: Some(0),
+                rx_dropped: Some(0),
+                tx_bytes: Some(500),
+                tx_packets: Some(5),
+                tx_errors: Some(0),
+                tx_dropped: Some(0),
+                endpoint_id: None,
+                instance_id: None,
             },
         );
         networks.insert(
             "eth1".to_string(),
-            bollard::container::NetworkStats {
-                rx_bytes: 2000,
-                rx_packets: 20,
-                rx_errors: 0,
-                rx_dropped: 0,
-                tx_bytes: 800,
-                tx_packets: 8,
-                tx_errors: 0,
-                tx_dropped: 0,
+            ContainerNetworkStats {
+                rx_bytes: Some(2000),
+                rx_packets: Some(20),
+                rx_errors: Some(0),
+                rx_dropped: Some(0),
+                tx_bytes: Some(800),
+                tx_packets: Some(8),
+                tx_errors: Some(0),
+                tx_dropped: Some(0),
+                endpoint_id: None,
+                instance_id: None,
             },
         );
 
-        let stats = bollard::container::Stats {
-            cpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 0,
+        let stats = ContainerStatsResponse {
+            cpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(0),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: Some(0),
                 online_cpus: Some(1),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            precpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 0,
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            precpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(0),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: Some(0),
                 online_cpus: Some(1),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            memory_stats: bollard::container::MemoryStats {
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            memory_stats: Some(ContainerMemoryStats {
                 usage: Some(0),
                 max_usage: Some(0),
                 stats: None,
                 failcnt: None,
-                limit: Some(1),
-                commit: None,
-                commit_peak: None,
-                commitbytes: None,
-                commitpeakbytes: None,
-                privateworkingset: None,
-            },
+                 limit: Some(1),
+                ..Default::default()
+             }),
             networks: Some(networks),
             ..make_stats()
         };
@@ -647,49 +648,45 @@ mod tests {
 
     #[test]
     fn parse_stats_with_no_system_cpu() {
-        let stats = bollard::container::Stats {
-            cpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 500,
+        let stats = ContainerStatsResponse {
+            cpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(500),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: None,
                 online_cpus: None,
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            precpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 500,
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            precpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(500),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: None,
                 online_cpus: None,
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            memory_stats: bollard::container::MemoryStats {
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            memory_stats: Some(ContainerMemoryStats {
                 usage: Some(1024),
                 max_usage: Some(2048),
                 stats: None,
                 failcnt: None,
-                limit: Some(4096),
-                commit: None,
-                commit_peak: None,
-                commitbytes: None,
-                commitpeakbytes: None,
-                privateworkingset: None,
-            },
+                 limit: Some(4096),
+                ..Default::default()
+             }),
             networks: None,
             ..make_stats()
         };
@@ -703,49 +700,45 @@ mod tests {
 
     #[test]
     fn parse_stats_memory_zero_limit() {
-        let stats = bollard::container::Stats {
-            cpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 0,
+        let stats = ContainerStatsResponse {
+            cpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(0),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: Some(0),
                 online_cpus: Some(1),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            precpu_stats: bollard::container::CPUStats {
-                cpu_usage: bollard::container::CPUUsage {
-                    total_usage: 0,
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            precpu_stats: Some(ContainerCpuStats {
+                cpu_usage: Some(ContainerCpuUsage {
+                    total_usage: Some(0),
                     percpu_usage: None,
-                    usage_in_kernelmode: 0,
-                    usage_in_usermode: 0,
-                },
+                    usage_in_kernelmode: Some(0),
+                    usage_in_usermode: Some(0),
+                }),
                 system_cpu_usage: Some(0),
                 online_cpus: Some(1),
-                throttling_data: bollard::container::ThrottlingData {
-                    periods: 0,
-                    throttled_periods: 0,
-                    throttled_time: 0,
-                },
-            },
-            memory_stats: bollard::container::MemoryStats {
+                throttling_data: Some(ContainerThrottlingData {
+                    periods: Some(0),
+                    throttled_periods: Some(0),
+                    throttled_time: Some(0),
+                }),
+            }),
+            memory_stats: Some(ContainerMemoryStats {
                 usage: Some(100),
                 max_usage: Some(200),
                 stats: None,
                 failcnt: None,
-                limit: Some(0),
-                commit: None,
-                commit_peak: None,
-                commitbytes: None,
-                commitpeakbytes: None,
-                privateworkingset: None,
-            },
+                 limit: Some(0),
+                ..Default::default()
+             }),
             networks: None,
             ..make_stats()
         };
