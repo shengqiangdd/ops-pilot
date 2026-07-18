@@ -27,6 +27,7 @@ argon2.workspace = true
 jsonwebtoken.workspace = true
 aes-gcm.workspace = true
 base64.workspace = true
+libc = "0.2"
 
 [lints]
 workspace = true

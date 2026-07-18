@@ -7,7 +7,9 @@
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
+use axum::http::StatusCode;
 use futures_util::{SinkExt, StreamExt};
+use ops_pilot_core::auth::AuthService;
 use ops_pilot_core::ssh::{SshConnectionPool, SshError};
 use russh::ChannelMsg;
 use serde::Deserialize;
@@ -192,29 +194,44 @@ pub enum TerminalError {
     Channel(String),
 }
 
+/// Query parameters for the WebSocket terminal connection.
+#[derive(Debug, Deserialize)]
+pub struct TerminalQuery {
+    pub token: Option<String>,
+}
+
 /// Axum handler that upgrades an HTTP request to a WebSocket and bridges it
-/// to an SSH terminal session.
+/// to an SSH terminal session. Validates the JWT token from the `?token=`
+/// query parameter before upgrading.
 pub async fn handle_ws_connection(
     ws: axum::extract::ws::WebSocketUpgrade,
     axum::extract::State(state): axum::extract::State<TerminalState>,
     axum::extract::Path(host_id): axum::extract::Path<String>,
-) -> impl axum::response::IntoResponse {
-    ws.on_upgrade(move |socket| async move {
+    axum::extract::Query(query): axum::extract::Query<TerminalQuery>,
+) -> Result<impl axum::response::IntoResponse, StatusCode> {
+    let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
+    state
+        .auth
+        .verify_token(&token)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    Ok(ws.on_upgrade(move |socket| async move {
         if let Err(e) = WebSocketHandler::run(socket, state.pool, host_id.clone()).await {
             error!(host_id = %host_id, error = %e, "terminal session error");
         }
-    })
+    }))
 }
 
 /// Shared state for the terminal WebSocket route.
 #[derive(Clone)]
 pub struct TerminalState {
     pub pool: Arc<SshConnectionPool>,
+    pub auth: Arc<AuthService>,
 }
 
 /// Build the terminal routes sub-router.
-pub fn terminal_routes(pool: Arc<SshConnectionPool>) -> axum::Router {
-    let state = TerminalState { pool };
+pub fn terminal_routes(pool: Arc<SshConnectionPool>, auth: Arc<AuthService>) -> axum::Router {
+    let state = TerminalState { pool, auth };
     axum::Router::new()
         .route(
             "/api/terminal/{host_id}",
@@ -326,10 +343,12 @@ mod tests {
         assert!(err.to_string().contains("SSH error"));
     }
 
-    #[test]
-    fn test_terminal_state_clone() {
+    #[tokio::test]
+    async fn test_terminal_state_clone() {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
         let state = TerminalState {
             pool: Arc::new(SshConnectionPool::new()),
+            auth: Arc::new(AuthService::new(pool, "test-secret".into())),
         };
         let cloned = state.clone();
         assert_eq!(cloned.pool.connection_count(), 0);
@@ -355,5 +374,18 @@ mod tests {
         let input = r#"{"type":"resize","rows":24}"#;
         let msg = parse_message(input);
         assert_eq!(msg, TerminalMessage::Data(input.as_bytes().to_vec()));
+    }
+
+    #[test]
+    fn test_terminal_query_deserialize() {
+        let query: TerminalQuery =
+            serde_json::from_str(r#"{"token":"abc123"}"#).unwrap();
+        assert_eq!(query.token.as_deref(), Some("abc123"));
+    }
+
+    #[test]
+    fn test_terminal_query_missing_token() {
+        let query: TerminalQuery = serde_json::from_str("{}").unwrap();
+        assert!(query.token.is_none());
     }
 }

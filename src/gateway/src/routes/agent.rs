@@ -103,11 +103,13 @@ pub fn agent_routes(
     tool_registry: std::sync::Arc<ToolRegistry>,
     llm_client: std::sync::Arc<dyn LlmClient>,
     ctx: std::sync::Arc<ops_pilot_sdk::context::ModuleContext>,
+    pool: sqlx::SqlitePool,
 ) -> Router {
     let orchestrator = std::sync::Arc::new(AgentOrchestrator::new(
         tool_registry,
         llm_client,
         AgentConfig::default(),
+        pool,
     ));
     let state = AgentState { orchestrator, ctx };
 
@@ -210,8 +212,23 @@ mod tests {
 
     async fn test_app(llm: std::sync::Arc<dyn LlmClient>) -> Router {
         let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        // Create agent_sessions table for tests
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS agent_sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                messages TEXT NOT NULL,
+                config TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
         let ctx = Arc::new(ModuleContext::new(
-            Arc::new(pool),
+            Arc::new(pool.clone()),
             EventBus::new(16),
             PathBuf::from("/tmp/agent-test"),
             "test".into(),
@@ -227,7 +244,7 @@ mod tests {
         ));
         let registry = Arc::new(ToolRegistry::new(manager));
 
-        agent_routes(registry, llm, ctx)
+        agent_routes(registry, llm, ctx, pool)
     }
 
     #[tokio::test]

@@ -2,12 +2,14 @@
 //!
 //! Implements a Reason-Act loop where the LLM thinks, optionally calls tools,
 //! and feeds results back until it produces a final text response.
+//! Sessions are persisted in SQLite so they survive restarts.
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 use uuid::Uuid;
@@ -26,7 +28,7 @@ const CHARS_PER_TOKEN: usize = 4;
 // ── Types ───────────────────────────────────────────────────────────────────
 
 /// Configuration for an agent session.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
     /// System prompt prepended to every LLM call.
     pub system_prompt: String,
@@ -86,6 +88,24 @@ impl AgentSession {
         let mut messages = Vec::new();
         messages.push(Message::system(&config.system_prompt));
 
+        Self {
+            session_id,
+            messages,
+            config,
+            tool_registry,
+            llm_client,
+            turns: Vec::new(),
+        }
+    }
+
+    /// Reconstruct a session from persisted DB data.
+    pub fn from_persisted(
+        session_id: String,
+        messages: Vec<Message>,
+        config: AgentConfig,
+        tool_registry: Arc<ToolRegistry>,
+        llm_client: Arc<dyn LlmClient>,
+    ) -> Self {
         Self {
             session_id,
             messages,
@@ -261,12 +281,13 @@ impl AgentSession {
 
 // ── Agent Orchestrator ──────────────────────────────────────────────────────
 
-/// Manages multiple agent sessions.
+/// Manages multiple agent sessions with SQLite persistence.
 pub struct AgentOrchestrator {
     sessions: RwLock<HashMap<String, Arc<RwLock<AgentSession>>>>,
     tool_registry: Arc<ToolRegistry>,
     llm_client: Arc<dyn LlmClient>,
     default_config: AgentConfig,
+    pool: SqlitePool,
 }
 
 impl AgentOrchestrator {
@@ -274,13 +295,50 @@ impl AgentOrchestrator {
         tool_registry: Arc<ToolRegistry>,
         llm_client: Arc<dyn LlmClient>,
         default_config: AgentConfig,
+        pool: SqlitePool,
     ) -> Self {
         Self {
             sessions: RwLock::new(HashMap::new()),
             tool_registry,
             llm_client,
             default_config,
+            pool,
         }
+    }
+
+    /// Load all unclosed sessions from the database into memory.
+    pub async fn load_sessions(&self) -> Result<usize> {
+        let rows: Vec<(String, String, String, String)> = sqlx::query_as(
+            "SELECT id, messages, config, status FROM agent_sessions WHERE status = 'open'",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!("failed to load sessions: {}", e))?;
+
+        let mut count = 0;
+        let mut sessions = self.sessions.write().await;
+
+        for (id, messages_json, config_json, _status) in rows {
+            let messages: Vec<Message> =
+                serde_json::from_str(&messages_json).unwrap_or_default();
+            let config: AgentConfig =
+                serde_json::from_str(&config_json).unwrap_or_else(|_| self.default_config.clone());
+
+            let session = AgentSession::from_persisted(
+                id.clone(),
+                messages,
+                config,
+                Arc::clone(&self.tool_registry),
+                Arc::clone(&self.llm_client),
+            );
+            sessions.insert(id, Arc::new(RwLock::new(session)));
+            count += 1;
+        }
+
+        if count > 0 {
+            info!(count, "Loaded agent sessions from database");
+        }
+        Ok(count)
     }
 
     /// Create a new session and return its ID.
@@ -291,6 +349,22 @@ impl AgentOrchestrator {
             self.default_config.clone(),
         );
         let id = session.session_id.clone();
+        let config_json = serde_json::to_string(&session.config).unwrap_or_default();
+        let messages_json = serde_json::to_string(&session.messages()).unwrap_or_default();
+
+        // Persist to DB
+        if let Err(e) = sqlx::query(
+            "INSERT INTO agent_sessions (id, messages, config, status) VALUES (?, ?, ?, 'open')",
+        )
+        .bind(&id)
+        .bind(&messages_json)
+        .bind(&config_json)
+        .execute(&self.pool)
+        .await
+        {
+            warn!(session = %id, error = %e, "Failed to persist new session");
+        }
+
         let mut sessions = self.sessions.write().await;
         sessions.insert(id.clone(), Arc::new(RwLock::new(session)));
         info!(session = %id, "Created new agent session");
@@ -312,11 +386,37 @@ impl AgentOrchestrator {
         drop(sessions);
 
         let mut session = session.write().await;
-        session.chat(message, ctx).await
+        let resp = session.chat(message, ctx).await?;
+
+        // Persist updated messages
+        let messages_json = serde_json::to_string(session.messages()).unwrap_or_default();
+        if let Err(e) = sqlx::query(
+            "UPDATE agent_sessions SET messages = ?, updated_at = datetime('now') WHERE id = ?",
+        )
+        .bind(&messages_json)
+        .bind(session_id)
+        .execute(&self.pool)
+        .await
+        {
+            warn!(session = %session_id, error = %e, "Failed to persist session messages");
+        }
+
+        Ok(resp)
     }
 
     /// Close and remove a session.
     pub async fn close_session(&self, session_id: &str) -> bool {
+        // Update DB status
+        if let Err(e) = sqlx::query(
+            "UPDATE agent_sessions SET status = 'closed', updated_at = datetime('now') WHERE id = ?",
+        )
+        .bind(session_id)
+        .execute(&self.pool)
+        .await
+        {
+            warn!(session = %session_id, error = %e, "Failed to update session status in DB");
+        }
+
         let mut sessions = self.sessions.write().await;
         let removed = sessions.remove(session_id).is_some();
         if removed {
@@ -478,7 +578,22 @@ mod tests {
             crate::routes::modules::ModuleManager::new(loader),
         ));
         let registry = Arc::new(ToolRegistry::new(manager));
-        AgentOrchestrator::new(registry, llm, AgentConfig::default())
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        // Run the agent_sessions migration for tests
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS agent_sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                messages TEXT NOT NULL,
+                config TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        AgentOrchestrator::new(registry, llm, AgentConfig::default(), pool)
     }
 
     // ── Tests ───────────────────────────────────────────────────────────
@@ -566,7 +681,21 @@ mod tests {
             crate::routes::modules::ModuleManager::new(loader),
         ));
         let registry = Arc::new(ToolRegistry::new(manager));
-        let orchestrator = AgentOrchestrator::new(registry, llm, config);
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS agent_sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                messages TEXT NOT NULL,
+                config TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let orchestrator = AgentOrchestrator::new(registry, llm, config, pool);
 
         let session_id = orchestrator.create_session().await;
         let ctx = make_ctx("test").await;
@@ -648,7 +777,21 @@ mod tests {
             crate::routes::modules::ModuleManager::new(loader),
         ));
         let registry = Arc::new(ToolRegistry::new(manager));
-        let orchestrator = AgentOrchestrator::new(registry, llm, config);
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS agent_sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                messages TEXT NOT NULL,
+                config TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let orchestrator = AgentOrchestrator::new(registry, llm, config, pool);
 
         let session_id = orchestrator.create_session().await;
         let ctx = make_ctx("test").await;
