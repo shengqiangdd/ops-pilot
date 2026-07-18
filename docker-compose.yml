@@ -1,0 +1,72 @@
+version: "3.8"
+
+services:
+  ops-pilot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ops-pilot
+    ports:
+      - "3000:3000"   # Web UI & API
+      - "8080:8080"   # WebSocket terminal
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DATABASE_URL=sqlite:///app/data/ops-pilot.db
+      - JWT_SECRET=${JWT_SECRET:-change-me-to-a-random-string}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://ollama:11434}
+      - LLM_MODEL=${LLM_MODEL:-qwen2.5:32b}
+      - RUST_LOG=ops_pilot=info,tower_http=info
+      - TZ=UTC
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ops-pilot
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ops-pilot-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - ops-pilot
+
+volumes:
+  ollama_data:
+    driver: local
+
+networks:
+  ops-pilot:
+    driver: bridge

@@ -1,0 +1,30 @@
+[package]
+name = "ops-pilot-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core engine: SSH, Docker, monitoring, database, event bus"
+
+[dependencies]
+ops-pilot-sdk = { path = "../sdk" }
+tokio.workspace = true
+sqlx.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+rand = "0.8"
+russh.workspace = true
+russh-sftp.workspace = true
+dashmap.workspace = true
+bollard.workspace = true
+futures-util = "0.3"
+argon2.workspace = true
+jsonwebtoken.workspace = true
+
+[lints]
+workspace = true

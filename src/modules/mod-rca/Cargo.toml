@@ -1,0 +1,27 @@
+[package]
+name = "ops-pilot-mod-rca"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Root Cause Analysis module: rule-based and AI-powered diagnostics"
+
+[dependencies]
+ops-pilot-sdk = { path = "../../sdk" }
+ops-pilot-core = { path = "../../core" }
+ops-pilot-gateway = { path = "../../gateway" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+sqlx.workspace = true
+futures-util = "0.3"
+
+[lints]
+workspace = true

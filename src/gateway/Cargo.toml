@@ -1,0 +1,34 @@
+[package]
+name = "ops-pilot-gateway"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AI Gateway: LLM provider abstraction, agent orchestration, tool registry"
+
+[dependencies]
+tokio.workspace = true
+axum.workspace = true
+axum-extra.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+reqwest.workspace = true
+tokio-tungstenite.workspace = true
+
+futures-util = "0.3"
+russh.workspace = true
+
+ops-pilot-core = { path = "../core" }
+ops-pilot-sdk = { path = "../sdk" }
+
+[dev-dependencies]
+sqlx.workspace = true
+
+[lints]
+workspace = true

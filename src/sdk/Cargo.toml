@@ -1,0 +1,21 @@
+[package]
+name = "ops-pilot-sdk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Module SDK: OpsModule trait, ModuleContext, OpsEvent definitions"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+uuid.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true
