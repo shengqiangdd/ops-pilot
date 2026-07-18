@@ -124,7 +124,7 @@ pub fn agent_routes(
 mod tests {
     use super::*;
     use crate::agent::AgentResponse;
-    use crate::llm::{CompletionResponse, FunctionCall, LlmError, Message, Role, ToolCall};
+    use crate::llm::{CompletionResponse, LlmError, Message};
     use async_trait::async_trait;
     use axum::body::Body;
     use axum::http::Request;

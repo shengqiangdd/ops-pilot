@@ -35,6 +35,7 @@ ops-pilot-core = { path = "../core" }
 ops-pilot-sdk = { path = "../sdk" }
 
 [dev-dependencies]
+wiremock = "0.6"
 
 [lints]
 workspace = true

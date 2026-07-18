@@ -19,3 +19,48 @@ export interface ModuleHealth {
 export interface ModuleConfig {
   [key: string]: unknown;
 }
+
+// ── Host types ──────────────────────────────────────────────────────────
+
+export type HostStatus = 'online' | 'offline' | 'unknown' | 'maintenance';
+
+export interface Host {
+  id: string;
+  name: string;
+  address: string;
+  port: number;
+  username: string;
+  auth_method: string;
+  status: HostStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateHostInput {
+  name: string;
+  address: string;
+  port?: number;
+  username: string;
+  auth_method: string;
+  password?: string;
+  private_key?: string;
+}
+
+// ── Agent types ─────────────────────────────────────────────────────────
+
+export interface AgentSession {
+  session_id: string;
+}
+
+export interface AgentResponse {
+  session_id: string;
+  content: string;
+  turns: AgentTurn[];
+  truncated: boolean;
+}
+
+export interface AgentTurn {
+  turn: number;
+  action: string;
+  result: string;
+}

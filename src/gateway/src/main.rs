@@ -187,7 +187,22 @@ async fn main() {
         "gateway".into(),
     ));
 
-    let llm_client: Arc<dyn ops_pilot_gateway::llm::LlmClient> = Arc::new(PlaceholderLlm);
+    let llm_client: Arc<dyn ops_pilot_gateway::llm::LlmClient> =
+        match ops_pilot_gateway::llm::ProviderConfig::from_env() {
+            Ok(config) => {
+                tracing::info!(
+                    provider = %config.provider_name,
+                    model = %config.model,
+                    base_url = %config.base_url,
+                    "Using LLM provider"
+                );
+                Arc::new(ops_pilot_gateway::llm::ProviderLlm::new(config))
+            }
+            Err(_) => {
+                tracing::warn!("No LLM provider configured (LLM_BASE_URL/LLM_API_KEY not set), using placeholder");
+                Arc::new(PlaceholderLlm)
+            }
+        };
 
     let orchestrator = Arc::new(AgentOrchestrator::new(
         tool_registry.clone(),
