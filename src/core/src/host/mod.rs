@@ -46,6 +46,84 @@ impl std::fmt::Display for HostStatus {
     }
 }
 
+/// Row type for basic host queries (no credentials).
+#[derive(Debug, sqlx::FromRow)]
+struct HostRow {
+    id: String,
+    name: String,
+    address: String,
+    port: i32,
+    username: String,
+    auth_method: String,
+    status: String,
+    created_at: String,
+    updated_at: String,
+}
+
+/// Row type for host queries that include encrypted credentials.
+#[derive(Debug, sqlx::FromRow)]
+struct HostRowWithCreds {
+    id: String,
+    name: String,
+    address: String,
+    port: i32,
+    username: String,
+    auth_method: String,
+    status: String,
+    credentials_encrypted: Option<Vec<u8>>,
+    credentials_iv: Option<Vec<u8>>,
+    created_at: String,
+    updated_at: String,
+}
+
+impl HostRow {
+    fn into_host(self) -> Host {
+        Host {
+            id: self.id,
+            name: self.name,
+            address: self.address,
+            port: self.port,
+            username: self.username,
+            auth_method: self.auth_method,
+            status: HostStatus::from_str(&self.status),
+            password: None,
+            private_key: None,
+            created_at: NaiveDateTime::parse_from_str(&self.created_at, "%Y-%m-%d %H:%M:%S")
+                .unwrap_or_default(),
+            updated_at: NaiveDateTime::parse_from_str(&self.updated_at, "%Y-%m-%d %H:%M:%S")
+                .unwrap_or_default(),
+        }
+    }
+}
+
+impl HostRowWithCreds {
+    fn into_host_with_creds(self, key: &MasterKey) -> Result<Host, HostError> {
+        let (password, private_key) = match (self.credentials_encrypted, self.credentials_iv) {
+            (Some(ciphertext), Some(iv)) => {
+                let plaintext = crypto::decrypt(&ciphertext, key, &iv)?;
+                deserialize_credentials(&plaintext)
+            }
+            _ => (None, None),
+        };
+
+        Ok(Host {
+            id: self.id,
+            name: self.name,
+            address: self.address,
+            port: self.port,
+            username: self.username,
+            auth_method: self.auth_method,
+            status: HostStatus::from_str(&self.status),
+            password,
+            private_key,
+            created_at: NaiveDateTime::parse_from_str(&self.created_at, "%Y-%m-%d %H:%M:%S")
+                .unwrap_or_default(),
+            updated_at: NaiveDateTime::parse_from_str(&self.updated_at, "%Y-%m-%d %H:%M:%S")
+                .unwrap_or_default(),
+        })
+    }
+}
+
 /// Host model representing a managed server.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Host {
@@ -193,115 +271,58 @@ impl HostService {
 
     /// Get a host by ID (without decrypting credentials).
     pub async fn get(&self, id: &str) -> Result<Host, HostError> {
-        let row: (String, String, String, i32, String, String, String, String, String) =
-            sqlx::query_as(
-                "SELECT id, name, address, port, username, auth_method, status, created_at, updated_at FROM hosts WHERE id = ?",
-            )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await?
-            .ok_or_else(|| HostError::NotFound(id.to_string()))?;
+        let row: HostRow = sqlx::query_as(
+            "SELECT id, name, address, port, username, auth_method, status, created_at, updated_at FROM hosts WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or_else(|| HostError::NotFound(id.to_string()))?;
 
-        Ok(Host {
-            id: row.0,
-            name: row.1,
-            address: row.2,
-            port: row.3,
-            username: row.4,
-            auth_method: row.5,
-            status: HostStatus::from_str(&row.6),
-            password: None,
-            private_key: None,
-            created_at: NaiveDateTime::parse_from_str(&row.7, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_default(),
-            updated_at: NaiveDateTime::parse_from_str(&row.8, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_default(),
-        })
+        Ok(row.into_host())
     }
 
     /// Get a host by ID with decrypted credentials.
     pub async fn get_decrypted(&self, id: &str) -> Result<Host, HostError> {
-        let row: (String, String, String, i32, String, String, String, Option<Vec<u8>>, Option<Vec<u8>>, String, String) =
-            sqlx::query_as(
-                "SELECT id, name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ?",
-            )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await?
-            .ok_or_else(|| HostError::NotFound(id.to_string()))?;
+        let row: HostRowWithCreds = sqlx::query_as(
+            "SELECT id, name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or_else(|| HostError::NotFound(id.to_string()))?;
 
-        let (password, private_key) = match (row.7, row.8) {
-            (Some(ciphertext), Some(iv)) => {
-                let plaintext = crypto::decrypt(&ciphertext, &self.key, &iv)?;
-                deserialize_credentials(&plaintext)
-            }
-            _ => (None, None),
-        };
-
-        Ok(Host {
-            id: row.0,
-            name: row.1,
-            address: row.2,
-            port: row.3,
-            username: row.4,
-            auth_method: row.5,
-            status: HostStatus::from_str(&row.6),
-            password,
-            private_key,
-            created_at: NaiveDateTime::parse_from_str(&row.9, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_default(),
-            updated_at: NaiveDateTime::parse_from_str(&row.10, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_default(),
-        })
+        row.into_host_with_creds(&self.key)
     }
 
     /// List all hosts (without decrypting credentials).
     pub async fn list(&self) -> Result<Vec<Host>, HostError> {
-        let rows: Vec<(String, String, String, i32, String, String, String, String, String)> =
-            sqlx::query_as(
-                "SELECT id, name, address, port, username, auth_method, status, created_at, updated_at FROM hosts ORDER BY created_at DESC",
-            )
-            .fetch_all(&self.pool)
-            .await?;
+        let rows: Vec<HostRow> = sqlx::query_as(
+            "SELECT id, name, address, port, username, auth_method, status, created_at, updated_at FROM hosts ORDER BY created_at DESC",
+        )
+        .fetch_all(&self.pool)
+        .await?;
 
-        Ok(rows
-            .into_iter()
-            .map(|row| Host {
-                id: row.0,
-                name: row.1,
-                address: row.2,
-                port: row.3,
-                username: row.4,
-                auth_method: row.5,
-                status: HostStatus::from_str(&row.6),
-                password: None,
-                private_key: None,
-                created_at: NaiveDateTime::parse_from_str(&row.7, "%Y-%m-%d %H:%M:%S")
-                    .unwrap_or_default(),
-                updated_at: NaiveDateTime::parse_from_str(&row.8, "%Y-%m-%d %H:%M:%S")
-                    .unwrap_or_default(),
-            })
-            .collect())
+        Ok(rows.into_iter().map(HostRow::into_host).collect())
     }
 
     /// Update a host by ID (partial update).
     pub async fn update(&self, id: &str, input: UpdateHost) -> Result<Host, HostError> {
         // Fetch existing encrypted credentials so we can preserve them if not updated
-        let existing_row: (String, String, i32, String, String, String, Option<Vec<u8>>, Option<Vec<u8>>, String, String, String, String, String) =
-            sqlx::query_as(
-                "SELECT name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv, id, id, created_at, updated_at FROM hosts WHERE id = ?",
-            )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await?
-            .ok_or_else(|| HostError::NotFound(id.to_string()))?;
+        let existing: HostRowWithCreds = sqlx::query_as(
+            "SELECT id, name, address, port, username, auth_method, status, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or_else(|| HostError::NotFound(id.to_string()))?;
 
-        let name = input.name.unwrap_or(existing_row.0);
-        let address = input.address.unwrap_or(existing_row.1);
-        let port = input.port.unwrap_or(existing_row.2);
-        let username = input.username.unwrap_or(existing_row.3);
-        let auth_method = input.auth_method.unwrap_or(existing_row.4);
-        let status = input.status.unwrap_or(HostStatus::from_str(&existing_row.5));
+        let name = input.name.unwrap_or(existing.name);
+        let address = input.address.unwrap_or(existing.address);
+        let port = input.port.unwrap_or(existing.port);
+        let username = input.username.unwrap_or(existing.username);
+        let auth_method = input.auth_method.unwrap_or(existing.auth_method);
+        let status = input.status.unwrap_or(HostStatus::from_str(&existing.status));
 
         // Update credentials only if provided
         let (cred_blob, iv_blob) = if input.password.is_some() || input.private_key.is_some() {
@@ -315,7 +336,7 @@ impl HostService {
             }
         } else {
             // Preserve existing credentials
-            (existing_row.6, existing_row.7)
+            (existing.credentials_encrypted, existing.credentials_iv)
         };
 
         sqlx::query(

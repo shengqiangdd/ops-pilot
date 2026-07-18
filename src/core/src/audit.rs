@@ -7,6 +7,31 @@ use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqlitePool;
 use tracing::debug;
 
+/// Row type for audit log queries.
+#[derive(Debug, sqlx::FromRow)]
+struct AuditRow {
+    id: String,
+    #[sqlx(rename = "user")]
+    user: String,
+    action: String,
+    resource: String,
+    outcome: String,
+    created_at: String,
+}
+
+impl AuditRow {
+    fn into_entry(self) -> AuditEntry {
+        AuditEntry {
+            id: self.id,
+            user: self.user,
+            action: self.action,
+            resource: self.resource,
+            outcome: self.outcome,
+            created_at: self.created_at,
+        }
+    }
+}
+
 /// A single audit log entry.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AuditEntry {
@@ -72,41 +97,26 @@ impl AuditTrail {
         });
 
         // Fetch the row back to get created_at.
-        let row: (String,) = sqlx::query_as("SELECT created_at FROM audit_log WHERE id = ?")
-            .bind(&id)
-            .fetch_one(&self.pool)
-            .await?;
+        let row: AuditRow = sqlx::query_as(
+            r#"SELECT id, "user", action, resource, outcome, created_at FROM audit_log WHERE id = ?"#,
+        )
+        .bind(&id)
+        .fetch_one(&self.pool)
+        .await?;
 
-        Ok(AuditEntry {
-            id,
-            user: user.to_string(),
-            action: action.to_string(),
-            resource: resource.to_string(),
-            outcome: outcome.to_string(),
-            created_at: row.0,
-        })
+        Ok(row.into_entry())
     }
 
     /// List the most recent audit entries, ordered by created_at descending.
     pub async fn list_recent(&self, limit: usize) -> Result<Vec<AuditEntry>, AuditError> {
-        let rows: Vec<(String, String, String, String, String, String)> = sqlx::query_as(
+        let rows: Vec<AuditRow> = sqlx::query_as(
             r#"SELECT id, "user", action, resource, outcome, created_at FROM audit_log ORDER BY created_at DESC, rowid DESC LIMIT ?"#,
         )
         .bind(limit as i64)
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(rows
-            .into_iter()
-            .map(|(id, user, action, resource, outcome, created_at)| AuditEntry {
-                id,
-                user,
-                action,
-                resource,
-                outcome,
-                created_at,
-            })
-            .collect())
+        Ok(rows.into_iter().map(AuditRow::into_entry).collect())
     }
 }
 
