@@ -82,11 +82,49 @@ pub struct FunctionCall {
     pub arguments: String,
 }
 
+/// A structured completion response that may include tool calls.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompletionResponse {
+    /// The assistant's text content (may be empty if only tool calls).
+    pub content: String,
+    /// Tool calls requested by the model, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<ToolCall>>,
+}
+
+impl CompletionResponse {
+    pub fn text(content: impl Into<String>) -> Self {
+        Self {
+            content: content.into(),
+            tool_calls: None,
+        }
+    }
+
+    pub fn has_tool_calls(&self) -> bool {
+        self.tool_calls
+            .as_ref()
+            .is_some_and(|tc| !tc.is_empty())
+    }
+}
+
 /// Trait for OpenAI-compatible LLM backends.
 #[async_trait]
 pub trait LlmClient: Send + Sync {
-    /// Send a non-streaming chat completion request.
+    /// Send a non-streaming chat completion request (text only).
     async fn complete(&self, messages: &[Message]) -> Result<String, LlmError>;
+
+    /// Send a non-streaming completion with tool support.
+    ///
+    /// Default implementation calls `complete()` and returns text-only.
+    /// Override this to return structured tool calls from the API.
+    async fn complete_with_tools(
+        &self,
+        messages: &[Message],
+        _tools: &[serde_json::Value],
+    ) -> Result<CompletionResponse, LlmError> {
+        let text = self.complete(messages).await?;
+        Ok(CompletionResponse::text(text))
+    }
 
     /// Send a streaming chat completion request.
     async fn complete_stream(

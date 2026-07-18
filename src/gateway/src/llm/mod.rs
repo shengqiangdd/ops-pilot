@@ -2,4 +2,4 @@
 
 pub mod chat;
 
-pub use chat::{ChatService, LlmClient, LlmError, Message, Role, ToolCall};
+pub use chat::{ChatService, CompletionResponse, FunctionCall, LlmClient, LlmError, Message, Role, ToolCall};
