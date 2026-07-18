@@ -55,8 +55,8 @@ impl CommandExecutor {
         let conn = self.pool.get(host_id).await?;
         let start = Instant::now();
 
-        let channel = conn
-            .handle
+        let handle = conn.handle.read().await;
+        let channel = handle
             .channel_open_session()
             .await
             .map_err(|e| SshError::Channel(format!("failed to open channel: {}", e)))?;
@@ -159,8 +159,8 @@ impl CommandExecutor {
         let conn = pool.get(host_id).await?;
         let start = Instant::now();
 
-        let channel = conn
-            .handle
+        let handle = conn.handle.read().await;
+        let channel = handle
             .channel_open_session()
             .await
             .map_err(|e| SshError::Channel(format!("failed to open channel: {}", e)))?;

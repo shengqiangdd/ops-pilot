@@ -19,6 +19,7 @@ use dashmap::DashMap;
 use russh::keys::{self, load_secret_key};
 use russh::client::{connect, Config, Handle, Handler};
 use russh::ChannelMsg;
+use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
 /// Configuration for an SSH connection.
@@ -149,8 +150,8 @@ pub enum SshError {
 pub struct SshConnection {
     /// The connection configuration.
     config: SshConfig,
-    /// The russh Handle — Arc-based, Send + Sync, supports concurrent ops.
-    pub handle: Handle<ClientHandler>,
+    /// The russh Handle — wrapped in RwLock so `reconnect()` can swap it.
+    pub handle: Arc<RwLock<Handle<ClientHandler>>>,
     /// Whether the connection is currently active.
     connected: Arc<AtomicBool>,
 }
@@ -165,7 +166,7 @@ impl SshConnection {
 
         Ok(Self {
             config,
-            handle,
+            handle: Arc::new(RwLock::new(handle)),
             connected: Arc::new(AtomicBool::new(true)),
         })
     }
@@ -259,8 +260,8 @@ impl SshConnection {
     ///
     /// Opens a new channel, sends the command, and reads the response.
     pub async fn exec(&self, command: &str) -> Result<String, SshError> {
-        let channel = self
-            .handle
+        let handle = self.handle.read().await;
+        let channel = handle
             .channel_open_session()
             .await
             .map_err(|e| SshError::Channel(format!("failed to open channel: {}", e)))?;
@@ -296,8 +297,8 @@ impl SshConnection {
     pub async fn disconnect(&self) -> Result<(), SshError> {
         if self.connected.load(Ordering::SeqCst) {
             // Send disconnect if possible (ignore errors — connection may already be closed)
-            let _ = self
-                .handle
+            let handle = self.handle.read().await;
+            let _ = handle
                 .disconnect(russh::Disconnect::ByApplication, "", "")
                 .await;
             self.connected.store(false, Ordering::SeqCst);
@@ -307,25 +308,24 @@ impl SshConnection {
     }
 
     /// Check if the connection is active.
-    pub fn is_connected(&self) -> bool {
-        self.connected.load(Ordering::Relaxed) && !self.handle.is_closed()
+    pub async fn is_connected(&self) -> bool {
+        if !self.connected.load(Ordering::Relaxed) {
+            return false;
+        }
+        let handle = self.handle.read().await;
+        !handle.is_closed()
     }
 
     /// Reconnect to the remote host.
     pub async fn reconnect(&self) -> Result<(), SshError> {
         self.disconnect().await?;
-        let handle = Self::establish_connection(&self.config, 0).await?;
-        // Note: we can't replace the handle in-place since it's not behind a Mutex.
-        // The caller should create a new SshConnection. For now, just reconnect
-        // and update the connected flag. A full reconnect requires creating a new
-        // SshConnection and replacing it in the pool.
-        //
-        // TODO: Consider wrapping handle in Mutex<Option<Handle>> for true reconnect support.
+        let new_handle = Self::establish_connection(&self.config, 0).await?;
+        // Replace the old handle with the new one
+        let mut handle = self.handle.write().await;
+        *handle = new_handle;
+        drop(handle);
         self.connected.store(true, Ordering::SeqCst);
         info!(host = %self.config.host, "SSH connection re-established");
-        // The old handle will be dropped when this function returns.
-        // For a proper reconnect, the pool should create a new SshConnection.
-        let _ = handle; // prevent drop warning
         Ok(())
     }
 
@@ -370,7 +370,7 @@ impl SshConnectionPool {
     /// is dead, removes it and returns an error.
     pub async fn get(&self, host_id: &str) -> Result<Arc<SshConnection>, SshError> {
         if let Some(conn) = self.connections.get(host_id) {
-            if conn.is_connected() {
+            if conn.is_connected().await {
                 return Ok(conn.clone());
             }
             // Connection is dead, remove and return error
@@ -418,11 +418,12 @@ impl SshConnectionPool {
     }
 
     /// Check if a host has an active connection.
-    pub fn has_connection(&self, host_id: &str) -> bool {
-        self.connections
-            .get(host_id)
-            .map(|c| c.is_connected())
-            .unwrap_or(false)
+    pub async fn has_connection(&self, host_id: &str) -> bool {
+        if let Some(conn) = self.connections.get(host_id) {
+            conn.is_connected().await
+        } else {
+            false
+        }
     }
 }
 

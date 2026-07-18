@@ -72,8 +72,8 @@ impl WebSocketHandler {
             .map_err(|e| TerminalError::Ssh(e))?;
 
         // Open an interactive shell channel.
-        let channel = conn
-            .handle
+        let handle = conn.handle.read().await;
+        let channel = handle
             .channel_open_session()
             .await
             .map_err(|e| TerminalError::Channel(format!("failed to open channel: {}", e)))?;
