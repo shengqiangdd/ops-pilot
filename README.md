@@ -1,24 +1,24 @@
 # OpsPilot
 
-> AI 驱动的基础设施运维助手 — 通过自然语言管理服务器、容器和监控。
+> AI-Powered Modular Infrastructure Operations Platform — manage servers, containers, and monitoring through natural language.
 
 [![CI/CD](https://github.com/OWNER/ops-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/ops-pilot/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Rust](https://img.shields.io/badge/Rust-1.82+-orange?logo=rust)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 
-## 架构概览
+## Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    frontend/                            │
 │       React 19 + Vite 6 + Tailwind CSS 3 + ReactFlow  │
-│       Zustand 状态管理 · React Query · React Router 7  │
+│       Zustand state mgmt · React Query · React Router 7│
 └──────────────────────────┬──────────────────────────────┘
                            │ REST API + WebSocket
 ┌──────────────────────────▼──────────────────────────────┐
 │                   ops-pilot-gateway                     │
-│   Axum 0.8 HTTP 服务 · JWT 认证中间件                   │
+│   Axum 0.8 HTTP server · JWT auth middleware            │
 │   ┌────────────┐ ┌──────────┐ ┌────────────────────┐   │
 │   │ Agent ReAct│ │ LLM Chat │ │ Terminal WS→SSH    │   │
 │   │   Loop     │ │ Service  │ │ Proxy              │   │
@@ -26,7 +26,7 @@
 │         └─────────────┼────────────────┘                │
 │         ┌─────────────▼────────────────┐                │
 │         │      ToolRegistry            │                │
-│         │  路由 tool call → module      │                │
+│         │  Route tool calls → modules  │                │
 │         └─────────────┬────────────────┘                │
 └───────────────────────┼─────────────────────────────────┘
                         │
@@ -42,129 +42,158 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 模块说明
+## Modules
 
-| Crate | 说明 |
-|-------|------|
-| `ops-pilot-core` | 核心层：SSH 连接管理、Docker 容器操作、Host CRUD、用户认证、Vault 密钥管理、审计日志、告警引擎、SQLite 数据库、事件总线 |
-| `ops-pilot-sdk` | SDK 层：`OpsModule` trait 定义、模块加载器、事件系统、模块上下文、工具定义 |
-| `ops-pilot-gateway` | 网关层：Axum HTTP API、Agent ReAct 循环、LLM 集成、WebSocket 终端、工具路由、Vault 路由 |
-| `frontend/` | 前端应用：React SPA，包含主机管理、AI 对话、Vault 管理、模块浏览 |
+| Module | Description |
+|--------|-------------|
+| **mod-core** | Core operations: SSH connections, Docker container management, Host CRUD, system monitoring |
+| **mod-rca** | Root Cause Analysis: rule-based diagnostics + LLM-powered deep analysis from system symptoms |
+| **mod-security** | CIS compliance scanning, vulnerability checks, patch management, LLM-powered security reports |
 
-## 快速开始
+## API Endpoints
 
-### 前置条件
+### Authentication
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/auth/register` | Register a new user |
+| POST | `/api/auth/login` | Login and receive JWT |
+
+### Host Management
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/hosts` | List hosts for current user |
+| POST | `/api/hosts` | Create a host |
+| GET | `/api/hosts/:id` | Get host details |
+| PUT | `/api/hosts/:id` | Update a host |
+| DELETE | `/api/hosts/:id` | Delete a host |
+
+### Vault (Encrypted Credentials)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/vault/status` | Check vault status |
+| POST | `/api/vault/set-passphrase` | Set vault passphrase |
+| POST | `/api/vault/unlock` | Unlock vault |
+| POST | `/api/vault/lock` | Lock vault |
+
+### Security Scanning
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/security/scan` | Run CIS compliance scan against a host |
+| GET | `/api/security/checks` | List all available security checks |
+
+### Modules
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/modules` | List loaded modules |
+| GET | `/api/modules/:name` | Module details |
+| POST | `/api/modules/:name/enable` | Enable a module |
+| POST | `/api/modules/:name/disable` | Disable a module |
+| GET | `/api/modules/:name/health` | Module health check |
+| GET | `/api/health` | Aggregate health of all modules |
+
+### Agent (AI Chat)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/agent/session` | Create agent session |
+| POST | `/api/agent/chat/:session_id` | Send message to agent |
+| DELETE | `/api/agent/session/:session_id` | Close session |
+
+### Terminal
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/terminal/:host_id` | WebSocket SSH terminal (`?token=` auth) |
+
+## Frontend Features
+
+- **Login / Register** — JWT-based authentication
+- **Hosts** — CRUD management of infrastructure hosts with SSH/Docker details
+- **Vault** — Encrypted credential storage with passphrase-protected unlock
+- **Security Scan** — Run CIS compliance checks, view findings by severity, remediate
+- **Health Dashboard** — Real-time module health monitoring with status badges
+- **Agent Chat** — AI-powered conversational interface for infrastructure operations
+- **Terminal** — In-browser SSH terminal via WebSocket proxy
+- **Module Browser** — View and toggle loaded modules
+
+## Quick Start
+
+### Docker (Recommended)
+
+```bash
+# Clone and configure
+cp .env.example .env
+# Edit .env with your secrets (JWT_SECRET, LLM_API_KEY, etc.)
+
+# Start all services
+docker compose up -d
+
+# Access at http://localhost:3001
+```
+
+### Local Development
+
+#### Prerequisites
 
 - Rust 1.82+
 - Node.js 20+
-- SQLite（通过 `libsqlite3-sys` 捆绑编译）
+- SQLite (bundled via `libsqlite3-sys`)
 
-### 后端
+#### Backend
 
 ```bash
-# 构建所有 crate
 cargo build --workspace
-
-# 运行测试
 cargo test --workspace
-
-# 启动网关服务
 cargo run -p ops-pilot-gateway
 ```
 
-### 前端
+#### Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev     # Vite 开发服务器 http://localhost:5173
-npm run build   # 生产构建输出到 dist/
+npm run dev     # Vite dev server at http://localhost:5173
+npm run build   # Production build to dist/
 ```
 
-## API 端点
+## Configuration
 
-### 认证
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LISTEN_ADDR` | `0.0.0.0:3001` | Server listen address |
+| `DATABASE_URL` | `sqlite:ops-pilot.db` | Database connection string |
+| `JWT_SECRET` | (required) | JWT signing secret |
+| `LLM_PROVIDER` | `openai` | LLM provider: `openai` / `ollama` / `deepseek` / `mimo` |
+| `LLM_BASE_URL` | provider-dependent | LLM API base URL |
+| `LLM_API_KEY` | — | LLM API key |
+| `LLM_MODEL` | `gpt-4o` | Chat model name |
+| `STATIC_DIR` | `./static` | Frontend static files directory |
+| `OPSPILOT_MASTER_KEY` | (recommended) | Master key for host credential encryption |
 
-| Method | Path | 说明 |
-|--------|------|------|
-| POST | `/api/auth/register` | 用户注册 |
-| POST | `/api/auth/login` | 登录获取 JWT |
+## Security Features
 
-### 主机管理
+- Passwords hashed with **Argon2id**
+- JWT tokens with 24-hour expiry
+- All protected routes require `Authorization: Bearer <token>`
+- Hosts API enforces per-user isolation
+- **Vault** per-user passphrase-derived AES-256 encryption
+- Host credentials encrypted with AES-256-GCM
+- SSH supports password and public key authentication
+- SSH host key verification (`known_hosts`) — MITM protection
+- **Rate limiting**: login endpoint 5 requests/minute/IP
+- **Audit logging**: SSH connect/disconnect events auto-recorded
+- **Alert engine**: off-hours batch operations, high failure rate, first-connect detection
+- **CIS compliance scanning**: 24 built-in benchmark rules
 
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/api/hosts` | 列出当前用户的主机 |
-| POST | `/api/hosts` | 创建主机 |
-| GET | `/api/hosts/:id` | 获取主机详情 |
-| PUT | `/api/hosts/:id` | 更新主机 |
-| DELETE | `/api/hosts/:id` | 删除主机 |
+## Deployment
 
-### Vault（凭据加密）
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/api/vault/status` | 查看 vault 状态 |
-| POST | `/api/vault/set-passphrase` | 设置 vault passphrase |
-| POST | `/api/vault/unlock` | 解锁 vault |
-| POST | `/api/vault/lock` | 锁定 vault |
-
-### 模块
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/api/modules` | 列出已加载模块 |
-| GET | `/api/modules/:name` | 模块详情 |
-| POST | `/api/modules/:name/enable` | 启用模块 |
-| POST | `/api/modules/:name/disable` | 禁用模块 |
-| GET | `/api/modules/:name/health` | 模块健康检查 |
-
-### Agent
-
-| Method | Path | 说明 |
-|--------|------|------|
-| POST | `/api/agent/session` | 创建 Agent 会话 |
-| POST | `/api/agent/chat/:session_id` | 向 Agent 发送消息 |
-| DELETE | `/api/agent/session/:session_id` | 关闭会话 |
-
-### 终端
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/api/terminal/:host_id` | WebSocket SSH 终端（`?token=` 认证） |
-
-## 配置
-
-通过环境变量配置网关：
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `DATABASE_URL` | `sqlite:ops-pilot.db` | SQLite 连接串 |
-| `JWT_SECRET` | （必填） | JWT 签名密钥 |
-| `OPSPILOT_MASTER_KEY` | （推荐） | 主机凭证加密主密钥（Base64 编码的 32 字节密钥） |
-| `LLM_PROVIDER` | `openai` | LLM 提供商：`openai` / `ollama` / `deepseek` |
-| `LLM_API_KEY` | — | LLM API 密钥 |
-| `LLM_MODEL` | `gpt-4o` | 聊天模型名称 |
-| `LISTEN_ADDR` | `0.0.0.0:3001` | 监听地址 |
-
-## 安全特性
-
-- 密码使用 **Argon2id** 哈希
-- JWT Token 有效期 24 小时
-- 所有受保护路由需要 `Authorization: Bearer <token>`
-- Hosts API 强制用户隔离（每用户只看到自己的主机）
-- **Vault** 独立加密密钥：每个用户有自己的 passphrase 派生 AES-256 密钥
-- 主机凭证 AES-256-GCM 加密存储
-- SSH 连接支持密码和公钥认证
-- SSH 主机密钥验证（`known_hosts`）— 防止中间人攻击
-- **Rate limiting**：登录端点 5 次/分钟/IP
-- **审计日志**：SSH 连接/断开事件自动记录
-- **告警引擎**：夜间批量操作、高失败率、首次连接检测
-
-## 部署
-
-详见 [DEPLOY.md](DEPLOY.md) — 包含 Docker 部署、TLS 配置、安全检查清单。
+See [DEPLOY.md](DEPLOY.md) — covers Docker deployment, TLS configuration, and security checklist.
 
 ## License
 
-Apache License 2.0 — 详见 [LICENSE](LICENSE)。
+Apache License 2.0 — see [LICENSE](LICENSE).

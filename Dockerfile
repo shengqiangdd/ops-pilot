@@ -23,9 +23,10 @@ COPY src/gateway/Cargo.toml src/gateway/Cargo.toml
 COPY src/sdk/Cargo.toml src/sdk/Cargo.toml
 COPY src/modules/mod-core/Cargo.toml src/modules/mod-core/Cargo.toml
 COPY src/modules/mod-rca/Cargo.toml src/modules/mod-rca/Cargo.toml
+COPY src/modules/mod-security/Cargo.toml src/modules/mod-security/Cargo.toml
 
 # Create dummy source files for cargo to resolve the workspace
-RUN mkdir -p src/core/src src/gateway/src src/sdk/src src/modules/mod-core/src src/modules/mod-rca/src \
+RUN mkdir -p src/core/src src/gateway/src src/sdk/src src/modules/mod-core/src src/modules/mod-rca/src src/modules/mod-security/src \
     && echo 'pub mod host; pub mod auth; pub mod db; pub mod crypto; pub mod ssh; pub mod docker; pub mod monitor; pub mod audit; pub mod vault; pub mod alert;' > src/core/src/lib.rs \
     && touch src/core/src/host.rs src/core/src/auth.rs src/core/src/db.rs src/core/src/crypto.rs src/core/src/ssh.rs src/core/src/docker.rs src/core/src/monitor.rs src/core/src/audit.rs src/core/src/vault.rs src/core/src/alert.rs \
     && echo 'pub mod agent; pub mod llm; pub mod middleware; pub mod routes; pub mod tools; pub mod terminal;' > src/gateway/src/lib.rs \
@@ -36,7 +37,9 @@ RUN mkdir -p src/core/src src/gateway/src src/sdk/src src/modules/mod-core/src s
     && echo 'pub mod ssh; pub mod docker; pub mod host; pub mod monitor;' > src/modules/mod-core/src/lib.rs \
     && touch src/modules/mod-core/src/ssh.rs src/modules/mod-core/src/docker.rs src/modules/mod-core/src/host.rs src/modules/mod-core/src/monitor.rs \
     && echo 'pub mod analyzer; pub mod llm_analyzer; pub mod rules;' > src/modules/mod-rca/src/lib.rs \
-    && touch src/modules/mod-rca/src/analyzer.rs src/modules/mod-rca/src/llm_analyzer.rs src/modules/mod-rca/src/rules.rs
+    && touch src/modules/mod-rca/src/analyzer.rs src/modules/mod-rca/src/llm_analyzer.rs src/modules/mod-rca/src/rules.rs \
+    && echo 'pub mod engine; pub mod llm_scanner; pub mod rules;' > src/modules/mod-security/src/lib.rs \
+    && touch src/modules/mod-security/src/engine.rs src/modules/mod-security/src/llm_scanner.rs src/modules/mod-security/src/rules.rs
 
 # Build dependencies only (will be cached if Cargo.toml/Cargo.lock unchanged)
 RUN cargo build --release --bin ops-pilot 2>/dev/null || true
