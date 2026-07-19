@@ -1,25 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ModuleBrowser } from './components/ModuleBrowser';
 import { HealthDashboard } from './components/HealthDashboard';
 import { AgentChat } from './components/AgentChat';
 import { HostsPage } from './pages/Hosts';
 import { VaultPage } from './pages/Vault';
+import { LoginPage } from './pages/Login';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
-import { api } from './api/client';
 import { cn } from './lib/cn';
 
 type Tab = 'chat' | 'modules' | 'hosts' | 'vault' | 'health';
 
-export function App() {
-  const [tab, setTab] = useState<Tab>('modules');
-  const { token, username, setAuth, logout } = useAuthStore();
+function AppShell() {
+  const [tab, setTab] = React.useState<Tab>('modules');
+  const { token, username, logout } = useAuthStore();
   const { isUnlocked, checkStatus } = useVaultStore();
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loginUser, setLoginUser] = useState('');
-  const [loginPass, setLoginPass] = useState('');
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [loggingIn, setLoggingIn] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Sync tab from URL path
+  useEffect(() => {
+    const path = location.pathname.slice(1) as Tab;
+    if (['chat', 'modules', 'hosts', 'vault', 'health'].includes(path)) {
+      setTab(path);
+    }
+  }, [location.pathname]);
 
   // Check vault status when token changes
   useEffect(() => {
@@ -28,21 +34,9 @@ export function App() {
     }
   }, [token, checkStatus]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoggingIn(true);
-    setLoginError(null);
-    try {
-      const resp = await api.login(loginUser, loginPass);
-      setAuth(resp.token, loginUser);
-      setLoginOpen(false);
-      setLoginUser('');
-      setLoginPass('');
-    } catch (err) {
-      setLoginError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setLoggingIn(false);
-    }
+  const navigateTo = (key: Tab) => {
+    setTab(key);
+    navigate('/' + key);
   };
 
   return (
@@ -55,12 +49,12 @@ export function App() {
               ['chat', 'Chat'],
               ['modules', 'Modules'],
               ['hosts', 'Hosts'],
-              ['vault', isUnlocked ? 'Vault \u{1f513}' : 'Vault \u{1f512}'],
+              ['vault', isUnlocked ? 'Vault 🔓' : 'Vault 🔒'],
               ['health', 'Health'],
             ] as const).map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setTab(key)}
+                onClick={() => navigateTo(key)}
                 className={cn(
                   'rounded-md px-3 py-1.5 text-sm font-medium',
                   tab === key
@@ -73,61 +67,16 @@ export function App() {
             ))}
           </nav>
 
-          <div className="ml-auto">
-            {token ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600">{username}</span>
-                <button
-                  onClick={logout}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setLoginOpen(!loginOpen)}
-                className={cn(
-                  'rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white',
-                  'hover:bg-blue-700',
-                )}
-              >
-                Login
-              </button>
-            )}
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-sm text-gray-600">{username}</span>
+            <button
+              onClick={logout}
+              className="rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
+            >
+              Logout
+            </button>
           </div>
         </div>
-
-        {loginOpen && !token && (
-          <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
-            <form onSubmit={handleLogin} className="flex items-center gap-3">
-              <input
-                type="text"
-                placeholder="Username"
-                value={loginUser}
-                onChange={(e) => setLoginUser(e.target.value)}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={loginPass}
-                onChange={(e) => setLoginPass(e.target.value)}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <button
-                type="submit"
-                disabled={loggingIn}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loggingIn ? 'Logging in...' : 'Sign In'}
-              </button>
-              {loginError && (
-                <span className="text-sm text-red-600">{loginError}</span>
-              )}
-            </form>
-          </div>
-        )}
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-8">
@@ -138,5 +87,19 @@ export function App() {
         {tab === 'health' && <HealthDashboard />}
       </main>
     </div>
+  );
+}
+
+// We need React import for the component above
+import React from 'react';
+
+export function App() {
+  const { token } = useAuthStore();
+
+  return (
+    <Routes>
+      <Route path="/login" element={token ? <Navigate to="/modules" replace /> : <LoginPage />} />
+      <Route path="/*" element={token ? <AppShell /> : <Navigate to="/login" replace />} />
+    </Routes>
   );
 }

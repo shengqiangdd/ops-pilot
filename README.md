@@ -2,6 +2,11 @@
 
 > AI 驱动的基础设施运维助手 — 通过自然语言管理服务器、容器和监控。
 
+[![CI/CD](https://github.com/OWNER/ops-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/ops-pilot/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Rust](https://img.shields.io/badge/Rust-1.82+-orange?logo=rust)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+
 ## 架构概览
 
 ```

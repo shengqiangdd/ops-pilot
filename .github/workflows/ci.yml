@@ -1,0 +1,168 @@
+# ── OpsPilot CI/CD Pipeline ──────────────────────────────────────────────
+# Runs on every PR/push to main; builds frontend + Rust, runs tests, and
+# publishes multi-arch Docker images on tagged releases.
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_LOG: warn
+  NODE_VERSION: '20'
+  RUST_TOOLCHAIN: '1.82'
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════
+  # Frontend: lint → type-check → test → build
+  # ═══════════════════════════════════════════════════════════════════════
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test -- --run
+      - run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Rust: check → test → clippy → build
+  # ═══════════════════════════════════════════════════════════════════════
+  rust:
+    name: Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]  # add macos-latest / windows-latest for cross-platform
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          cache: always
+          components: clippy
+
+      - name: cargo check
+        run: cargo check --workspace --all-targets
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace --all-targets
+
+      - name: cargo build --release
+        run: cargo build --release --bin ops-pilot
+        # Only build release for ubuntu; skip for others to save CI time
+        if: matrix.os == 'ubuntu-latest'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ops-pilot-bin-${{ matrix.os }}
+          path: target/release/ops-pilot
+          retention-days: 1
+        if: matrix.os == 'ubuntu-latest'
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Docker image (tagged releases, or main after tests pass)
+  # ═══════════════════════════════════════════════════════════════════════
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    needs: [frontend, rust]
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ops-pilot-bin-ubuntu-latest
+          path: target/release/
+
+      - name: Set Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=sha,prefix=,suffix=,format=short
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Summary badge (for README)
+  # ═══════════════════════════════════════════════════════════════════════
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [frontend, rust]
+    if: always()
+
+    steps:
+      - run: |
+          echo '## ✅ CI/CD Pipeline Results' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '| Job | Status |' >> $GITHUB_STEP_SUMMARY
+          echo '|-----|--------|' >> $GITHUB_STEP_SUMMARY
+          echo '| Frontend | ${{ needs.frontend.result }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| Rust     | ${{ needs.rust.result }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| Docker   | ${{ needs.docker.result }} |' >> $GITHUB_STEP_SUMMARY

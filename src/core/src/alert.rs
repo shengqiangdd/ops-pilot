@@ -59,6 +59,7 @@ impl AlertRule {
 }
 
 /// Sliding window entry for a user.
+#[allow(dead_code)]
 struct WindowEntry {
     timestamp: i64,
     action: String,
