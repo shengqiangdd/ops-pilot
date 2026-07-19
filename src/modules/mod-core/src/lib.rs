@@ -16,6 +16,12 @@ pub struct ModCore {
     sub_modules: Vec<Box<dyn OpsModule>>,
 }
 
+impl Default for ModCore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ModCore {
     pub fn new() -> Self {
         Self {

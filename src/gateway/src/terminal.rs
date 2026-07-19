@@ -72,7 +72,7 @@ impl WebSocketHandler {
         let conn = pool
             .get(&host_id)
             .await
-            .map_err(|e| TerminalError::Ssh(e))?;
+            .map_err(TerminalError::Ssh)?;
 
         // Open an interactive shell channel.
         let handle = conn.handle.read().await;

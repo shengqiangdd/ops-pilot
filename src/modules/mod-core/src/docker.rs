@@ -7,6 +7,12 @@ use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinitio
 
 pub struct DockerModule;
 
+impl Default for DockerModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DockerModule {
     pub fn new() -> Self {
         Self

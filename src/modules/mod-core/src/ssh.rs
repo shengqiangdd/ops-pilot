@@ -7,6 +7,12 @@ use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinitio
 
 pub struct SshModule;
 
+impl Default for SshModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SshModule {
     pub fn new() -> Self {
         Self

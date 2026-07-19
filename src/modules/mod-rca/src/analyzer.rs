@@ -33,6 +33,7 @@ pub struct RcaAnalyzer {
     history: Vec<RcaHistoryEntry>,
 }
 
+#[allow(clippy::new_without_default)]
 impl RcaAnalyzer {
     /// Create a new analyzer with the built-in rule set.
     pub fn new() -> Self {

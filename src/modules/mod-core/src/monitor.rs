@@ -7,6 +7,12 @@ use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinitio
 
 pub struct MonitorModule;
 
+impl Default for MonitorModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MonitorModule {
     pub fn new() -> Self {
         Self

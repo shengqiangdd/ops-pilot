@@ -7,6 +7,12 @@ use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinitio
 
 pub struct HostModule;
 
+impl Default for HostModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HostModule {
     pub fn new() -> Self {
         Self

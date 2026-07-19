@@ -27,7 +27,6 @@ use tracing::{debug, info, warn};
 
 /// Strict host key checking mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum StrictHostKeyChecking {
     /// Verify the host key against known_hosts; fail if unknown.
     Yes,

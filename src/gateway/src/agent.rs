@@ -85,8 +85,7 @@ impl AgentSession {
         config: AgentConfig,
     ) -> Self {
         let session_id = Uuid::new_v4().to_string();
-        let mut messages = Vec::new();
-        messages.push(Message::system(&config.system_prompt));
+        let messages = vec![Message::system(&config.system_prompt)];
 
         Self {
             session_id,

@@ -27,6 +27,12 @@ pub struct ModSecurity {
     llm_scanner: Option<LlmScanner>,
 }
 
+impl Default for ModSecurity {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ModSecurity {
     pub fn new() -> Self {
         Self {

@@ -27,6 +27,12 @@ pub struct ModRca {
     llm_analyzer: Option<LlmAnalyzer>,
 }
 
+impl Default for ModRca {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ModRca {
     pub fn new() -> Self {
         Self {

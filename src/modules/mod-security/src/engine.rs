@@ -54,6 +54,12 @@ pub struct SecurityEngine {
     rules: Vec<SecurityRule>,
 }
 
+impl Default for SecurityEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SecurityEngine {
     pub fn new() -> Self {
         Self {
