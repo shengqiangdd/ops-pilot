@@ -113,8 +113,7 @@ pub fn read_memory_usage() -> Result<(u64, u64, f64)> {
 }
 
 fn parse_mem_kb(s: &str) -> u64 {
-    s.trim()
-        .split_whitespace()
+    s.split_whitespace()
         .next()
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(0)
@@ -163,6 +162,7 @@ pub fn get_host_stats() -> Result<HostStats> {
 }
 
 /// The monitor module implementing `OpsModule`.
+#[derive(Default)]
 pub struct MonitorModule;
 
 impl MonitorModule {

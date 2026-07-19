@@ -27,19 +27,15 @@ use tracing::{debug, info, warn};
 
 /// Strict host key checking mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum StrictHostKeyChecking {
     /// Verify the host key against known_hosts; fail if unknown.
     Yes,
     /// Accept any host key (insecure, for development only).
     No,
     /// Accept unknown keys but reject changed keys.
+    #[default]
     AcceptNew,
-}
-
-impl Default for StrictHostKeyChecking {
-    fn default() -> Self {
-        Self::AcceptNew
-    }
 }
 
 /// Configuration for an SSH connection.
@@ -199,7 +195,7 @@ impl KnownHosts {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 3 {
                 map.entry(parts[0].to_string())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(KnownHostEntry {
                         key_type: parts[1].to_string(),
                         base64_key: parts[2].to_string(),
@@ -277,7 +273,7 @@ impl KnownHosts {
         // Update in-memory
         self.entries
             .entry(hostname.to_string())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(entry);
 
         // Append to file
