@@ -144,7 +144,7 @@ mod tests {
         auth.register("testuser", "test@example.com", "password123")
             .await
             .unwrap();
-        let token = auth.login("testuser", "password123").await.unwrap();
+        let _token = auth.login("testuser", "password123").await.unwrap();
 
         let auth_state = crate::middleware::AuthState {
             service: auth.clone(),
@@ -159,7 +159,7 @@ mod tests {
     }
 
     fn auth_request(method: Method, uri: &str, token: &str, body: Option<serde_json::Value>) -> Request<Body> {
-        let mut builder = Request::builder()
+        let builder = Request::builder()
             .method(method)
             .uri(uri)
             .header("authorization", format!("Bearer {}", token))

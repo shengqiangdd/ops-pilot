@@ -195,7 +195,7 @@ mod tests {
         token: &str,
         body: Option<serde_json::Value>,
     ) -> Request<Body> {
-        let mut builder = Request::builder()
+        let builder = Request::builder()
             .method(method)
             .uri(uri)
             .header("authorization", format!("Bearer {}", token))

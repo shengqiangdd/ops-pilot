@@ -295,6 +295,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     struct FailingLlmClient;
 
     #[async_trait]

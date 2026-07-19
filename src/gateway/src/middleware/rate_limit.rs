@@ -71,7 +71,7 @@ pub async fn rate_limit_middleware(
 mod tests {
     use super::*;
     use axum::body::Body;
-    use axum::http::{Request, Response};
+    use axum::http::Request;
     use tower::ServiceExt;
 
     #[test]
