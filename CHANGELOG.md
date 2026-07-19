@@ -13,6 +13,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[P1]** Agent `truncate_if_needed()` could orphan tool_call/tool_result message pairs when evicting old messages — now preserves atomicity
 - **[P1]** Typo: `truncuate_if_needed` → `truncate_if_needed`
 
+## [0.1.0] - 2026-07-15
+
+### Added
+
+- Initial release
+- SSH connection management with russh (password + public key auth)
+- Docker container management via bollard (list, start, stop, restart, stats)
+- Host CRUD with SQLite persistence
+- User registration and JWT authentication (Argon2id + jsonwebtoken)
+- Module SDK with `OpsModule` trait, `ModuleLoader`, `EventBus`, `ModuleContext`
+- Gateway HTTP API (Axum 0.8) with route modules for hosts, modules, agent
+- Agent ReAct loop with tool calling and conversation truncation
+- LLM client abstraction (`LlmClient` trait) with text and tool-call support
+- WebSocket-to-SSH terminal proxy
+- Tool registry routing AI function calls to correct module
+- React 19 frontend with Zustand state management
+- Host management UI with CRUD operations
+- AI chat interface with streaming support
+- Workflow editor with ReactFlow
+- User authentication (login/register) UI
+- Modular architecture with 3 built-in modules: mod-core, mod-rca, mod-security
+- CI/CD pipeline with GitHub Actions (frontend lint+test+build, Rust check+clippy+test+build, Docker publish to GHCR)
+- Multi-stage Dockerfile with frontend + Rust dependency caching
+- docker-compose for production deployment with Ollama integration
+- JWT-based authentication with login/register UI
+- Host health monitoring dashboard with auto-refresh
+- Module configuration editor with real-time JSON validation
+- Toast notification system with context provider
+- CI/CD status badges in README
+- CI badge (summary job) via step-summary in Actions
+
 ### Security
 
 - **[P0]** SSH `check_server_key()` always returned `true` — vulnerable to man-in-the-middle attacks. Implemented `known_hosts` verification
@@ -29,15 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ToolRegistry` now maintains a `HashMap<String, Arc<dyn OpsModule>>` index for O(1) tool→module lookup instead of scanning all modules on every `invoke_tool` call
 - All SQL queries now use `#[derive(sqlx::FromRow)]` structs instead of positional tuple destructuring
 
-### Added
+### Fixed
 
-- `README.md` with architecture diagram, API reference, and configuration guide
-- `CHANGELOG.md` (this file)
-- `ARCHITECTURE.md` with detailed component diagrams and data flow
-- Encrypted credential storage for host SSH passwords/keys using AES-256-GCM
-- `known_hosts` file verification for SSH server key checking
-- `SshConnectionPool` max connection limit (configurable, default 100)
-- `tracing_subscriber` initialization with configurable log levels
+- **[P0]** SSH `reconnect()` was a no-op — new handle was created but immediately dropped without replacing the old one (`SshConnection.handle` not wrapped in `Arc<RwLock<...>>`)
+- **[P1]** Agent `truncate_if_needed()` could orphan tool_call/tool_result message pairs when evicting old messages — now preserves atomicity
+- **[P1]** Typo: `truncuate_if_needed` → `truncate_if_needed`
 
 ## [0.1.0] - 2026-07-15
 

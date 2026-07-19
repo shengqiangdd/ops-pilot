@@ -6,6 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Rust](https://img.shields.io/badge/Rust-1.82+-orange?logo=rust)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![GitHub Release](https://img.shields.io/github/v/release/OWNER/ops-pilot?logo=github)
+[![GHCR](https://img.shields.io/badge/GHCR-ops--pilot-blue?logo=docker)](https://github.com/OWNER/ops-pilot/pkgs/container/ops-pilot)
 
 ## Architecture Overview
 
@@ -127,13 +129,30 @@
 
 ```bash
 # Clone and configure
+git clone https://github.com/OWNER/ops-pilot.git
+cd ops-pilot
 cp .env.example .env
 # Edit .env with your secrets (JWT_SECRET, LLM_API_KEY, etc.)
 
-# Start all services
+# Start all services (builds locally)
 docker compose up -d
 
+# Or use pre-built GHCR image:
+export TAG=0.1.0
+docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+
 # Access at http://localhost:3001
+```
+
+### Pull from GHCR (tagged releases)
+
+```bash
+docker pull ghcr.io/OWNER/ops-pilot:v0.1.0
+docker run -d \
+  -p 3001:3001 \
+  -v ops_pilot_data:/app/data \
+  -e JWT_SECRET=$(openssl rand -hex 32) \
+  ghcr.io/OWNER/ops-pilot:v0.1.0
 ```
 
 ### Local Development
