@@ -14,7 +14,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_LOG: warn
   NODE_VERSION: '20'
-  RUST_TOOLCHAIN: '1.82'
+  RUST_TOOLCHAIN: 'stable'
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════

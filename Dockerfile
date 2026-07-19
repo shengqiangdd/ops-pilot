@@ -8,7 +8,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ── Stage 2a: Cargo dependency cache ────────────────────────────────────
-FROM rust:1.82-slim-bookworm AS cargo-cache
+FROM rust:slim-bookworm AS cargo-cache
 
 RUN apt-get update && apt-get install -y \
     pkg-config libssl-dev \
@@ -45,7 +45,7 @@ RUN mkdir -p src/core/src src/gateway/src src/sdk/src src/modules/mod-core/src s
 RUN cargo build --release --bin ops-pilot 2>/dev/null || true
 
 # ── Stage 2b: Rust builder ──────────────────────────────────────────────
-FROM rust:1.82-slim-bookworm AS rust-builder
+FROM rust:slim-bookworm AS rust-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config libssl-dev \
