@@ -523,7 +523,7 @@ Sensitive data (SSH keys, API tokens, passwords) is encrypted at rest:
 # docker-compose.yml
 services:
   ops-pilot:
-    image: ghcr.io/OWNER/ops-pilot:latest
+    image: ghcr.io/shengqiangdd/ops-pilot:latest
     ports: ["3000:3000", "8080:8080"]
     volumes:
       - ./data:/app/data
@@ -558,7 +558,7 @@ spec:
     spec:
       containers:
         - name: ops-pilot
-          image: ghcr.io/OWNER/ops-pilot:latest
+          image: ghcr.io/shengqiangdd/ops-pilot:latest
           ports:
             - containerPort: 3000
             - containerPort: 8080

@@ -20,23 +20,24 @@ services:
       - DATABASE_URL=sqlite:///app/data/ops-pilot.db
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET required — generate: openssl rand -hex 32}
       - OPSPILOT_MASTER_KEY=${OPSPILOT_MASTER_KEY:?OPSPILOT_MASTER_KEY required — generate: openssl rand -base64 32}
-      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
       - LLM_API_KEY=${LLM_API_KEY:-}
-      - LLM_BASE_URL=${LLM_BASE_URL:-http://ollama:11434/v1}
-      - LLM_MODEL=${LLM_MODEL:-qwen2.5:32b}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
       - RUST_LOG=${RUST_LOG:-ops_pilot=info,tower_http=info}
       - TZ=${TZ:-Asia/Shanghai}
       - LISTEN_ADDR=0.0.0.0:3001
       - STATIC_DIR=/app/static
-    depends_on:
-      ollama:
-        condition: service_healthy
     restart: unless-stopped
     logging: *default-logging
     networks:
       - ops-pilot
 
+  # ── Ollama (optional) ──────────────────────────────────────────────
+  # Start with:  docker compose --profile ollama up -d
+  # Or set LLM_PROVIDER=ollama, LLM_BASE_URL=http://ollama:11434/v1
   ollama:
+    profiles: ["ollama"]
     image: ollama/ollama:latest
     container_name: ops-pilot-ollama
     ports:

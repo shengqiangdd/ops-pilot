@@ -9,4 +9,4 @@
 services:
   ops-pilot:
     build: !reset null
-    image: ghcr.io/OWNER/ops-pilot:${TAG:-latest}
+    image: ghcr.io/shengqiangdd/ops-pilot:${TAG:-latest}

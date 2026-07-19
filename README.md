@@ -2,12 +2,12 @@
 
 > AI-Powered Modular Infrastructure Operations Platform — manage servers, containers, and monitoring through natural language.
 
-[![CI/CD](https://github.com/OWNER/ops-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/ops-pilot/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/shengqiangdd/ops-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/shengqiangdd/ops-pilot/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Rust](https://img.shields.io/badge/Rust-1.82+-orange?logo=rust)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
-![GitHub Release](https://img.shields.io/github/v/release/OWNER/ops-pilot?logo=github)
-[![GHCR](https://img.shields.io/badge/GHCR-ops--pilot-blue?logo=docker)](https://github.com/OWNER/ops-pilot/pkgs/container/ops-pilot)
+![GitHub Release](https://img.shields.io/github/v/release/shengqiangdd/ops-pilot?logo=github)
+[![GHCR](https://img.shields.io/badge/GHCR-ops--pilot-blue?logo=docker)](https://github.com/shengqiangdd/ops-pilot/pkgs/container/ops-pilot)
 
 ## Architecture Overview
 
@@ -129,17 +129,18 @@
 
 ```bash
 # Clone and configure
-git clone https://github.com/OWNER/ops-pilot.git
+git clone https://github.com/shengqiangdd/ops-pilot.git
 cd ops-pilot
 cp .env.example .env
-# Edit .env with your secrets (JWT_SECRET, LLM_API_KEY, etc.)
+# Edit .env with your LLM_API_KEY and secrets
 
-# Start all services (builds locally)
+# Start the service (remote LLM by default — no Ollama needed)
 docker compose up -d
 
-# Or use pre-built GHCR image:
-export TAG=0.1.0
-docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+# If using local Ollama instead:
+#   export LLM_PROVIDER=ollama
+#   export LLM_BASE_URL=http://ollama:11434/v1
+#   docker compose --profile ollama up -d
 
 # Access at http://localhost:3001
 ```
@@ -147,12 +148,13 @@ docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
 ### Pull from GHCR (tagged releases)
 
 ```bash
-docker pull ghcr.io/OWNER/ops-pilot:v0.1.0
+docker pull ghcr.io/shengqiangdd/ops-pilot:v0.1.0
 docker run -d \
   -p 3001:3001 \
   -v ops_pilot_data:/app/data \
   -e JWT_SECRET=$(openssl rand -hex 32) \
-  ghcr.io/OWNER/ops-pilot:v0.1.0
+  -e LLM_API_KEY=sk-... \
+  ghcr.io/shengqiangdd/ops-pilot:v0.1.0
 ```
 
 ### Local Development

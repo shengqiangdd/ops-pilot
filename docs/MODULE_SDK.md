@@ -709,7 +709,7 @@ version = "0.1.0"
 description = "AI-powered Root Cause Analysis for infrastructure incidents"
 authors = ["OpsPilot Contributors"]
 license = "MIT"
-repository = "https://github.com/OWNER/ops-pilot"
+repository = "https://github.com/shengqiangdd/ops-pilot"
 
 [module]
 # Unique identifier (must match crate name)
