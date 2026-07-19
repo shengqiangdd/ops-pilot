@@ -36,7 +36,7 @@ describe('ModuleConfigEditor', () => {
 
     const textarea = screen.getByRole('textbox');
     await userEvent.clear(textarea);
-    await userEvent.type(textarea, '{ invalid json');
+    await userEvent.type(textarea, '__invalid json');
 
     expect(screen.getByText(/JSON error/)).toBeInTheDocument();
   });

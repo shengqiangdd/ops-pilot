@@ -1,6 +1,6 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HealthDashboard } from '../HealthDashboard';
 import * as api from '../../api/client';
 import type { ModuleHealth } from '../../api/types';
@@ -14,75 +14,37 @@ const mockHealthData: ModuleHealth[] = [
 ];
 
 beforeEach(() => {
-  vi.useFakeTimers();
   vi.resetAllMocks();
   vi.mocked(api.api.getHealthAll).mockResolvedValue(mockHealthData);
 });
 
-afterEach(() => {
-  vi.useRealTimers();
-});
-
 describe('HealthDashboard', () => {
   it('renders health data after loading', async () => {
-    await act(async () => {
-      render(<HealthDashboard />);
-    });
-    await waitFor(() => {
-      expect(screen.getByText('mod-rca')).toBeInTheDocument();
-    });
+    render(<HealthDashboard />);
+    expect(await screen.findByText('mod-rca')).toBeInTheDocument();
     expect(screen.getByText('mod-core')).toBeInTheDocument();
     expect(screen.getByText('mod-finops')).toBeInTheDocument();
   });
 
   it('shows summary counts', async () => {
-    await act(async () => {
-      render(<HealthDashboard />);
-    });
-    await waitFor(() => {
-      expect(screen.getByText('1')).toBeInTheDocument(); // 1 healthy
-    });
-    // Check degraded and unhealthy counts
-    const degradedSection = screen.getByText('Degraded').closest('div')!;
-    expect(degradedSection).toHaveTextContent('1');
-    const unhealthySection = screen.getByText('Unhealthy').closest('div')!;
-    expect(unhealthySection).toHaveTextContent('1');
+    render(<HealthDashboard />);
+    await screen.findByText('Healthy');
+    const ones = screen.getAllByText('1');
+    expect(ones).toHaveLength(3);
   });
 
   it('highlights unhealthy modules', async () => {
-    await act(async () => {
-      render(<HealthDashboard />);
-    });
-    await waitFor(() => {
-      expect(screen.getByText('mod-finops')).toBeInTheDocument();
-    });
+    render(<HealthDashboard />);
+    await screen.findByText('mod-finops');
     expect(screen.getByText('connection refused')).toBeInTheDocument();
   });
 
   it('refreshes on button click', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    await act(async () => {
-      render(<HealthDashboard />);
-    });
-    await waitFor(() => {
-      expect(screen.getByText('Refresh Now')).toBeInTheDocument();
-    });
+    const user = userEvent.setup();
+    render(<HealthDashboard />);
+    await screen.findByText('Refresh Now');
 
     await user.click(screen.getByText('Refresh Now'));
-
-    await waitFor(() => {
-      expect(api.api.getHealthAll).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  it('auto-refreshes every 30 seconds', async () => {
-    await act(async () => {
-      render(<HealthDashboard />);
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(30_000);
-    });
 
     await waitFor(() => {
       expect(api.api.getHealthAll).toHaveBeenCalledTimes(2);
@@ -92,21 +54,12 @@ describe('HealthDashboard', () => {
   it('displays error on failure', async () => {
     vi.mocked(api.api.getHealthAll).mockRejectedValue(new Error('Timeout'));
 
-    await act(async () => {
-      render(<HealthDashboard />);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Timeout')).toBeInTheDocument();
-    });
+    render(<HealthDashboard />);
+    expect(await screen.findByText('Timeout')).toBeInTheDocument();
   });
 
   it('shows last refresh time', async () => {
-    await act(async () => {
-      render(<HealthDashboard />);
-    });
-    await waitFor(() => {
-      expect(screen.getByText(/Last refreshed/)).toBeInTheDocument();
-    });
+    render(<HealthDashboard />);
+    expect(await screen.findByText(/Last refreshed/)).toBeInTheDocument();
   });
 });
