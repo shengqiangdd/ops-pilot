@@ -27,15 +27,21 @@ use tracing::{debug, info, warn};
 
 /// Strict host key checking mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum StrictHostKeyChecking {
     /// Verify the host key against known_hosts; fail if unknown.
     Yes,
     /// Accept any host key (insecure, for development only).
     No,
     /// Accept unknown keys but reject changed keys.
-    #[default]
     AcceptNew,
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for StrictHostKeyChecking {
+    fn default() -> Self {
+        Self::AcceptNew
+    }
 }
 
 /// Configuration for an SSH connection.
@@ -185,7 +191,7 @@ impl KnownHosts {
     fn parse_file(path: &Path) -> Result<HashMap<String, Vec<KnownHostEntry>>, SshError> {
         let content = fs::read_to_string(path)
             .map_err(|e| SshError::Key(format!("failed to read known_hosts: {e}")))?;
-        let mut map = HashMap::new();
+        let mut map: HashMap<String, Vec<KnownHostEntry>> = HashMap::new();
 
         for line in content.lines() {
             let line = line.trim();
