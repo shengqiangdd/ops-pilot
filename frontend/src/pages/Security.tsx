@@ -158,8 +158,10 @@ export function SecurityPage() {
         check_type: selectedCheck,
       });
       setResult(data);
+      setError(null);
     } catch (err) {
-      // Simulate a scan result for demo purposes
+      // Backend not connected — use demo data so UI is visible
+      setError(err instanceof Error ? err.message : 'Backend API unavailable — showing demo data');
       setResult({
         results: [
           { check_id: 'sys-1', check_name: 'SSH Config', status: 'pass', severity: 'high', message: 'SSH root login disabled, key-only auth enabled' },
