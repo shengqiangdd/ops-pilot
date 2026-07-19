@@ -34,6 +34,9 @@ governor.workspace = true
 
 ops-pilot-core = { path = "../core" }
 ops-pilot-sdk = { path = "../sdk" }
+ops-pilot-mod-core = { path = "../modules/mod-core" }
+ops-pilot-mod-rca = { path = "../modules/mod-rca" }
+ops-pilot-mod-security = { path = "../modules/mod-security" }
 
 [dev-dependencies]
 wiremock = "0.6"

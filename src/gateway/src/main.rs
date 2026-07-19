@@ -14,8 +14,12 @@ use ops_pilot_gateway::agent::{AgentConfig, AgentOrchestrator};
 use ops_pilot_gateway::routes::agent::agent_routes;
 use ops_pilot_gateway::routes::hosts::host_routes;
 use ops_pilot_gateway::routes::modules::{module_routes, ModuleManager};
+use ops_pilot_gateway::routes::security::security_routes;
 use ops_pilot_gateway::routes::vault::vault_routes;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
+use ops_pilot_mod_core::ModCore;
+use ops_pilot_mod_rca::ModRca;
+use ops_pilot_mod_security::ModSecurity;
 use ops_pilot_sdk::context::{EventBus, ModuleContext};
 use serde::Deserialize;
 use tokio::sync::RwLock;
@@ -220,6 +224,21 @@ async fn main() {
             }
         };
 
+    // ── Register modules ──────────────────────────────────────────────
+    {
+        let mut mgr = module_manager.write().await;
+        let loader = mgr.loader_mut();
+
+        loader.load_module(ctx.as_ref().clone(), Box::new(ModCore::new())).await
+            .expect("failed to register mod-core");
+        loader.load_module(ctx.as_ref().clone(), Box::new(ModRca::with_llm(llm_client.clone()))).await
+            .expect("failed to register mod-rca");
+        loader.load_module(ctx.as_ref().clone(), Box::new(ModSecurity::with_llm(llm_client.clone()))).await
+            .expect("failed to register mod-security");
+
+        tracing::info!("registered mod-core, mod-rca, mod-security");
+    }
+
     let orchestrator = Arc::new(AgentOrchestrator::new(
         tool_registry.clone(),
         Arc::clone(&llm_client),
@@ -261,7 +280,8 @@ async fn main() {
         .merge(auth_routes(auth_service.clone(), login_limiter))
         .merge(protected_hosts)
         .merge(protected_vault)
-        .merge(module_routes(module_manager, ctx.clone()))
+        .merge(module_routes(module_manager.clone(), ctx.clone()))
+        .merge(security_routes(module_manager, ctx.clone()))
         .merge(agent_routes(tool_registry, llm_client, ctx, pool))
         .merge(ops_pilot_gateway::terminal::terminal_routes(
             ssh_pool,
