@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use ops_pilot_gateway::llm::{LlmClient, LlmError, Message};
+use ops_pilot_sdk::llm::{LlmClient, LlmError, Message};
 
 use crate::analyzer::RcaResult;
 
@@ -129,7 +129,7 @@ mod tests {
     use async_trait::async_trait;
     use crate::rules::Severity;
     use futures_util::stream;
-    use ops_pilot_gateway::llm::{LlmError, Message};
+    use ops_pilot_sdk::llm::{LlmError, Message};
     use std::pin::Pin;
 
     /// A mock LLM client that returns a canned response.

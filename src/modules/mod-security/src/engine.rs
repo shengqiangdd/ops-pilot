@@ -87,7 +87,7 @@ impl SecurityEngine {
         let mut results: Vec<ScanResult> = applicable
             .iter()
             .map(|rule| {
-                let (status, actual, expected) = rule.simulate_result();
+                let (status, actual, _expected) = rule.simulate_result();
                 ScanResult {
                     check_id: rule.id.clone(),
                     rule_name: rule.name.clone(),

@@ -123,7 +123,8 @@ impl ProviderLlm {
             .header("Content-Type", "application/json")
             .json(body)
             .send()
-            .await?;
+            .await
+            .map_err(|e| LlmError::Http(e.to_string()))?;
 
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
@@ -192,7 +193,8 @@ impl LlmClient for ProviderLlm {
         );
 
         let resp = self.send_request(&body).await?;
-        let completion: ChatCompletionResponse = resp.json().await?;
+        let completion: ChatCompletionResponse = resp.json().await
+            .map_err(|e| LlmError::Http(e.to_string()))?;
 
         let content = completion
             .choices
@@ -218,7 +220,8 @@ impl LlmClient for ProviderLlm {
         );
 
         let resp = self.send_request(&body).await?;
-        let completion: ChatCompletionResponse = resp.json().await?;
+        let completion: ChatCompletionResponse = resp.json().await
+            .map_err(|e| LlmError::Http(e.to_string()))?;
 
         let choice = completion
             .choices
@@ -294,7 +297,7 @@ impl LlmClient for ProviderLlm {
                             buffer.extend_from_slice(&bytes);
                         }
                         Some(Err(e)) => {
-                            return Some((Err(LlmError::Http(e)), (stream, buffer)));
+                            return Some((Err(LlmError::Http(e.to_string())), (stream, buffer)));
                         }
                         None => {
                             if !buffer.is_empty() {

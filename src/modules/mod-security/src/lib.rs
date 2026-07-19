@@ -12,17 +12,18 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::RwLock;
 
-use ops_pilot_gateway::llm::LlmClient;
+use ops_pilot_sdk::llm::LlmClient;
 use ops_pilot_sdk::context::ModuleContext;
 use ops_pilot_sdk::events::OpsEvent;
 use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinition};
 
-use engine::{SecurityEngine, ScanOutput, RemediationOutput};
+use engine::SecurityEngine;
 use llm_scanner::LlmScanner;
 
 /// The Security and Compliance module.
 pub struct ModSecurity {
     engine: Arc<RwLock<SecurityEngine>>,
+    #[allow(dead_code)]
     llm_scanner: Option<LlmScanner>,
 }
 
@@ -252,7 +253,7 @@ impl OpsModule for ModSecurity {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ops_pilot_gateway::llm::{LlmError, Message};
+    use ops_pilot_sdk::llm::{LlmError, Message};
     use ops_pilot_sdk::context::EventBus;
     use sqlx::SqlitePool;
     use std::path::PathBuf;

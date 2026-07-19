@@ -1,141 +1,16 @@
+//! LLM chat types re-exported from SDK, plus gateway-specific services.
+
+pub use ops_pilot_sdk::llm::{
+    CompletionResponse, FunctionCall, LlmClient, LlmError, Message, Role, ToolCall,
+};
+
 use async_trait::async_trait;
 use futures_util::Stream;
-use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-
-/// Errors from LLM operations.
-#[derive(Debug, thiserror::Error)]
-pub enum LlmError {
-    #[error("HTTP request failed: {0}")]
-    Http(#[from] reqwest::Error),
-
-    #[error("JSON serialization/deserialization error: {0}")]
-    Json(#[from] serde_json::Error),
-
-    #[error("API error {status}: {message}")]
-    Api { status: u16, message: String },
-
-    #[error("stream ended unexpectedly")]
-    StreamClosed,
-
-    #[error("{0}")]
-    Other(String),
-}
-
-/// Message roles in a conversation.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum Role {
-    System,
-    User,
-    Assistant,
-}
-
-/// A single chat message.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Message {
-    pub role: Role,
-    pub content: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_calls: Option<Vec<ToolCall>>,
-}
-
-impl Message {
-    pub fn system(content: impl Into<String>) -> Self {
-        Self {
-            role: Role::System,
-            content: content.into(),
-            tool_calls: None,
-        }
-    }
-
-    pub fn user(content: impl Into<String>) -> Self {
-        Self {
-            role: Role::User,
-            content: content.into(),
-            tool_calls: None,
-        }
-    }
-
-    pub fn assistant(content: impl Into<String>) -> Self {
-        Self {
-            role: Role::Assistant,
-            content: content.into(),
-            tool_calls: None,
-        }
-    }
-}
-
-/// A tool/function call requested by the model.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ToolCall {
-    pub id: String,
-    #[serde(rename = "type")]
-    pub call_type: String,
-    pub function: FunctionCall,
-}
-
-/// Details of a function call.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionCall {
-    pub name: String,
-    pub arguments: String,
-}
-
-/// A structured completion response that may include tool calls.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompletionResponse {
-    /// The assistant's text content (may be empty if only tool calls).
-    pub content: String,
-    /// Tool calls requested by the model, if any.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tool_calls: Option<Vec<ToolCall>>,
-}
-
-impl CompletionResponse {
-    pub fn text(content: impl Into<String>) -> Self {
-        Self {
-            content: content.into(),
-            tool_calls: None,
-        }
-    }
-
-    pub fn has_tool_calls(&self) -> bool {
-        self.tool_calls
-            .as_ref()
-            .is_some_and(|tc| !tc.is_empty())
-    }
-}
-
-/// Trait for OpenAI-compatible LLM backends.
-#[async_trait]
-pub trait LlmClient: Send + Sync {
-    /// Send a non-streaming chat completion request (text only).
-    async fn complete(&self, messages: &[Message]) -> Result<String, LlmError>;
-
-    /// Send a non-streaming completion with tool support.
-    ///
-    /// Default implementation calls `complete()` and returns text-only.
-    /// Override this to return structured tool calls from the API.
-    async fn complete_with_tools(
-        &self,
-        messages: &[Message],
-        _tools: &[serde_json::Value],
-    ) -> Result<CompletionResponse, LlmError> {
-        let text = self.complete(messages).await?;
-        Ok(CompletionResponse::text(text))
-    }
-
-    /// Send a streaming chat completion request.
-    async fn complete_stream(
-        &self,
-        messages: &[Message],
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<String, LlmError>> + Send>>, LlmError>;
-}
 
 /// High-level chat service wrapping an [`LlmClient`].
 pub struct ChatService {
@@ -477,7 +352,6 @@ mod tests {
         }))
         .with_system_prompt("You are a pirate.");
 
-        // Verify the call succeeds (system prompt is prepended internally)
         let result = svc.chat(&[Message::user("ahoy")]).await.unwrap();
         assert_eq!(result, "ok");
     }
@@ -516,7 +390,6 @@ mod tests {
         let svc = ChatService::new(Box::new(FailingClient));
         let result = svc.chat_stream(&[Message::user("fail")]).await;
         assert!(result.is_err());
-        // Unwrap only the Err side to avoid requiring Debug on the Ok stream type.
         let _ = result.err().unwrap();
     }
 
@@ -565,8 +438,8 @@ mod tests {
         let cb = CircuitBreaker::new(3, Duration::from_secs(60));
         cb.record_failure().await;
         cb.record_failure().await;
-        assert!(cb.allow_request().await); // still closed at 2 failures
-        cb.record_failure().await; // 3rd failure → open
+        assert!(cb.allow_request().await);
+        cb.record_failure().await;
         assert!(!cb.allow_request().await);
     }
 
@@ -574,10 +447,10 @@ mod tests {
     async fn test_circuit_breaker_half_open_after_timeout() {
         let cb = CircuitBreaker::new(2, Duration::from_millis(50));
         cb.record_failure().await;
-        cb.record_failure().await; // opens
+        cb.record_failure().await;
         assert!(!cb.allow_request().await);
         tokio::time::sleep(Duration::from_millis(60)).await;
-        assert!(cb.allow_request().await); // half-open
+        assert!(cb.allow_request().await);
     }
 
     #[tokio::test]

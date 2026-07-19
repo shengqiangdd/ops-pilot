@@ -13,7 +13,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::RwLock;
 
-use ops_pilot_gateway::llm::LlmClient;
+use ops_pilot_sdk::llm::LlmClient;
 use ops_pilot_sdk::context::ModuleContext;
 use ops_pilot_sdk::events::OpsEvent;
 use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinition};
@@ -230,7 +230,7 @@ impl OpsModule for ModRca {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ops_pilot_gateway::llm::{LlmError, Message};
+    use ops_pilot_sdk::llm::{LlmError, Message};
     use ops_pilot_sdk::context::EventBus;
     use sqlx::SqlitePool;
     use std::path::PathBuf;

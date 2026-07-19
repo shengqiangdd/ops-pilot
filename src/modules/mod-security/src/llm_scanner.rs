@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use ops_pilot_gateway::llm::{LlmClient, LlmError, Message};
+use ops_pilot_sdk::llm::{LlmClient, LlmError, Message};
 
 use crate::engine::{CheckStatus, ScanResult};
 use crate::rules::Severity;
@@ -167,7 +167,7 @@ mod tests {
     use crate::engine::ScanResult;
     use crate::rules::Severity;
     use futures_util::stream;
-    use ops_pilot_gateway::llm::{LlmError, Message};
+    use ops_pilot_sdk::llm::{LlmError, Message};
     use std::pin::Pin;
 
     struct MockLlmClient {

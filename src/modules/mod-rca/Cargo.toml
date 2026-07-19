@@ -8,7 +8,6 @@ description = "Root Cause Analysis module: rule-based and AI-powered diagnostics
 [dependencies]
 ops-pilot-sdk = { path = "../../sdk" }
 ops-pilot-core = { path = "../../core" }
-ops-pilot-gateway = { path = "../../gateway" }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
