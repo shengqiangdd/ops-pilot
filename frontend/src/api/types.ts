@@ -290,3 +290,21 @@ export interface AdvisorSuggestion {
   acknowledged: boolean;
   dismissed: boolean;
 }
+
+// ── Audit types ────────────────────────────────────────────────────────
+
+export interface AuditLogEntry {
+  id: string;
+  user: string;
+  action: string;
+  resource: string;
+  outcome: string;
+  created_at: string;
+}
+
+export interface AuditLogResponse {
+  data: AuditLogEntry[];
+  total: number;
+  page: number;
+  per_page: number;
+}

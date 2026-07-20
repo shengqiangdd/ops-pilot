@@ -21,6 +21,7 @@ import type {
   SchedulerJob,
   FileSyncResult,
   AdvisorSuggestion,
+  AuditLogEntry,
 } from './types';
 
 const BASE = '/api';
@@ -311,4 +312,23 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ action: 'dismiss', id }),
     }),
+
+  // ── Audit ───────────────────────────────────────────────────────────
+
+  listAuditLogs: (token: string, params: Record<string, string>) => {
+    const qs = new URLSearchParams(params).toString();
+    return requestWithAuth<{
+      data: AuditLogEntry[];
+      total: number;
+      page: number;
+      per_page: number;
+    }>(`/audit/logs?${qs}`, token);
+  },
+
+  getAuditStats: (token: string) =>
+    requestWithAuth<{
+      total: number;
+      by_action: Array<{ action: string; count: number }>;
+      by_outcome: Array<{ outcome: string; count: number }>;
+    }>('/audit/stats', token),
 };

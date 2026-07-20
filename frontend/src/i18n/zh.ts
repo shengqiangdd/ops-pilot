@@ -39,6 +39,7 @@ const zh: Record<string, string> = {
   'tab.filesync': '同步',
   'tab.advisor': '建议',
   'tab.terminal': '终端',
+  'tab.audit': '审计',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -61,6 +62,7 @@ const zh: Record<string, string> = {
   'title.filesync': '文件同步',
   'title.advisor': '智能建议',
   'title.terminal': 'Web 终端',
+  'title.audit': '操作审计',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -75,6 +77,28 @@ const zh: Record<string, string> = {
   'terminal.ssh': 'WebSSH',
   'terminal.select_host_hint': '请从主机管理页面选择一台主机，然后点击「WebSSH」按钮连接终端。',
   'terminal.go_to_hosts': '前往主机管理',
+
+  /* Audit page */
+  'audit.title': '操作审计',
+  'audit.reload': '刷新',
+  'audit.loading': '加载中...',
+  'audit.export_csv': '导出 CSV',
+  'audit.empty': '暂无审计日志',
+  'audit.filter.username': '用户名',
+  'audit.filter.username_placeholder': '输入用户名...',
+  'audit.filter.action': '操作类型',
+  'audit.filter.all': '全部',
+  'audit.filter.from': '开始日期',
+  'audit.filter.to': '结束日期',
+  'audit.filter.reset': '重置筛选',
+  'audit.col.timestamp': '时间戳',
+  'audit.col.user': '用户',
+  'audit.col.action': '操作类型',
+  'audit.col.resource': '目标',
+  'audit.col.outcome': '结果',
+  'audit.pagination.total': '共 {total} 条记录',
+  'audit.pagination.prev': '上一页',
+  'audit.pagination.next': '下一页',
 
   /* Desk */
   'desk': '桌面',

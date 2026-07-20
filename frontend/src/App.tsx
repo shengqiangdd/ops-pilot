@@ -21,6 +21,7 @@ import { SchedulerPage } from './pages/Scheduler';
 import { FileSyncPage } from './pages/FileSync';
 import { AdvisorPage } from './pages/Advisor';
 import { TerminalPage } from './pages/Terminal';
+import { AuditLogPage } from './pages/AuditLog';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -33,12 +34,12 @@ import { cn } from './lib/cn';
 type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
-  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor' | 'terminal';
+  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor' | 'terminal' | 'audit';
 
 const ALL_TABS: Tab[] = [
   'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
-  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor', 'terminal',
+  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor', 'terminal', 'audit',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -66,12 +67,13 @@ const ICONS: Record<Tab, string> = {
   filesync: '📁',
   advisor: '💡',
   terminal: '⌨️',
+  audit: '📋',
 };
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
-  { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault'] },
+  { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault', 'audit'] },
   { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'monitor'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['scheduler', 'runbook', 'filesync'] },
@@ -153,6 +155,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'filesync': return <FileSyncPage />;
       case 'advisor': return <AdvisorPage />;
       case 'terminal': return <TerminalPage />;
+      case 'audit': return <AuditLogPage />;
       default: return <Dashboard />;
     }
   };

@@ -36,6 +36,7 @@ const en: Record<string, string> = {
   'tab.filesync': 'Sync',
   'tab.advisor': 'Adv',
   'tab.terminal': 'Term',
+  'tab.audit': 'Audit',
 
   'title.dashboard': 'Dashboard',
   'title.chat': 'Agent Chat',
@@ -57,6 +58,7 @@ const en: Record<string, string> = {
   'title.filesync': 'File Sync',
   'title.advisor': 'Advisor',
   'title.terminal': 'Web Terminal',
+  'title.audit': 'Audit Log',
 
   /* Terminal page */
   'terminal.title': 'Web Terminal',
@@ -71,6 +73,28 @@ const en: Record<string, string> = {
   'terminal.ssh': 'WebSSH',
   'terminal.select_host_hint': 'Please select a host from the Hosts page and click the "WebSSH" button to connect.',
   'terminal.go_to_hosts': 'Go to Hosts',
+
+  /* Audit page */
+  'audit.title': 'Audit Log',
+  'audit.reload': 'Reload',
+  'audit.loading': 'Loading...',
+  'audit.export_csv': 'Export CSV',
+  'audit.empty': 'No audit logs',
+  'audit.filter.username': 'Username',
+  'audit.filter.username_placeholder': 'Enter username...',
+  'audit.filter.action': 'Action Type',
+  'audit.filter.all': 'All',
+  'audit.filter.from': 'Start Date',
+  'audit.filter.to': 'End Date',
+  'audit.filter.reset': 'Reset Filters',
+  'audit.col.timestamp': 'Timestamp',
+  'audit.col.user': 'User',
+  'audit.col.action': 'Action',
+  'audit.col.resource': 'Resource',
+  'audit.col.outcome': 'Outcome',
+  'audit.pagination.total': 'Total {total} records',
+  'audit.pagination.prev': 'Previous',
+  'audit.pagination.next': 'Next',
 
   'modules.title': 'Modules',
   'modules.reload': 'Reload',
