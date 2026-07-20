@@ -29,6 +29,12 @@ import type {
   AlertHistoryEntry,
   NotificationChannel,
   CreateChannelInput,
+  CMDBService,
+  CreateServiceInput,
+  ServiceDetail,
+  ServiceDependency,
+  ConfigVersion,
+  CreateConfigInput,
 } from './types';
 
 const BASE = '/api';
@@ -408,4 +414,65 @@ export const api = {
     requestWithAuth<{ status: string }>(`/alert/channels/${channelId}/test`, token, {
       method: 'POST',
     }),
+
+  // ── CMDB ────────────────────────────────────────────────────────────
+
+  listCMDBServices: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<CMDBService[]>(`/cmdb/services${qs ? '?' + qs : ''}`, token);
+  },
+
+  createCMDBService: (token: string, input: CreateServiceInput) =>
+    requestWithAuth<CMDBService>('/cmdb/services', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getCMDBServiceDetail: (token: string, serviceId: string) =>
+    requestWithAuth<ServiceDetail>(`/cmdb/services/${serviceId}`, token),
+
+  updateCMDBService: (token: string, serviceId: string, updates: Partial<CMDBService>) =>
+    requestWithAuth<CMDBService>(`/cmdb/services/${serviceId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  deleteCMDBService: (token: string, serviceId: string) =>
+    requestWithAuth<void>(`/cmdb/services/${serviceId}`, token, {
+      method: 'DELETE',
+    }),
+
+  addServiceHost: (token: string, serviceId: string, hostId: string, role?: string) =>
+    requestWithAuth<{ id: string }>(`/cmdb/services/${serviceId}/hosts`, token, {
+      method: 'POST',
+      body: JSON.stringify({ host_id: hostId, role }),
+    }),
+
+  removeServiceHost: (token: string, serviceId: string, hostId: string) =>
+    requestWithAuth<void>(`/cmdb/services/${serviceId}/hosts/${hostId}`, token, {
+      method: 'DELETE',
+    }),
+
+  getServiceDependencies: (token: string, serviceId: string) =>
+    requestWithAuth<ServiceDependency[]>(`/cmdb/services/${serviceId}/dependencies`, token),
+
+  addServiceDependency: (token: string, serviceId: string, targetServiceId: string, depType?: string) =>
+    requestWithAuth<{ id: string }>(`/cmdb/services/${serviceId}/dependencies`, token, {
+      method: 'POST',
+      body: JSON.stringify({ target_service_id: targetServiceId, dependency_type: depType }),
+    }),
+
+  listConfigVersions: (token: string, serviceId?: string) => {
+    const qs = serviceId ? `?service_id=${serviceId}` : '';
+    return requestWithAuth<ConfigVersion[]>(`/cmdb/configs${qs}`, token);
+  },
+
+  createConfigVersion: (token: string, input: CreateConfigInput) =>
+    requestWithAuth<ConfigVersion>('/cmdb/configs', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getConfigVersion: (token: string, configId: string) =>
+    requestWithAuth<ConfigVersion>(`/cmdb/configs/${configId}`, token),
 };

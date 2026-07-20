@@ -376,3 +376,64 @@ export interface CreateChannelInput {
   channel_type: string;
   config: Record<string, unknown>;
 }
+
+// ── CMDB types ─────────────────────────────────────────────────────────
+
+export interface CMDBService {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  owner: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateServiceInput {
+  name: string;
+  version?: string;
+  description?: string;
+  owner?: string;
+  status?: string;
+}
+
+export interface ServiceHost {
+  id: string;
+  service_id: string;
+  host_id: string;
+  role: string;
+  created_at: string;
+}
+
+export interface ServiceDependency {
+  id: string;
+  source_service_id: string;
+  target_service_id: string;
+  dependency_type: string;
+  description: string;
+  created_at: string;
+}
+
+export interface ServiceDetail {
+  service: CMDBService;
+  hosts: ServiceHost[];
+  dependencies: ServiceDependency[];
+}
+
+export interface ConfigVersion {
+  id: string;
+  service_id: string;
+  config_json: string;
+  version: number;
+  changed_by: string;
+  change_note: string;
+  created_at: string;
+}
+
+export interface CreateConfigInput {
+  service_id: string;
+  config_json: string;
+  changed_by?: string;
+  change_note?: string;
+}

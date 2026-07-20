@@ -26,6 +26,7 @@ import { UsersPage } from './pages/Users';
 import { AlertRulesPage } from './pages/AlertRules';
 import { AlertHistoryPage } from './pages/AlertHistory';
 import { NotificationChannelsPage } from './pages/NotificationChannels';
+import { CMDBPage } from './pages/CMDB';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -39,13 +40,13 @@ type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
-  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels';
+  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb';
 
 const ALL_TABS: Tab[] = [
   'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
-  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels',
+  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -78,13 +79,14 @@ const ICONS: Record<Tab, string> = {
   'alert-rules': '📐',
   'alert-history': '📜',
   channels: '📢',
+  cmdb: '🗄️',
 };
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
   { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault', 'audit', 'users'] },
-  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'monitor'] },
+  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'cmdb', 'monitor'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['scheduler', 'runbook', 'filesync'] },
   { icon: '🔔', catKey: 'cat.monitor', tabs: ['escalation', 'health', 'alert-rules', 'alert-history', 'channels'] },
@@ -170,6 +172,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'alert-rules': return <AlertRulesPage />;
       case 'alert-history': return <AlertHistoryPage />;
       case 'channels': return <NotificationChannelsPage />;
+      case 'cmdb': return <CMDBPage />;
       default: return <Dashboard />;
     }
   };
