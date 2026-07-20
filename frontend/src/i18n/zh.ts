@@ -44,6 +44,24 @@ const zh: Record<string, string> = {
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
+
+  /* Dashboard */
+  'dashboard.subtitle': 'AI 驱动的基础设施运维平台 · 实时状态与智能分析',
+  'dashboard.configure': '配置仪表盘',
+  'dashboard.reset': '重置布局',
+
+  /* Widgets */
+  'widget.health_summary': '健康总览',
+  'widget.module_status': '模块状态',
+  'widget.quick_actions': '快速入口',
+  'widget.recent_alerts': '最近活动',
+  'widget.resource_usage': '资源概览',
+  'widget.action.hosts': '主机管理',
+  'widget.action.security': '安全扫描',
+  'widget.action.monitor': '性能监控',
+  'widget.action.scheduler': '任务调度',
+  'widget.action.knowledge': '知识库',
+  'widget.action.chat': 'AI 对话',
   'title.chat': 'AI 对话',
   'title.modules': '模块管理',
   'title.hosts': '主机管理',

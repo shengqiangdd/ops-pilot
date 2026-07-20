@@ -40,6 +40,24 @@ const en: Record<string, string> = {
   'tab.users': 'Users',
 
   'title.dashboard': 'Dashboard',
+
+  /* Dashboard */
+  'dashboard.subtitle': 'AI-Powered Infrastructure Operations · Real-time Status & Intelligence',
+  'dashboard.configure': 'Configure Dashboard',
+  'dashboard.reset': 'Reset Layout',
+
+  /* Widgets */
+  'widget.health_summary': 'Health Summary',
+  'widget.module_status': 'Module Status',
+  'widget.quick_actions': 'Quick Actions',
+  'widget.recent_alerts': 'Recent Activity',
+  'widget.resource_usage': 'Resource Overview',
+  'widget.action.hosts': 'Hosts',
+  'widget.action.security': 'Security',
+  'widget.action.monitor': 'Monitor',
+  'widget.action.scheduler': 'Scheduler',
+  'widget.action.knowledge': 'Knowledge',
+  'widget.action.chat': 'AI Chat',
   'title.chat': 'Agent Chat',
   'title.modules': 'Modules',
   'title.hosts': 'Hosts',

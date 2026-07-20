@@ -1,116 +1,191 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { api } from '../api/client';
-import { getHealthLabel, getHealthColor } from '../lib/health';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Responsive, useContainerWidth } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 import { cn } from '../lib/cn';
 import { Skeleton, SkeletonCard } from './Skeleton';
-import type { ModuleHealth } from '../api/types';
+import { useI18n } from '../i18n';
+import { AVAILABLE_WIDGETS, LAYOUT_KEY, ENABLED_WIDGETS_KEY } from './widgets/WidgetType';
+import { HealthSummaryWidget } from './widgets/HealthSummaryWidget';
+import { ModuleStatusWidget } from './widgets/ModuleStatusWidget';
+import { QuickActionsWidget } from './widgets/QuickActionsWidget';
+import { RecentAlertsWidget } from './widgets/RecentAlertsWidget';
+import { ResourceUsageWidget } from './widgets/ResourceUsageWidget';
+import type { LayoutItem } from 'react-grid-layout';
 
-/* ── 数字动画 hook ── */
-function useCountUp(target: number, duration = 1200) {
-  const [value, setValue] = useState(0);
-  const ref = useRef<number | null>(null);
+const WIDGET_COMPONENTS: Record<string, React.FC> = {
+  'health-summary': HealthSummaryWidget,
+  'module-status': ModuleStatusWidget,
+  'quick-actions': QuickActionsWidget,
+  'recent-alerts': RecentAlertsWidget,
+  'resource-usage': ResourceUsageWidget,
+};
 
-  useEffect(() => {
-    const start = performance.now();
-    const from = value;
-    ref.current = requestAnimationFrame(function tick(now) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(from + (target - from) * eased));
-      if (progress < 1) ref.current = requestAnimationFrame(tick);
-    });
-    return () => { if (ref.current) cancelAnimationFrame(ref.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target, duration]);
-
-  return value;
+function loadLayout(): LayoutItem[] {
+  try {
+    const saved = localStorage.getItem(LAYOUT_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  return AVAILABLE_WIDGETS.map((w, i) => ({
+    i: w.id,
+    x: (i % 2) * 6,
+    y: Math.floor(i / 2) * 2,
+    w: w.defaultW,
+    h: w.defaultH,
+    minW: w.minW,
+    minH: w.minH,
+  }));
 }
 
-/* ── 统计卡片 ── */
-function StatCard({
-  icon, label, value, color, gradient, delay = 0,
-}: {
-  icon: string; label: string; value: number; color: string; gradient: string; delay?: number;
+function loadEnabledWidgets(): string[] {
+  try {
+    const saved = localStorage.getItem(ENABLED_WIDGETS_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  return AVAILABLE_WIDGETS.map(w => w.id);
+}
+
+/* ── Widget Card Wrapper ── */
+function WidgetCard({ id, title, onRemove, children }: {
+  id: string; title: string; onRemove: (id: string) => void; children: React.ReactNode;
 }) {
-  const animated = useCountUp(value);
   return (
-    <div
-      className="glass-card rounded-md-xl p-5 animate-slide-up"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-label-medium text-md-on-surface-variant mb-1">{label}</p>
-          <p className={cn('text-headline-medium font-bold tabular-nums', color)}>
-            {animated}
-          </p>
-        </div>
-        <div className={cn('w-11 h-11 rounded-md-xl flex items-center justify-center text-xl', gradient)}>
-          {icon}
-        </div>
+    <div className="glass-card rounded-md-xl p-4 h-full flex flex-col animate-scale-in overflow-hidden">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-title-small font-semibold text-md-on-surface truncate">{title}</h3>
+        <button
+          onClick={() => onRemove(id)}
+          className="w-6 h-6 rounded-md-full flex items-center justify-center text-md-on-surface-variant hover:bg-md-surface-container-high hover:text-md-error transition-colors shrink-0"
+          title="移除小部件"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
-      <div className="mt-3 h-1 rounded-full bg-md-surface-container-highest overflow-hidden">
-        <div
-          className={cn('h-full rounded-full transition-all duration-1000 ease-out', color.replace('text', 'bg'))}
-          style={{ width: `${Math.min((value / (value * 1.5)) * 100, 100)}%` }}
-        />
-      </div>
+      <div className="flex-1 min-h-0 overflow-auto">{children}</div>
     </div>
   );
 }
 
-/* ── 模块健康卡片 ── */
-function HealthItem({ name, status, enabled, index }: ModuleHealth & { index: number }) {
-  const label = getHealthLabel(status) ?? 'Unknown';
-  const dot = getHealthColor(status);
-
+/* ── Widget Picker Panel ── */
+function WidgetPickerPanel({
+  enabledWidgets,
+  onToggle,
+  onClose,
+}: {
+  enabledWidgets: string[];
+  onToggle: (id: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-md-lg glass-card animate-slide-up',
-        !enabled && 'opacity-50',
-      )}
-      style={{ animationDelay: `${150 + index * 40}ms` }}
-    >
-      <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', dot)} />
-      <span className="flex-1 text-body-medium font-medium text-md-on-surface truncate">{name}</span>
-      <span className={cn('text-label-medium', label === 'Healthy' ? 'text-green-500' : label === 'Degraded' ? 'text-amber-500' : 'text-red-500')}>
-        {label === 'Healthy' ? '健康' : label === 'Degraded' ? '降级' : label === 'Unhealthy' ? '异常' : label}
-      </span>
-      <span className={cn('h-2 w-2 rounded-full', enabled ? 'bg-green-500' : 'bg-md-outline')} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass-card rounded-md-2xl p-6 w-full max-w-md shadow-md-3 animate-scale-in" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-title-large font-semibold text-md-on-surface">{t('dashboard.configure')}</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-md-full flex items-center justify-center hover:bg-md-surface-container-high transition-colors">
+            <svg className="w-5 h-5 text-md-on-surface-variant" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="space-y-2">
+          {AVAILABLE_WIDGETS.map(w => {
+            const enabled = enabledWidgets.includes(w.id);
+            return (
+              <label
+                key={w.id}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-md-lg cursor-pointer transition-colors',
+                  enabled ? 'bg-md-primary-container/30' : 'hover:bg-md-surface-container-high',
+                )}
+              >
+                <span className="text-xl">{w.icon}</span>
+                <span className="flex-1 text-body-medium text-md-on-surface">{t(w.titleKey)}</span>
+                <div className={cn(
+                  'relative w-10 h-6 rounded-full transition-colors',
+                  enabled ? 'bg-md-primary' : 'bg-md-surface-container-highest',
+                )}>
+                  <div className={cn(
+                    'absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform',
+                    enabled ? 'translate-x-5' : 'translate-x-1',
+                  )} />
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={() => onToggle(w.id)}
+                  className="sr-only"
+                />
+              </label>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
 
 /* ── 主仪表盘 ── */
 export function Dashboard() {
-  const [health, setHealth] = useState<ModuleHealth[]>([]);
+  const { t } = useI18n();
+  const [layouts, setLayouts] = useState<LayoutItem[]>(loadLayout);
+  const [enabledWidgets, setEnabledWidgets] = useState<string[]>(loadEnabledWidgets);
+  const [showPicker, setShowPicker] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { width, containerRef, mounted } = useContainerWidth();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.getHealthAll();
-      setHealth(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '加载失败');
-    } finally {
-      setLoading(false);
+  // Simulate initial loading
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleLayoutChange = useCallback((_currentLayout: readonly LayoutItem[], allLayouts: Record<string, readonly LayoutItem[]>) => {
+    if (allLayouts.lg) {
+      const newLayout = [...allLayouts.lg];
+      setLayouts(newLayout);
+      try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(newLayout)); } catch { /* ignore */ }
     }
   }, []);
 
-  useEffect(() => { load(); const iv = setInterval(load, 30000); return () => clearInterval(iv); }, [load]);
+  const toggleWidget = useCallback((id: string) => {
+    setEnabledWidgets(prev => {
+      const next = prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id];
+      try { localStorage.setItem(ENABLED_WIDGETS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
-  const healthy = health.filter(m => getHealthLabel(m.status) === 'Healthy').length;
-  const degraded = health.filter(m => getHealthLabel(m.status) === 'Degraded').length;
-  const unhealthy = health.filter(m => getHealthLabel(m.status) === 'Unhealthy').length;
-  const total = health.length;
+  const removeWidget = useCallback((id: string) => {
+    toggleWidget(id);
+  }, [toggleWidget]);
 
-  /* 骨架屏 loading */
-  if (loading && health.length === 0) {
+  const resetLayout = useCallback(() => {
+    const defaultLayout = AVAILABLE_WIDGETS.map((w, i) => ({
+      i: w.id,
+      x: (i % 2) * 6,
+      y: Math.floor(i / 2) * 2,
+      w: w.defaultW,
+      h: w.defaultH,
+      minW: w.minW,
+      minH: w.minH,
+    }));
+    setLayouts(defaultLayout);
+    setEnabledWidgets(AVAILABLE_WIDGETS.map(w => w.id));
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(defaultLayout));
+      localStorage.setItem(ENABLED_WIDGETS_KEY, JSON.stringify(AVAILABLE_WIDGETS.map(w => w.id)));
+    } catch { /* ignore */ }
+  }, []);
+
+  const filteredLayouts = useMemo(
+    () => layouts.filter(l => enabledWidgets.includes(l.i)),
+    [layouts, enabledWidgets],
+  );
+
+  if (loading) {
     return (
       <div className="space-y-6 animate-slide-up">
         <div className="flex items-center justify-between">
@@ -142,103 +217,76 @@ export function Dashboard() {
         <div>
           <h1 className="text-headline-medium gradient-text">OpsPilot</h1>
           <p className="text-body-medium text-md-on-surface-variant mt-1">
-            AI 驱动的基础设施运维平台 · 实时状态与智能分析
+            {t('dashboard.subtitle')}
           </p>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="glass-card rounded-md-lg px-5 py-2.5 text-body-medium font-medium text-md-primary hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50 flex items-center gap-2"
-        >
-          <svg className={cn('w-4 h-4', loading && 'animate-spin')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          {loading ? '刷新中...' : '刷新'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={resetLayout}
+            className="glass-card rounded-md-lg px-4 py-2.5 text-body-medium font-medium text-md-on-surface-variant hover:text-md-on-surface transition-all flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {t('dashboard.reset')}
+          </button>
+          <button
+            onClick={() => setShowPicker(true)}
+            className="glass-card rounded-md-lg px-4 py-2.5 text-body-medium font-medium text-md-primary hover:shadow-md-2 active:scale-[0.97] transition-all flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {t('dashboard.configure')}
+          </button>
+        </div>
       </div>
 
-      {error && (
-        <div className="glass-card rounded-md-lg px-5 py-4 text-body-medium text-md-error bg-md-error-container/20">
-          {error}
-        </div>
+      {/* 网格布局 */}
+      <div ref={containerRef}>
+        {mounted && width > 0 && (
+          <Responsive
+            className="layout"
+            layouts={{ lg: filteredLayouts }}
+            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+            cols={{ lg: 12, md: 8, sm: 6, xs: 4, xxs: 2 }}
+            rowHeight={80}
+            width={width}
+            dragConfig={{ enabled: true, bounded: false, handle: '.drag-handle', threshold: 3 }}
+            resizeConfig={{ enabled: true, handles: ['se'] }}
+            onLayoutChange={handleLayoutChange}
+          >
+            {filteredLayouts.map(item => {
+              const widgetDef = AVAILABLE_WIDGETS.find(w => w.id === item.i);
+              if (!widgetDef) return null;
+              const WidgetComponent = WIDGET_COMPONENTS[item.i];
+              if (!WidgetComponent) return null;
+              return (
+                <div key={item.i}>
+                  <WidgetCard
+                    id={item.i}
+                    title={t(widgetDef.titleKey)}
+                    onRemove={removeWidget}
+                  >
+                    <div className="drag-handle cursor-grab active:cursor-grabbing absolute top-0 left-0 right-0 h-6 z-10" />
+                    <WidgetComponent />
+                  </WidgetCard>
+                </div>
+              );
+            })}
+          </Responsive>
+        )}
+      </div>
+
+      {/* Widget 选择面板 */}
+      {showPicker && (
+        <WidgetPickerPanel
+          enabledWidgets={enabledWidgets}
+          onToggle={toggleWidget}
+          onClose={() => setShowPicker(false)}
+        />
       )}
-
-      {/* 统计卡片网格 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon="📦"
-          label="模块总数"
-          value={total}
-          color="text-md-primary"
-          gradient="bg-gradient-to-br from-primary/20 to-primary/5"
-          delay={0}
-        />
-        <StatCard
-          icon="✅"
-          label="健康模块"
-          value={healthy}
-          color="text-green-500"
-          gradient="bg-gradient-to-br from-green-500/20 to-green-500/5"
-          delay={80}
-        />
-        <StatCard
-          icon="⚠️"
-          label="降级模块"
-          value={degraded}
-          color="text-amber-500"
-          gradient="bg-gradient-to-br from-amber-500/20 to-amber-500/5"
-          delay={160}
-        />
-        <StatCard
-          icon="❌"
-          label="异常模块"
-          value={unhealthy}
-          color="text-red-500"
-          gradient="bg-gradient-to-br from-red-500/20 to-red-500/5"
-          delay={240}
-        />
-      </div>
-
-      {/* 模块健康列表 + 快速入口 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass-card rounded-md-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-title-medium font-semibold text-md-on-surface">模块健康状态</h2>
-            <span className="text-label-medium text-md-on-surface-variant">
-              {healthy}/{total} 健康
-            </span>
-          </div>
-          <div className="space-y-2">
-            {health.map((m, i) => <HealthItem key={m.name} {...m} index={i} />)}
-            {health.length === 0 && (
-              <p className="text-body-medium text-md-on-surface-variant text-center py-8">暂无模块数据</p>
-            )}
-          </div>
-        </div>
-
-        <div className="glass-card rounded-md-xl p-5">
-          <h2 className="text-title-medium font-semibold text-md-on-surface mb-4">快速入口</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { icon: '🖥️', label: '主机管理', tab: 'hosts' },
-              { icon: '🛡️', label: '安全扫描', tab: 'security' },
-              { icon: '📊', label: '性能监控', tab: 'monitor' },
-              { icon: '⏰', label: '任务调度', tab: 'scheduler' },
-              { icon: '📚', label: '知识库', tab: 'knowledge' },
-              { icon: '💬', label: 'AI 对话', tab: 'chat' },
-            ].map((item) => (
-              <a
-                key={item.tab}
-                href={`/${item.tab}`}
-                className="flex flex-col items-center gap-2 glass-card rounded-md-lg px-3 py-4 text-md-on-surface-variant hover:text-md-primary hover:border-primary/40 transition-all duration-200 group"
-              >
-                <span className="text-2xl group-hover:scale-110 transition-transform duration-200">{item.icon}</span>
-                <span className="text-label-medium text-center">{item.label}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
