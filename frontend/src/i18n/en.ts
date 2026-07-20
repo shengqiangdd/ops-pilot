@@ -6,6 +6,7 @@ const en: Record<string, string> = {
   'nav.dark': 'Dark',
   'nav.logout': 'Logout',
 
+  'cat.dashboard': 'Dashboard',
   'cat.system': 'System',
   'cat.infrastructure': 'Infrastructure',
   'cat.security': 'Security',
@@ -14,6 +15,7 @@ const en: Record<string, string> = {
   'cat.intelligence': 'Intelligence',
   'cat.integration': 'Integration',
 
+  'tab.dashboard': 'Dash',
   'tab.chat': 'Chat',
   'tab.modules': 'Mods',
   'tab.hosts': 'Hosts',
@@ -33,6 +35,7 @@ const en: Record<string, string> = {
   'tab.filesync': 'Sync',
   'tab.advisor': 'Adv',
 
+  'title.dashboard': 'Dashboard',
   'title.chat': 'Agent Chat',
   'title.modules': 'Modules',
   'title.hosts': 'Hosts',

@@ -1,11 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* 默认主题 (Magenta) — 放在 :root 上 */
   :root { @apply theme-magenta; }
 
   html { font-family: 'Inter', system-ui, sans-serif; }
@@ -15,7 +14,7 @@
     color: var(--md-sys-color-on-background);
   }
 
-  /* ===== MD3 色板: Magenta (默认) ===== */
+  /* ===== MD3 色板 ===== */
   .theme-magenta {
     --md-sys-color-primary: #6750A4;
     --md-sys-color-on-primary: #FFFFFF;
@@ -48,7 +47,6 @@
     --md-sys-color-surface-container-highest: #E6E0E9;
   }
 
-  /* 暗色: Magenta */
   .theme-magenta.dark, .dark.theme-magenta {
     --md-sys-color-primary: #D0BCFF;
     --md-sys-color-on-primary: #381E72;
@@ -81,7 +79,6 @@
     --md-sys-color-surface-container-highest: #36343B;
   }
 
-  /* ===== MD3 色板: Blue ===== */
   .theme-blue {
     --md-sys-color-primary: #1B6EF3;
     --md-sys-color-on-primary: #FFFFFF;
@@ -146,7 +143,6 @@
     --md-sys-color-surface-container-highest: #35353A;
   }
 
-  /* ===== MD3 色板: Green ===== */
   .theme-green {
     --md-sys-color-primary: #006D3A;
     --md-sys-color-on-primary: #FFFFFF;
@@ -211,7 +207,6 @@
     --md-sys-color-surface-container-highest: #323631;
   }
 
-  /* ===== MD3 色板: Orange ===== */
   .theme-orange {
     --md-sys-color-primary: #8B5000;
     --md-sys-color-on-primary: #FFFFFF;
@@ -276,7 +271,6 @@
     --md-sys-color-surface-container-highest: #3A332B;
   }
 
-  /* ===== MD3 色板: Purple ===== */
   .theme-purple {
     --md-sys-color-primary: #7C4DFF;
     --md-sys-color-on-primary: #FFFFFF;
@@ -341,7 +335,6 @@
     --md-sys-color-surface-container-highest: #36343B;
   }
 
-  /* ===== MD3 色板: Teal ===== */
   .theme-teal {
     --md-sys-color-primary: #006A6A;
     --md-sys-color-on-primary: #FFFFFF;
@@ -406,7 +399,6 @@
     --md-sys-color-surface-container-highest: #323535;
   }
 
-  /* ===== MD3 色板: Rose ===== */
   .theme-rose {
     --md-sys-color-primary: #9C4146;
     --md-sys-color-on-primary: #FFFFFF;
@@ -471,7 +463,6 @@
     --md-sys-color-surface-container-highest: #3A3333;
   }
 
-  /* ===== MD3 色板: Neutral ===== */
   .theme-neutral {
     --md-sys-color-primary: #5E5E5E;
     --md-sys-color-on-primary: #FFFFFF;
@@ -537,45 +528,173 @@
   }
 }
 
+/* ── Skeleton shimmer ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Utility classes ── */
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--md-sys-color-surface-container-high) 25%,
+    var(--md-sys-color-surface-container-highest) 50%,
+    var(--md-sys-color-surface-container-high) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+.glass-card {
+  background: color-mix(in srgb, var(--md-sys-color-surface-container) 70%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 30%, transparent);
+}
+
+.glass-card:hover {
+  border-color: color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--md-sys-color-primary) 15%, transparent);
+}
+
+.glow-border {
+  position: relative;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    var(--md-sys-color-primary) 0%,
+    var(--md-sys-color-tertiary) 50%,
+    var(--md-sys-color-primary) 100%
+  );
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg,
+    var(--md-sys-color-primary),
+    var(--md-sys-color-tertiary)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up-fade 0.4s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out;
+}
+
+.animate-count-up {
+  animation: count-up 0.6s ease-out;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* ── Typography ── */
 @layer utilities {
   .text-headline-small {
     font-size: 1.5rem;
     line-height: 2rem;
-    letter-spacing: 0;
+    letter-spacing: -0.02em;
+    font-weight: 600;
   }
   .text-headline-medium {
     font-size: 1.75rem;
     line-height: 2.25rem;
-    letter-spacing: 0;
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
   .text-title-large {
     font-size: 1.375rem;
     line-height: 1.75rem;
-    letter-spacing: 0;
+    letter-spacing: -0.01em;
+    font-weight: 600;
   }
   .text-title-medium {
     font-size: 1rem;
     line-height: 1.5rem;
-    letter-spacing: 0.15px;
+    letter-spacing: 0;
+    font-weight: 500;
   }
   .text-body-large {
     font-size: 1rem;
     line-height: 1.5rem;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.25px;
   }
   .text-body-medium {
     font-size: 0.875rem;
-    line-height: 1.25rem;
-    letter-spacing: 0.25px;
+    line-height: 1.375rem;
+    letter-spacing: 0.15px;
   }
   .text-label-large {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     line-height: 1.25rem;
     letter-spacing: 0.1px;
+    font-weight: 500;
   }
   .text-label-medium {
     font-size: 0.75rem;
     line-height: 1rem;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  /* 数字等宽 */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }

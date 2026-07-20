@@ -8,6 +8,7 @@ const zh: Record<string, string> = {
   'nav.logout': '退出',
 
   /* Sidebar categories */
+  'cat.dashboard': '数据大屏',
   'cat.system': '系统管理',
   'cat.infrastructure': '基础设施',
   'cat.security': '安全合规',
@@ -17,6 +18,7 @@ const zh: Record<string, string> = {
   'cat.integration': '集成管理',
 
   /* Tab labels (short) */
+  'tab.dashboard': '大屏',
   'tab.chat': '对话',
   'tab.modules': '模块',
   'tab.hosts': '主机',
@@ -37,6 +39,7 @@ const zh: Record<string, string> = {
   'tab.advisor': '建议',
 
   /* Tab titles (page heading) */
+  'title.dashboard': '数据大屏',
   'title.chat': 'AI 对话',
   'title.modules': '模块管理',
   'title.hosts': '主机管理',

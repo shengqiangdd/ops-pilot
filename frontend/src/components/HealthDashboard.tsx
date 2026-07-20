@@ -4,6 +4,7 @@ import type { ModuleHealth } from '../api/types';
 import { cn } from '../lib/cn';
 import { getHealthLabel, getHealthColor } from '../lib/health';
 import { useI18n } from '../i18n';
+import { Skeleton } from './Skeleton';
 
 export function HealthDashboard() {
   const { t } = useI18n();
@@ -29,6 +30,7 @@ export function HealthDashboard() {
   const healthy = modules.filter((m) => getHealthLabel(m.status) === 'Healthy').length;
   const degraded = modules.filter((m) => getHealthLabel(m.status) === 'Degraded').length;
   const unhealthy = modules.filter((m) => getHealthLabel(m.status) === 'Unhealthy').length;
+  const total = modules.length;
 
   const labelFor = (label: string | null) => {
     if (label === 'Healthy') return t('modules.healthy');
@@ -40,67 +42,104 @@ export function HealthDashboard() {
   return (
     <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
-        <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">{t('health.title')}</h2>
+        <div>
+          <h2 className="text-headline-small font-semibold text-md-on-surface">{t('health.title')}</h2>
+          <p className="text-body-medium text-md-on-surface-variant mt-1">所有模块的实时健康状态</p>
+        </div>
         <button onClick={load} disabled={loading}
-          className="bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
+          className="glass-card rounded-md-lg px-5 py-2.5 text-body-medium font-medium text-md-primary hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50 flex items-center gap-2">
+          <svg className={cn('w-4 h-4', loading && 'animate-spin')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
           {loading ? '…' : t('health.refresh')}
         </button>
       </div>
 
-      {error && <div className="bg-md-error-container text-md-on-error-container rounded-md-sm px-4 py-3 text-body-medium">{error}</div>}
+      {error && (
+        <div className="glass-card rounded-md-lg px-5 py-4 text-body-medium text-md-error bg-md-error-container/20">
+          {error}
+        </div>
+      )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-md-primary-container rounded-md-lg p-4 shadow-md-1 animate-slide-up">
-          <p className="text-label-medium text-md-on-primary-container/70">{t('modules.healthy')}</p>
-          <p className="text-headline-medium font-medium text-md-on-primary-container">{healthy}</p>
-        </div>
-        <div className="bg-amber-50 dark:bg-amber-900/30 rounded-md-lg p-4 shadow-md-1 animate-slide-up" style={{ animationDelay: '100ms' }}>
-          <p className="text-label-medium text-amber-700 dark:text-amber-200/70">{t('modules.degraded')}</p>
-          <p className="text-headline-medium font-medium text-amber-800 dark:text-amber-100">{degraded}</p>
-        </div>
-        <div className="bg-md-error-container rounded-md-lg p-4 shadow-md-1 animate-slide-up" style={{ animationDelay: '200ms' }}>
-          <p className="text-label-medium text-md-on-error-container/70">{t('modules.unhealthy')}</p>
-          <p className="text-headline-medium font-medium text-md-on-error-container">{unhealthy}</p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        {loading ? (
+          <>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="glass-card rounded-md-xl p-5 space-y-3"><Skeleton height="12px" width="60%" /><Skeleton height="28px" width="40%" /></div>
+            ))}
+          </>
+        ) : (
+          <>
+            <div className="glass-card rounded-md-xl p-5 animate-slide-up">
+              <p className="text-label-medium text-md-on-surface-variant mb-1">模块总数</p>
+              <p className="text-headline-medium font-bold tabular-nums text-md-primary">{total}</p>
+              <div className="mt-3 h-1 rounded-full bg-md-surface-container-highest overflow-hidden">
+                <div className="h-full rounded-full bg-md-primary transition-all duration-1000" style={{ width: '100%' }} />
+              </div>
+            </div>
+            <div className="glass-card rounded-md-xl p-5 animate-slide-up" style={{ animationDelay: '60ms' }}>
+              <p className="text-label-medium text-md-on-surface-variant mb-1">{t('modules.healthy')}</p>
+              <p className="text-headline-medium font-bold tabular-nums text-green-500">{healthy}</p>
+              <div className="mt-3 h-1 rounded-full bg-md-surface-container-highest overflow-hidden">
+                <div className="h-full rounded-full bg-green-500 transition-all duration-1000" style={{ width: total ? `${(healthy / total) * 100}%` : 0 }} />
+              </div>
+            </div>
+            <div className="glass-card rounded-md-xl p-5 animate-slide-up" style={{ animationDelay: '120ms' }}>
+              <p className="text-label-medium text-md-on-surface-variant mb-1">{t('modules.degraded')}</p>
+              <p className="text-headline-medium font-bold tabular-nums text-amber-500">{degraded}</p>
+              <div className="mt-3 h-1 rounded-full bg-md-surface-container-highest overflow-hidden">
+                <div className="h-full rounded-full bg-amber-500 transition-all duration-1000" style={{ width: total ? `${(degraded / total) * 100}%` : 0 }} />
+              </div>
+            </div>
+            <div className="glass-card rounded-md-xl p-5 animate-slide-up" style={{ animationDelay: '180ms' }}>
+              <p className="text-label-medium text-md-on-surface-variant mb-1">{t('modules.unhealthy')}</p>
+              <p className="text-headline-medium font-bold tabular-nums text-md-error">{unhealthy}</p>
+              <div className="mt-3 h-1 rounded-full bg-md-surface-container-highest overflow-hidden">
+                <div className="h-full rounded-full bg-md-error transition-all duration-1000" style={{ width: total ? `${(unhealthy / total) * 100}%` : 0 }} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Module health table */}
-      <div className="bg-md-surface-container-low rounded-md-lg shadow-md-1 overflow-hidden">
-        <table className="min-w-full">
-          <thead>
-            <tr className="border-b border-md-outline-variant">
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">{t('health.module')}</th>
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">{t('health.status')}</th>
-              <th className="px-4 py-3 text-right text-label-medium text-md-on-surface-variant">{t('health.enabled')}</th>
-            </tr>
-          </thead>
-          <tbody>
+      {/* Module health list (card-based) */}
+      <div className="glass-card rounded-md-xl overflow-hidden p-5">
+        <h3 className="text-title-medium font-semibold text-md-on-surface mb-4">模块详情</h3>
+        {loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton circle height="10px" width="10px" />
+                <Skeleton height="14px" width="25%" />
+                <Skeleton height="12px" width="50px" className="ml-auto" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
             {modules.map((m) => {
               const label = getHealthLabel(m.status);
               return (
-                <tr key={m.name} className="border-b border-md-outline-variant last:border-0 hover:bg-md-surface-container-high/50 transition-colors">
-                  <td className="px-4 py-3 text-body-medium font-medium text-md-on-surface">{m.name}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className={cn('h-2 w-2 rounded-full', getHealthColor(m.status))} />
+                <div key={m.name} className="flex items-center justify-between px-4 py-3 rounded-md-lg hover:bg-md-surface-container-high/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', getHealthColor(m.status))} />
+                    <span className="text-body-medium font-medium text-md-on-surface">{m.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={cn('text-label-medium', label === 'Healthy' ? 'text-green-500' : label === 'Degraded' ? 'text-amber-500' : label === 'Unhealthy' ? 'text-md-error' : 'text-md-outline')}>
                       {labelFor(label)}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={cn('inline-flex items-center gap-1.5 text-label-medium', m.enabled ? 'text-green-600 dark:text-green-400' : 'text-md-on-surface-variant')}>
-                      <span className={cn('h-2 w-2 rounded-full', m.enabled ? 'bg-green-500' : 'bg-md-outline')} />
-                      {m.enabled ? '已启用' : '已禁用'}
-                    </span>
-                  </td>
-                </tr>
+                    <span className={cn('h-2 w-2 rounded-full', m.enabled ? 'bg-green-500' : 'bg-md-outline')} />
+                  </div>
+                </div>
               );
             })}
-            {!loading && modules.length === 0 && (
-              <tr><td colSpan={3} className="px-4 py-8 text-center text-body-medium text-md-on-surface-variant">{t('modules.title')}</td></tr>
+            {modules.length === 0 && (
+              <p className="text-body-medium text-md-on-surface-variant text-center py-8">暂无模块数据</p>
             )}
-          </tbody>
-        </table>
+          </div>
+        )}
       </div>
     </div>
   );

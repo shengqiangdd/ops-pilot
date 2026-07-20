@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Dashboard } from './components/Dashboard';
 import { ModuleBrowser } from './components/ModuleBrowser';
 import { HealthDashboard } from './components/HealthDashboard';
 import { AgentChat } from './components/AgentChat';
@@ -25,24 +26,26 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useTheme } from './components/ThemeProvider';
 import { ThemePicker } from './components/ThemePicker';
 import { useI18n } from './i18n';
+import { cn } from './lib/cn';
 
 /* ── tab 类型 ── */
 type Tab =
-  | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
+  | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor';
 
 const ALL_TABS: Tab[] = [
-  'chat', 'modules', 'hosts', 'vault', 'security', 'health',
+  'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
 ];
 
 const MOBILE_TABS: Tab[] = [
-  'chat', 'modules', 'hosts', 'vault', 'security', 'health', 'topo', 'monitor', 'escalation',
+  'dashboard', 'chat', 'hosts', 'vault', 'security', 'health',
 ];
 
 const ICONS: Record<Tab, string> = {
+  dashboard: '📊',
   chat: '💬',
   modules: '🧩',
   hosts: '🖥️',
@@ -63,15 +66,10 @@ const ICONS: Record<Tab, string> = {
   advisor: '💡',
 };
 
-/* ── 分类定义 ── */
-interface CategoryDef {
-  icon: string;
-  catKey: string;        // i18n key
-  tabs: Tab[];
-}
-
-const CATEGORIES: CategoryDef[] = [
-  { icon: '⚙️', catKey: 'cat.system',  tabs: ['chat', 'modules', 'vault'] },
+/* ── 扁平化分类（无二级嵌套的独立分类） */
+const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
+  { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
+  { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault'] },
   { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'topo', 'monitor'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['scheduler', 'runbook', 'filesync'] },
@@ -80,9 +78,21 @@ const CATEGORIES: CategoryDef[] = [
   { icon: '🔗', catKey: 'cat.integration', tabs: ['webhook', 'config', 'knowledge'] },
 ];
 
-/* ── 底部操作 ── */
+/* ── 侧边栏分类名称翻译 ── */
+const CAT_KEY_LABELS: Record<string, string> = {
+  'cat.dashboard': '',
+  'cat.system': '系统管理',
+  'cat.infrastructure': '基础设施',
+  'cat.security': '安全合规',
+  'cat.automation': '自动化',
+  'cat.monitor': '监控告警',
+  'cat.intelligence': '智能分析',
+  'cat.integration': '集成管理',
+};
+
+/* ── AppShell ── */
 function AppShell() {
-  const [tab, setTab] = React.useState<Tab>('modules');
+  const [tab, setTab] = useState<Tab>('dashboard');
   const { token, username, logout } = useAuthStore();
   const { isUnlocked, checkStatus } = useVaultStore();
   const { isDark, toggleDark } = useTheme();
@@ -90,26 +100,22 @@ function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /* 侧边栏折叠状态（每个分类默认展开） */
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const path = location.pathname.slice(1) as Tab;
     if ((ALL_TABS as readonly string[]).includes(path)) {
       setTab(path);
-      /* 激活的 tab 所在分类自动展开 */
-      for (const cat of CATEGORIES) {
-        if (cat.tabs.includes(path)) {
-          setCollapsed(prev => ({ ...prev, [cat.catKey]: false }));
+      for (const item of SIDEBAR_ITEMS) {
+        if (item.tabs.includes(path)) {
+          setCollapsed(prev => ({ ...prev, [item.catKey]: false }));
         }
       }
     }
   }, [location.pathname]);
 
   useEffect(() => {
-    if (token) {
-      checkStatus();
-    }
+    if (token) checkStatus();
   }, [token, checkStatus]);
 
   const navigateTo = (key: Tab) => {
@@ -123,49 +129,97 @@ function AppShell() {
 
   const vaultIcon = isUnlocked ? '🔓' : ICONS.vault;
 
+  const renderContent = () => {
+    switch (tab) {
+      case 'dashboard': return <Dashboard />;
+      case 'chat': return <AgentChat />;
+      case 'modules': return <ModuleBrowser />;
+      case 'hosts': return <HostsPage />;
+      case 'vault': return <VaultPage />;
+      case 'security': return <SecurityPage />;
+      case 'health': return <HealthDashboard />;
+      case 'topo': return <TopologyPage />;
+      case 'monitor': return <MonitorPage />;
+      case 'escalation': return <EscalationPage />;
+      case 'fim': return <FIMPage />;
+      case 'baseline': return <BaselinePage />;
+      case 'runbook': return <RunbookPage />;
+      case 'knowledge': return <KnowledgePage />;
+      case 'config': return <ConfigPage />;
+      case 'webhook': return <WebhookPage />;
+      case 'scheduler': return <SchedulerPage />;
+      case 'filesync': return <FileSyncPage />;
+      case 'advisor': return <AdvisorPage />;
+      default: return <Dashboard />;
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-md-background">
-      {/* ── 桌面侧边栏（分类可折叠） ── */}
-      <aside className="hidden md:flex flex-col w-72 py-3 gap-0 bg-md-surface-container border-r border-md-outline-variant overflow-y-auto">
+      {/* ── 桌面侧边栏 ── */}
+      <aside className="hidden md:flex flex-col w-64 py-3 gap-0 bg-md-surface-container/95 backdrop-blur-xl border-r border-md-outline-variant overflow-y-auto shrink-0">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 mb-3">
-          <div className="w-9 h-9 rounded-md-xl bg-md-primary flex items-center justify-center text-md-on-primary text-sm font-bold">
+        <div className="flex items-center gap-3 px-5 mb-4">
+          <div className="w-9 h-9 rounded-md-xl bg-gradient-to-br from-md-primary to-md-tertiary flex items-center justify-center text-md-on-primary text-sm font-bold shadow-md-2">
             OP
           </div>
-          <span className="text-title-small font-medium text-md-on-surface">{t('app.name')}</span>
+          <div>
+            <span className="text-title-medium font-semibold text-md-on-surface">{t('app.name')}</span>
+            <p className="text-label-medium text-md-on-surface-variant leading-none mt-0.5">v2.0</p>
+          </div>
         </div>
 
-        {/* 分类列表 */}
-        <nav className="flex-1 space-y-0">
-          {CATEGORIES.map(cat => {
-            const isCollapsed = collapsed[cat.catKey] ?? false;
-            return (
-              <div key={cat.catKey}>
-                {/* 分类头部（可点击折叠） */}
+        {/* 分类导航 */}
+        <nav className="flex-1 space-y-1 px-2">
+          {SIDEBAR_ITEMS.map(item => {
+            /* dashboard 单独一行，无折叠 */
+            if (item.catKey === 'cat.dashboard') {
+              const key = item.tabs[0];
+              return (
                 <button
-                  onClick={() => toggleCat(cat.catKey)}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-xs font-semibold uppercase tracking-wider text-md-on-surface-variant hover:bg-md-surface-container-high transition-colors"
+                  key={key}
+                  onClick={() => navigateTo(key)}
+                  className={cn(
+                    'flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-all duration-200 rounded-md-lg',
+                    tab === key
+                      ? 'glass-card text-md-primary shadow-sm'
+                      : 'text-md-on-surface-variant hover:glass-card hover:text-md-on-surface',
+                  )}
                 >
-                  <span className="text-base">{cat.icon}</span>
-                  <span className="flex-1 text-left">{t(cat.catKey)}</span>
+                  <span className="text-xl">{ICONS[key]}</span>
+                  <span>{t('title.dashboard')}</span>
+                </button>
+              );
+            }
+
+            const isCollapsed = collapsed[item.catKey] ?? false;
+            return (
+              <div key={item.catKey}>
+                <button
+                  onClick={() => toggleCat(item.catKey)}
+                  className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-md-on-surface-variant/60 hover:text-md-on-surface-variant transition-colors"
+                >
+                  <span className="text-sm">{item.icon}</span>
+                  <span className="flex-1 text-left">{CAT_KEY_LABELS[item.catKey]}</span>
                   <svg
-                    className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
+                    className={cn('w-3 h-3 transition-transform duration-200', isCollapsed ? '' : 'rotate-180')}
                     fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {/* Tab 列表 */}
                 {!isCollapsed && (
-                  <div className="pb-1">
-                    {cat.tabs.map(key => (
+                  <div className="pb-0.5 space-y-0.5">
+                    {item.tabs.map(key => (
                       <button
                         key={key}
                         onClick={() => navigateTo(key)}
-                        className={`flex items-center gap-3 w-full pl-10 pr-4 py-2 text-sm font-medium transition-all duration-150 rounded-md-lg
-                          ${tab === key
-                            ? 'bg-md-secondary-container text-md-on-secondary-container'
-                            : 'text-md-on-surface-variant hover:bg-md-surface-container-high'}`}
+                        className={cn(
+                          'flex items-center gap-3 w-full pl-9 pr-3 py-2 text-sm font-medium transition-all duration-150 rounded-md-lg',
+                          tab === key
+                            ? 'glass-card text-md-on-surface shadow-sm'
+                            : 'text-md-on-surface-variant hover:glass-card hover:text-md-on-surface',
+                        )}
                       >
                         <span className="text-lg">{key === 'vault' ? vaultIcon : ICONS[key]}</span>
                         <span>{t('tab.' + key)}</span>
@@ -178,30 +232,25 @@ function AppShell() {
           })}
         </nav>
 
-        {/* 底部操作区 */}
-        <div className="border-t border-md-outline-variant pt-2 mt-2 space-y-0">
-          {/* 语言切换 */}
+        {/* 底部 */}
+        <div className="border-t border-md-outline-variant/50 pt-2 mt-2 px-2 space-y-0.5">
           <button
             onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-            className="flex items-center gap-3 w-full pl-4 pr-4 py-2 text-sm font-medium text-md-on-surface-variant hover:bg-md-surface-container-high transition-colors rounded-md-lg"
+            className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-md-on-surface-variant hover:glass-card transition-all rounded-md-lg"
           >
             <span className="text-lg">🌐</span>
             <span>{t('lang.' + lang)}</span>
           </button>
-
-          {/* 深色/浅色 */}
           <button
             onClick={toggleDark}
-            className="flex items-center gap-3 w-full pl-4 pr-4 py-2 text-sm font-medium text-md-on-surface-variant hover:bg-md-surface-container-high transition-colors rounded-md-lg"
+            className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-md-on-surface-variant hover:glass-card transition-all rounded-md-lg"
           >
             <span className="text-lg">{isDark ? '☀️' : '🌙'}</span>
             <span>{isDark ? t('nav.light') : t('nav.dark')}</span>
           </button>
-
-          {/* 退出 */}
           <button
             onClick={logout}
-            className="flex items-center gap-3 w-full pl-4 pr-4 py-2 text-sm font-medium text-md-on-surface-variant hover:bg-md-surface-container-high transition-colors rounded-md-lg"
+            className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-md-on-surface-variant hover:glass-card transition-all rounded-md-lg"
           >
             <span className="text-lg">🚪</span>
             <span>{t('nav.logout')}</span>
@@ -211,29 +260,35 @@ function AppShell() {
 
       {/* ── 主区域 ── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* App Bar */}
-        <header className="h-16 flex items-center justify-between px-4 sm:px-6 bg-md-surface-container/80 backdrop-blur-md border-b border-md-outline-variant sticky top-0 z-10">
-          <h1 className="text-title-large font-medium text-md-on-surface">{t('title.' + tab)}</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-md-on-surface-variant hidden sm:inline">{username}</span>
+        <header className="h-16 flex items-center justify-between px-4 sm:px-6 bg-md-surface-container/70 backdrop-blur-xl border-b border-md-outline-variant/50 sticky top-0 z-10">
+          <h1 className="text-title-large font-semibold text-md-on-surface">
+            {tab === 'dashboard' ? (
+              <>
+                <span className="gradient-text">数据大屏</span>
+                <span className="text-body-medium text-md-on-surface-variant ml-3 font-normal">实时运维总览</span>
+              </>
+            ) : t('title.' + tab)}
+          </h1>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-md-on-surface-variant hidden sm:inline mr-1">{username}</span>
             <ThemePicker />
             <button
               onClick={toggleDark}
-              className="w-9 h-9 rounded-md-full flex items-center justify-center hover:bg-md-surface-container-high transition-colors"
+              className="w-9 h-9 rounded-md-full flex items-center justify-center hover:glass-card transition-all"
               title={isDark ? t('nav.light') : t('nav.dark')}
             >
               <span>{isDark ? '☀️' : '🌙'}</span>
             </button>
             <button
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-              className="hidden md:flex w-9 h-9 rounded-md-full items-center justify-center hover:bg-md-surface-container-high transition-colors text-sm font-medium"
+              className="hidden md:flex w-9 h-9 rounded-md-full items-center justify-center hover:glass-card transition-all text-sm font-medium"
               title={lang === 'zh' ? 'English' : '中文'}
             >
-              <span>{lang === 'zh' ? 'EN' : '中'}</span>
+              <span className="text-xs font-bold">{lang === 'zh' ? 'EN' : '中'}</span>
             </button>
             <button
               onClick={logout}
-              className="hidden md:flex w-9 h-9 rounded-md-full items-center justify-center hover:bg-md-surface-container-high transition-colors"
+              className="hidden md:flex w-9 h-9 rounded-md-full items-center justify-center hover:glass-card transition-all"
               title={t('nav.logout')}
             >
               🚪
@@ -241,42 +296,29 @@ function AppShell() {
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-auto p-4 sm:p-6 animate-fade-in pb-20 md:pb-6">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 pb-20 md:pb-6">
           <ErrorBoundary key={tab}>
-            {tab === 'chat' && <AgentChat />}
-            {tab === 'modules' && <ModuleBrowser />}
-            {tab === 'hosts' && <HostsPage />}
-            {tab === 'vault' && <VaultPage />}
-            {tab === 'security' && <SecurityPage />}
-            {tab === 'health' && <HealthDashboard />}
-            {tab === 'topo' && <TopologyPage />}
-            {tab === 'monitor' && <MonitorPage />}
-            {tab === 'escalation' && <EscalationPage />}
-            {tab === 'fim' && <FIMPage />}
-            {tab === 'baseline' && <BaselinePage />}
-            {tab === 'runbook' && <RunbookPage />}
-            {tab === 'knowledge' && <KnowledgePage />}
-            {tab === 'config' && <ConfigPage />}
-            {tab === 'webhook' && <WebhookPage />}
-            {tab === 'scheduler' && <SchedulerPage />}
-            {tab === 'filesync' && <FileSyncPage />}
-            {tab === 'advisor' && <AdvisorPage />}
+            {renderContent()}
           </ErrorBoundary>
         </main>
       </div>
 
-      {/* ── 底部导航（移动端） ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-md-surface-container border-t border-md-outline-variant flex items-center justify-around px-2 z-20">
+      {/* ── 移动端底部导航 ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-md-surface-container/95 backdrop-blur-xl border-t border-md-outline-variant/50 flex items-center justify-around px-2 z-20">
         {MOBILE_TABS.map(key => (
           <button
             key={key}
             onClick={() => navigateTo(key)}
-            className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-md-md text-[11px] font-medium transition-colors
-              ${tab === key ? 'text-md-primary' : 'text-md-on-surface-variant'}`}
+            className={cn(
+              'flex flex-col items-center gap-0.5 py-1 px-3 rounded-md-md text-[11px] font-medium transition-colors',
+              tab === key ? 'text-md-primary' : 'text-md-on-surface-variant',
+            )}
           >
             <span className="text-xl">{ICONS[key]}</span>
-            <span>{t('tab.' + key)}</span>
+            <span>{
+              key === 'dashboard' ? '概览'
+              : t('tab.' + key)
+            }</span>
           </button>
         ))}
       </nav>
@@ -291,7 +333,7 @@ export function App() {
   return (
     <ErrorBoundary>
       <Routes>
-        <Route path="/login" element={token ? <Navigate to="/modules" replace /> : <LoginPage />} />
+        <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         <Route path="/*" element={token ? <AppShell /> : <Navigate to="/login" replace />} />
       </Routes>
     </ErrorBoundary>
