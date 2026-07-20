@@ -437,3 +437,28 @@ export interface CreateConfigInput {
   changed_by?: string;
   change_note?: string;
 }
+
+// ── Batch execution types ──────────────────────────────────────────────
+
+export interface BatchExecuteRequest {
+  host_ids: string[];
+  command: string;
+  timeout?: number;
+}
+
+export interface BatchExecuteResult {
+  host_id: string;
+  host_name: string;
+  success: boolean;
+  stdout: string;
+  stderr: string;
+  exit_code: number;
+  duration_ms: number;
+}
+
+export interface BatchExecuteResponse {
+  results: BatchExecuteResult[];
+  total: number;
+  succeeded: number;
+  failed: number;
+}

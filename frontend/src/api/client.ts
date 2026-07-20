@@ -35,6 +35,8 @@ import type {
   ServiceDependency,
   ConfigVersion,
   CreateConfigInput,
+  BatchExecuteRequest,
+  BatchExecuteResponse,
 } from './types';
 
 const BASE = '/api';
@@ -475,4 +477,12 @@ export const api = {
 
   getConfigVersion: (token: string, configId: string) =>
     requestWithAuth<ConfigVersion>(`/cmdb/configs/${configId}`, token),
+
+  // ── Batch Operations ────────────────────────────────────────────────
+
+  batchExecute: (token: string, input: BatchExecuteRequest) =>
+    requestWithAuth<BatchExecuteResponse>('/hosts/batch/execute', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 };

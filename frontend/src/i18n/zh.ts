@@ -282,6 +282,12 @@ const zh: Record<string, string> = {
   'hosts.actions': '操作',
   'hosts.empty': '暂无已配置的主机',
   'hosts.vault_locked': '保险库已锁定。主机凭据加密存储。请前往「凭据保险库」解锁并管理凭据。',
+  'hosts.batch_succeeded': '成功',
+  'hosts.batch_failed': '失败',
+  'hosts.batch_exit_code': '退出码',
+  'hosts.batch_stdout': '标准输出',
+  'hosts.batch_stderr': '标准错误',
+  'hosts.close': '关闭',
 
   /* Vault page */
   'vault.title': '凭据保险库',
