@@ -80,8 +80,23 @@ export function SecurityPage() {
 
   useEffect(() => {
     if (!token) return;
-    apiGet<ChecksResponse>('/api/security/checks', token)
-      .then((data) => setChecks(data.checks))
+    apiGet<unknown>('/api/security/checks', token)
+      .then((data) => {
+        if (Array.isArray(data)) {
+          // API returns raw array: map fields to match frontend model
+          const mapped: SecurityCheck[] = data.map((c: Record<string, unknown>) => ({
+            id: String(c.id ?? ''),
+            name: String(c.name ?? ''),
+            category: String(c.category ?? ''),
+            severity: (String(c.severity ?? 'medium').toLowerCase()) as SecurityCheck['severity'],
+            description: String(c.description ?? ''),
+            remediation: c.remediation_steps as string | undefined,
+          }));
+          setChecks(mapped);
+        } else {
+          setChecks((data as ChecksResponse).checks || []);
+        }
+      })
       .catch(() => {
         setChecks([
           { id: 'cis_level1', name: 'CIS Level 1 Benchmark', category: 'compliance', severity: 'high', description: 'CIS benchmark level 1 checks' },
@@ -104,8 +119,17 @@ export function SecurityPage() {
     setError(null);
     setResult(null);
     try {
-      const data = await apiPost<ScanResponse>('/api/security/scan', token, { host_id: selectedHost || 'all', check_type: selectedCheck });
-      setResult(data);
+      const data = await apiPost<Record<string, unknown>>('/api/security/scan', token, { host_id: selectedHost || 'all', check_type: selectedCheck });
+      // Normalise backend flat format (total_checks/passed/failed/warnings) to frontend summary object
+      const summary = {
+        total: Number(data.total_checks ?? 0),
+        passed: Number(data.passed ?? 0),
+        failed: Number(data.failed ?? 0),
+        warnings: Number(data.warnings ?? 0),
+        errors: Number(data.errors ?? 0),
+      };
+      const results = (data.results as ScanResult[]) ?? [];
+      setResult({ results, summary });
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Backend API unavailable — showing demo data');
