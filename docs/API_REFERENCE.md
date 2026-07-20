@@ -49,6 +49,8 @@ Obtain a token via `POST /auth/login`.
 
 ### Auth 认证
 
+认证相关端点。支持用户注册、登录获取 JWT 令牌，所有受保护端点需在请求头携带 `Authorization: Bearer <token>`。
+
 认证相关端点。注册新用户、登录获取 JWT 令牌。
 
 #### `POST /auth/login`
@@ -119,6 +121,8 @@ Refresh an expired access token.
 ---
 
 ### Hosts 主机
+
+基础设施主机管理。支持 CRUD 操作、SSH 连接信息配置、在线状态追踪和健康检查。
 
 管理基础设施主机，支持 SSH 连接信息和健康状态追踪。
 
@@ -365,6 +369,8 @@ Get detailed health metrics for a host.
 
 ### SSH
 
+SSH 连接与命令执行。支持密码和公钥认证，提供远程命令执行和 PTY 终端会话。
+
 #### `POST /ssh/exec`
 
 Execute a command on a host via SSH.
@@ -461,6 +467,8 @@ Execute multiple commands sequentially on a host.
 
 ### WebSocket
 
+WebSocket 实时通信端点。主要用于浏览器端 SSH 终端代理，通过 WebSocket 将用户输入转发到 SSH 通道。
+
 #### `WS /ws/terminal`
 
 Interactive terminal session via WebSocket.
@@ -502,6 +510,8 @@ ws://localhost:3000/ws/logs/conn_xyz789?token=<jwt>&follow=true
 ---
 
 ### Docker
+
+Docker 容器管理。通过 Docker Engine API 实现容器列表、启动/停止、日志查看和资源统计。
 
 #### `GET /docker/containers`
 
@@ -583,6 +593,8 @@ Perform a Docker action on a container.
 ---
 
 ### Modules 模块
+
+可插拔模块管理。支持模块的加载、启用/停用、健康检查和配置热更新。
 
 #### `GET /modules`
 
@@ -745,6 +757,8 @@ Update module configuration.
 
 ### AI
 
+AI Agent 对话接口。支持创建会话、多轮对话和工具调用（function calling），通过 ToolRegistry 路由到对应模块。
+
 #### `POST /ai/chat`
 
 Send a chat message to the AI assistant.
@@ -855,6 +869,8 @@ Execute a natural language command as an AI agent. Unlike chat, this performs ac
 ---
 
 ### Audit & Alerts 审计与告警
+
+操作审计和告警管理。记录所有 SSH 命令和 API 调用，支持基于规则的告警触发和通知。
 
 #### `GET /audit-logs`
 
@@ -1023,6 +1039,8 @@ Resolve an alert.
 ---
 
 ### Dashboard 仪表盘
+
+聚合仪表盘数据。提供主机健康状态、模块运行状况、系统资源使用情况的统一视图。
 
 #### `GET /dashboard/overview`
 

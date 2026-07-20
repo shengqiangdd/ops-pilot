@@ -21,6 +21,8 @@
 
 ## 概览 Overview
 
+Module SDK 是 OpsPilot 的扩展核心，定义了模块的 trait 契约、生命周期和通信机制。通过实现 `OpsModule` trait，第三方开发者可以无缝集成自定义功能。
+
 Every OpsPilot module is a Rust crate that implements the `OpsModule` trait from the `ops-pilot-sdk` crate. Modules are loaded at runtime by the core engine and communicate through a well-defined interface.
 
 **Module Responsibilities:**
@@ -39,6 +41,8 @@ Every OpsPilot module is a Rust crate that implements the `OpsModule` trait from
 ---
 
 ## OpsModule Trait
+
+OpsModule 是所有模块必须实现的 Rust trait，定义了模块名称、工具列表、工具执行和事件响应四个核心方法。
 
 ```rust
 use async_trait::async_trait;
@@ -132,6 +136,8 @@ pub trait OpsModule: Send + Sync + 'static {
 
 ## ToolDefinition 工具定义
 
+工具是模块暴露给 LLM 的最小可调用单元。每个工具包含名称、描述和 JSON Schema 参数声明，由 LLM 自动匹配和调用。
+
 Describes a single tool that a module provides. Used for API documentation, AI Gateway function calling, and CLI help text.
 
 ```rust
@@ -222,6 +228,8 @@ pub struct ToolExample {
 ---
 
 ## ModuleContext 模块上下文
+
+模块上下文提供了运行时环境，包括配置读取、事件总线发布、数据库访问和日志记录能力。
 
 Provided to every module method. Grants controlled access to core services without tight coupling.
 
@@ -330,6 +338,8 @@ impl ModuleContext {
 ---
 
 ## Event System 事件系统
+
+基于 tokio::broadcast 的发布-订阅事件系统，支持模块间松耦合通信。事件类型包括基础设施事件、Docker 事件、审计事件和模块生命周期事件。
 
 Events are the primary communication mechanism between modules and the core engine.
 
@@ -519,6 +529,8 @@ pub enum ModuleAction {
 
 ## Lifecycle Hooks 生命周期钩子
 
+模块在不同阶段可注册钩子函数：加载初始化、启用、停用、重载和卸载。钩子可以阻断或修改模块状态转换。
+
 Modules go through a defined lifecycle managed by the core engine.
 
 ```rust
@@ -607,6 +619,8 @@ pub trait ModuleLifecycle: OpsModule {
 ---
 
 ## Configuration Schema 配置 Schema
+
+每个模块通过 JSON Schema 声明自己的配置结构，Gateway 在加载时自动校验并提供配置编辑 UI。
 
 Each module declares its configuration schema in TOML format. The core engine validates configuration at startup and provides it to the module via `ModuleContext::config`.
 
@@ -698,6 +712,8 @@ impl OpsModule for MyModule {
 
 ## Module Manifest 模块清单
 
+每个模块包含 `module.toml` 清单文件，声明模块元数据、依赖关系和入口点。
+
 Every module crate must include a `module.toml` manifest in its root directory. The core engine reads this at load time.
 
 ```toml
@@ -756,6 +772,8 @@ requires = ["host.read", "ssh.exec", "audit.write"]
 ---
 
 ## Example Module 示例模块
+
+以下是一个完整模块实现示例，展示了工具定义、执行逻辑和测试编写的全流程。
 
 A complete minimal "Hello World" module that demonstrates all SDK features.
 
@@ -1046,6 +1064,8 @@ mod tests {
 ---
 
 ## Packaging & Distribution 打包与分发
+
+模块可以编译为独立二进制或动态库发布。推荐通过模块市场（Marketplace）分发，支持版本管理和自动更新。
 
 ### Building a Module
 
