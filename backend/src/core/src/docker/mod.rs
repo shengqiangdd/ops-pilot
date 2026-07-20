@@ -143,7 +143,9 @@ impl DockerClient {
             .into_iter()
             .map(|c: ContainerSummary| {
                 let id = c.id.ok_or_else(|| DockerError::MissingField("id".into()))?;
-                let names = c.names.ok_or_else(|| DockerError::MissingField("names".into()))?;
+                let names = c
+                    .names
+                    .ok_or_else(|| DockerError::MissingField("names".into()))?;
                 let name = names
                     .into_iter()
                     .next()
@@ -175,10 +177,7 @@ impl DockerClient {
     /// Start a container by ID.
     pub async fn start_container(&self, id: &str) -> Result<(), DockerError> {
         self.docker
-            .start_container(
-                id,
-                Some(StartContainerOptionsBuilder::new().build()),
-            )
+            .start_container(id, Some(StartContainerOptionsBuilder::new().build()))
             .await?;
         Ok(())
     }
@@ -204,7 +203,10 @@ impl DockerClient {
     pub async fn container_stats(&self, id: &str) -> Result<ContainerStats, DockerError> {
         use futures_util::StreamExt;
 
-        let options = StatsOptionsBuilder::new().stream(false).one_shot(true).build();
+        let options = StatsOptionsBuilder::new()
+            .stream(false)
+            .one_shot(true)
+            .build();
 
         let mut stream = self.docker.stats(id, Some(options));
         let stats = stream
@@ -236,9 +238,9 @@ impl DockerClient {
             .as_ref()
             .ok_or_else(|| DockerError::MissingField("precpu_stats.cpu_usage".into()))?;
 
-        let cpu_delta =
-            (cpu_usage.total_usage.unwrap_or(0) as i64 - precpu_usage.total_usage.unwrap_or(0) as i64)
-                .max(0) as f64;
+        let cpu_delta = (cpu_usage.total_usage.unwrap_or(0) as i64
+            - precpu_usage.total_usage.unwrap_or(0) as i64)
+            .max(0) as f64;
         let system_delta = (cpu_stats.system_cpu_usage.unwrap_or(0) as i64
             - precpu_stats.system_cpu_usage.unwrap_or(0) as i64)
             .max(0) as f64;
@@ -445,9 +447,9 @@ mod tests {
                 max_usage: Some(0),
                 usage: Some(0),
                 failcnt: None,
-                 limit: Some(1),
+                limit: Some(1),
                 ..Default::default()
-             }),
+            }),
             networks: None,
             name: None,
             id: None,
@@ -634,9 +636,9 @@ mod tests {
                 max_usage: Some(0),
                 stats: None,
                 failcnt: None,
-                 limit: Some(1),
+                limit: Some(1),
                 ..Default::default()
-             }),
+            }),
             networks: Some(networks),
             ..make_stats()
         };
@@ -684,9 +686,9 @@ mod tests {
                 max_usage: Some(2048),
                 stats: None,
                 failcnt: None,
-                 limit: Some(4096),
+                limit: Some(4096),
                 ..Default::default()
-             }),
+            }),
             networks: None,
             ..make_stats()
         };
@@ -736,9 +738,9 @@ mod tests {
                 max_usage: Some(200),
                 stats: None,
                 failcnt: None,
-                 limit: Some(0),
+                limit: Some(0),
                 ..Default::default()
-             }),
+            }),
             networks: None,
             ..make_stats()
         };

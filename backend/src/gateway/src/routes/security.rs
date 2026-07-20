@@ -1,5 +1,6 @@
 //! REST handlers for security scanning (delegates to mod-security).
 
+use crate::routes::modules::ModuleManager;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -8,10 +9,9 @@ use axum::{
     Json, Router,
 };
 use ops_pilot_sdk::context::ModuleContext;
+use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::Deserialize;
-use crate::routes::modules::ModuleManager;
 
 #[derive(Clone)]
 pub struct SecurityState {
@@ -32,36 +32,60 @@ async fn security_scan_handler(
     let manager = state.manager.read().await;
     match manager.get_module_ref("mod-security") {
         Some(module) => {
-            match module.execute(&state.ctx, "security_scan", serde_json::json!({
-                "host_id": req.host_id,
-                "check_type": req.check_type,
-            })).await {
+            match module
+                .execute(
+                    &state.ctx,
+                    "security_scan",
+                    serde_json::json!({
+                        "host_id": req.host_id,
+                        "check_type": req.check_type,
+                    }),
+                )
+                .await
+            {
                 Ok(value) => (StatusCode::OK, Json(value)).into_response(),
                 Err(e) => {
                     tracing::error!(error = %e, "security_scan execution failed");
-                    (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response()
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({"error": e.to_string()})),
+                    )
+                        .into_response()
                 }
             }
         }
-        None => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "mod-security not loaded"}))).into_response(),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "mod-security not loaded"})),
+        )
+            .into_response(),
     }
 }
 
-async fn security_list_checks_handler(
-    State(state): State<SecurityState>,
-) -> impl IntoResponse {
+async fn security_list_checks_handler(State(state): State<SecurityState>) -> impl IntoResponse {
     let manager = state.manager.read().await;
     match manager.get_module_ref("mod-security") {
         Some(module) => {
-            match module.execute(&state.ctx, "security_list_checks", serde_json::json!({})).await {
+            match module
+                .execute(&state.ctx, "security_list_checks", serde_json::json!({}))
+                .await
+            {
                 Ok(value) => (StatusCode::OK, Json(value)).into_response(),
                 Err(e) => {
                     tracing::error!(error = %e, "security_list_checks failed");
-                    (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response()
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({"error": e.to_string()})),
+                    )
+                        .into_response()
                 }
             }
         }
-        None => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "mod-security not loaded"}))).into_response(),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "mod-security not loaded"})),
+        )
+            .into_response(),
     }
 }
 

@@ -52,11 +52,7 @@ async fn create_session(
 ) -> impl IntoResponse {
     let _ = req; // Accept optional config but use defaults for now
     let session_id = state.orchestrator.create_session().await;
-    (
-        StatusCode::CREATED,
-        Json(SessionResponse { session_id }),
-    )
-        .into_response()
+    (StatusCode::CREATED, Json(SessionResponse { session_id })).into_response()
 }
 
 /// POST /api/agent/chat — send a message and get the agent's response.
@@ -65,7 +61,11 @@ async fn chat(
     Path(session_id): Path<String>,
     Json(req): Json<ChatRequest>,
 ) -> impl IntoResponse {
-    match state.orchestrator.chat(&session_id, &req.message, &state.ctx).await {
+    match state
+        .orchestrator
+        .chat(&session_id, &req.message, &state.ctx)
+        .await
+    {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => {
             let status = if e.to_string().contains("not found") {
@@ -73,11 +73,7 @@ async fn chat(
             } else {
                 StatusCode::INTERNAL_SERVER_ERROR
             };
-            (
-                status,
-                Json(serde_json::json!({"error": e.to_string()})),
-            )
-                .into_response()
+            (status, Json(serde_json::json!({"error": e.to_string()}))).into_response()
         }
     }
 }
@@ -186,8 +182,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             Ok(Box::pin(futures_util::stream::empty()))
         }
     }
@@ -198,16 +196,35 @@ mod tests {
 
     #[async_trait]
     impl OpsModule for StubMod {
-        fn name(&self) -> &str { "stub" }
-        fn version(&self) -> &str { "0.1.0" }
-        fn description(&self) -> &str { "stub" }
-        fn dependencies(&self) -> Vec<&str> { vec![] }
-        fn tools(&self) -> Vec<ToolDefinition> { vec![] }
-        async fn execute(&self, _ctx: &ModuleContext, _t: &str, _p: serde_json::Value) -> anyhow::Result<serde_json::Value> {
+        fn name(&self) -> &str {
+            "stub"
+        }
+        fn version(&self) -> &str {
+            "0.1.0"
+        }
+        fn description(&self) -> &str {
+            "stub"
+        }
+        fn dependencies(&self) -> Vec<&str> {
+            vec![]
+        }
+        fn tools(&self) -> Vec<ToolDefinition> {
+            vec![]
+        }
+        async fn execute(
+            &self,
+            _ctx: &ModuleContext,
+            _t: &str,
+            _p: serde_json::Value,
+        ) -> anyhow::Result<serde_json::Value> {
             Ok(json!({}))
         }
-        async fn on_event(&self, _ctx: &ModuleContext, _e: &OpsEvent) -> Option<ModuleAction> { None }
-        async fn health_check(&self, _ctx: &ModuleContext) -> HealthStatus { HealthStatus::Healthy }
+        async fn on_event(&self, _ctx: &ModuleContext, _e: &OpsEvent) -> Option<ModuleAction> {
+            None
+        }
+        async fn health_check(&self, _ctx: &ModuleContext) -> HealthStatus {
+            HealthStatus::Healthy
+        }
     }
 
     async fn test_app(llm: std::sync::Arc<dyn LlmClient>) -> Router {
@@ -260,7 +277,9 @@ mod tests {
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::CREATED);
 
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
         let session: SessionResponse = serde_json::from_slice(&body).unwrap();
         assert!(!session.session_id.is_empty());
     }
@@ -281,7 +300,9 @@ mod tests {
             .body(Body::from("{}"))
             .unwrap();
         let resp = app.clone().oneshot(req).await.unwrap();
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
         let session: SessionResponse = serde_json::from_slice(&body).unwrap();
 
         // Send message
@@ -289,13 +310,18 @@ mod tests {
             .method("POST")
             .uri(format!("/api/agent/chat/{}", session.session_id))
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&ChatRequest {
-                message: "Hi there".into(),
-            }).unwrap()))
+            .body(Body::from(
+                serde_json::to_string(&ChatRequest {
+                    message: "Hi there".into(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
         let resp = app.clone().oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
         let chat_resp: AgentResponse = serde_json::from_slice(&body).unwrap();
         assert_eq!(chat_resp.content, "Hello! How can I help?");
 
@@ -316,9 +342,12 @@ mod tests {
             .method("POST")
             .uri("/api/agent/chat/nonexistent")
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&ChatRequest {
-                message: "hi".into(),
-            }).unwrap()))
+            .body(Body::from(
+                serde_json::to_string(&ChatRequest {
+                    message: "hi".into(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
 
         let resp = app.oneshot(req).await.unwrap();

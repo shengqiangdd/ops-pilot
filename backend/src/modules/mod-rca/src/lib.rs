@@ -13,9 +13,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::RwLock;
 
-use ops_pilot_sdk::llm::LlmClient;
 use ops_pilot_sdk::context::ModuleContext;
 use ops_pilot_sdk::events::OpsEvent;
+use ops_pilot_sdk::llm::LlmClient;
 use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinition};
 
 use analyzer::{RcaAnalyzer, RcaHistoryEntry};
@@ -159,10 +159,7 @@ impl OpsModule for ModRca {
                 Ok(serde_json::to_value(rules)?)
             }
             "rca_history" => {
-                let limit = params
-                    .get("limit")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(10) as usize;
+                let limit = params.get("limit").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
 
                 let analyzer = self.analyzer.read().await;
                 let history = analyzer.history();
@@ -236,8 +233,8 @@ impl OpsModule for ModRca {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ops_pilot_sdk::llm::{LlmError, Message};
     use ops_pilot_sdk::context::EventBus;
+    use ops_pilot_sdk::llm::{LlmError, Message};
     use sqlx::SqlitePool;
     use std::path::PathBuf;
     use std::pin::Pin;
@@ -266,8 +263,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             use futures_util::stream;
             let chunks: Vec<Result<String, LlmError>> = self
                 .response
@@ -292,8 +291,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             Err(LlmError::StreamClosed)
         }
     }
@@ -386,7 +387,9 @@ mod tests {
     async fn test_rca_module_unknown_tool() {
         let module = ModRca::new();
         let ctx = make_ctx().await;
-        let result = module.execute(&ctx, "nonexistent", serde_json::json!({})).await;
+        let result = module
+            .execute(&ctx, "nonexistent", serde_json::json!({}))
+            .await;
         assert!(result.is_err());
     }
 
@@ -414,8 +417,14 @@ mod tests {
             .unwrap();
 
         assert!(result["llm_success"].as_bool().unwrap());
-        assert!(result["llm_analysis"].as_str().unwrap().contains("memory leak"));
-        assert_eq!(result["issue_description"].as_str().unwrap(), "Server is running very slowly");
+        assert!(result["llm_analysis"]
+            .as_str()
+            .unwrap()
+            .contains("memory leak"));
+        assert_eq!(
+            result["issue_description"].as_str().unwrap(),
+            "Server is running very slowly"
+        );
         let rules = result["rule_results"].as_array().unwrap();
         assert!(!rules.is_empty());
         assert_eq!(rules[0]["rule_name"], "memory_leak");
@@ -439,7 +448,10 @@ mod tests {
             .unwrap();
 
         assert!(!result["llm_success"].as_bool().unwrap());
-        assert!(result["llm_analysis"].as_str().unwrap().contains("not configured"));
+        assert!(result["llm_analysis"]
+            .as_str()
+            .unwrap()
+            .contains("not configured"));
     }
 
     #[tokio::test]

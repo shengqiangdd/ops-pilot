@@ -318,8 +318,7 @@ impl AgentOrchestrator {
         let mut sessions = self.sessions.write().await;
 
         for (id, messages_json, config_json, _status) in rows {
-            let messages: Vec<Message> =
-                serde_json::from_str(&messages_json).unwrap_or_default();
+            let messages: Vec<Message> = serde_json::from_str(&messages_json).unwrap_or_default();
             let config: AgentConfig =
                 serde_json::from_str(&config_json).unwrap_or_else(|_| self.default_config.clone());
 
@@ -428,6 +427,49 @@ impl AgentOrchestrator {
     pub async fn session_count(&self) -> usize {
         self.sessions.read().await.len()
     }
+
+    /// Close sessions that haven't been updated within `older_than` duration.
+    ///
+    /// Marks them as `closed` in the DB and removes them from the in-memory cache.
+    /// Returns the number of sessions cleaned up.
+    pub async fn cleanup_old_sessions(&self, older_than: std::time::Duration) -> Result<u64> {
+        let cutoff_secs = older_than.as_secs() as i64;
+        let result = sqlx::query(
+            "UPDATE agent_sessions SET status = 'closed', updated_at = datetime('now') \
+             WHERE status = 'open' AND updated_at < datetime('now', ? || ' seconds')",
+        )
+        .bind(format!("-{cutoff_secs}"))
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!("failed to cleanup old sessions: {}", e))?;
+
+        let closed_count = result.rows_affected();
+
+        // Also remove from in-memory cache
+        if closed_count > 0 {
+            let mut sessions = self.sessions.write().await;
+            // Find and remove sessions that were just closed
+            let to_remove: Vec<String> = {
+                // We need to check DB to see which ones were closed
+                let rows: Vec<(String,)> = sqlx::query_as(
+                    "SELECT id FROM agent_sessions WHERE status = 'closed' AND updated_at < datetime('now', ? || ' seconds')",
+                )
+                .bind(format!("-{cutoff_secs}"))
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| anyhow!("failed to list closed sessions: {}", e))?;
+                rows.into_iter().map(|(id,)| id).collect()
+            };
+            for id in &to_remove {
+                sessions.remove(id);
+            }
+        }
+
+        if closed_count > 0 {
+            info!(count = closed_count, "Cleaned up old agent sessions");
+        }
+        Ok(closed_count)
+    }
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -512,8 +554,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             Ok(Box::pin(futures_util::stream::empty()))
         }
     }
@@ -555,7 +599,12 @@ mod tests {
                 parameters: json!({"type": "object", "properties": {}}),
             }]
         }
-        async fn execute(&self, _ctx: &ModuleContext, _tool: &str, _p: serde_json::Value) -> Result<serde_json::Value> {
+        async fn execute(
+            &self,
+            _ctx: &ModuleContext,
+            _tool: &str,
+            _p: serde_json::Value,
+        ) -> Result<serde_json::Value> {
             Ok(json!({"status": "healthy", "cpu": 45.2}))
         }
         async fn on_event(&self, _ctx: &ModuleContext, _e: &OpsEvent) -> Option<ModuleAction> {
@@ -570,7 +619,12 @@ mod tests {
         let mut loader = ModuleLoader::new();
         let ctx = make_ctx("stub").await;
         loader
-            .load_module(ctx, Box::new(StubModule { name: "stub".into() }))
+            .load_module(
+                ctx,
+                Box::new(StubModule {
+                    name: "stub".into(),
+                }),
+            )
             .await
             .unwrap();
         let manager = std::sync::Arc::new(tokio::sync::RwLock::new(
@@ -605,7 +659,10 @@ mod tests {
         let session_id = orchestrator.create_session().await;
         let ctx = make_ctx("test").await;
 
-        let resp = orchestrator.chat(&session_id, "How is the server?", &ctx).await.unwrap();
+        let resp = orchestrator
+            .chat(&session_id, "How is the server?", &ctx)
+            .await
+            .unwrap();
         assert_eq!(resp.content, "The server is running fine.");
         assert!(resp.turns.is_empty());
     }
@@ -673,7 +730,12 @@ mod tests {
         let mut loader = ModuleLoader::new();
         let ctx = make_ctx("stub").await;
         loader
-            .load_module(ctx, Box::new(StubModule { name: "stub".into() }))
+            .load_module(
+                ctx,
+                Box::new(StubModule {
+                    name: "stub".into(),
+                }),
+            )
             .await
             .unwrap();
         let manager = Arc::new(tokio::sync::RwLock::new(
@@ -769,7 +831,12 @@ mod tests {
         let mut loader = ModuleLoader::new();
         let ctx = make_ctx("stub").await;
         loader
-            .load_module(ctx, Box::new(StubModule { name: "stub".into() }))
+            .load_module(
+                ctx,
+                Box::new(StubModule {
+                    name: "stub".into(),
+                }),
+            )
             .await
             .unwrap();
         let manager = Arc::new(tokio::sync::RwLock::new(
@@ -796,8 +863,14 @@ mod tests {
         let ctx = make_ctx("test").await;
 
         // Send multiple messages to build up history
-        orchestrator.chat(&session_id, "First message with some content", &ctx).await.unwrap();
-        orchestrator.chat(&session_id, "Second message with more content", &ctx).await.unwrap();
+        orchestrator
+            .chat(&session_id, "First message with some content", &ctx)
+            .await
+            .unwrap();
+        orchestrator
+            .chat(&session_id, "Second message with more content", &ctx)
+            .await
+            .unwrap();
 
         let sessions = orchestrator.sessions.read().await;
         let session_arc = sessions.get(&session_id).unwrap().clone();
@@ -805,7 +878,10 @@ mod tests {
 
         let session = session_arc.read().await;
         // System prompt + latest user + latest assistant should be kept
-        assert!(session.messages().len() <= 4, "Messages should be truncated");
+        assert!(
+            session.messages().len() <= 4,
+            "Messages should be truncated"
+        );
     }
 
     #[tokio::test]
@@ -850,7 +926,10 @@ mod tests {
         let resp1 = orchestrator.chat(&session_id, "Hello", &ctx).await.unwrap();
         assert_eq!(resp1.content, "I'll help you with that.");
 
-        let resp2 = orchestrator.chat(&session_id, "Thanks!", &ctx).await.unwrap();
+        let resp2 = orchestrator
+            .chat(&session_id, "Thanks!", &ctx)
+            .await
+            .unwrap();
         assert_eq!(resp2.content, "Is there anything else you need?");
 
         // Session should have accumulated messages

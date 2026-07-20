@@ -127,7 +127,7 @@ pub fn host_routes(service: Arc<HostService>) -> axum::Router {
 mod tests {
     use super::*;
     use axum::body::Body;
-    use axum::http::{Request, Method};
+    use axum::http::{Method, Request};
     use ops_pilot_core::auth::AuthService;
     use ops_pilot_core::db::Database;
     use tower::ServiceExt;
@@ -158,7 +158,12 @@ mod tests {
         (app, auth)
     }
 
-    fn auth_request(method: Method, uri: &str, token: &str, body: Option<serde_json::Value>) -> Request<Body> {
+    fn auth_request(
+        method: Method,
+        uri: &str,
+        token: &str,
+        body: Option<serde_json::Value>,
+    ) -> Request<Body> {
         let builder = Request::builder()
             .method(method)
             .uri(uri)

@@ -50,9 +50,11 @@ impl VaultKeyManager {
     /// Get the vault key for a user. Returns None if not unlocked or expired.
     pub fn get(&self, user_id: &str) -> Option<[u8; 32]> {
         // First check if entry exists and is not expired
-        let expired = self.entries.get(user_id).map(|entry| {
-            entry.last_access.elapsed() > self.ttl
-        }).unwrap_or(true);
+        let expired = self
+            .entries
+            .get(user_id)
+            .map(|entry| entry.last_access.elapsed() > self.ttl)
+            .unwrap_or(true);
 
         if expired {
             self.entries.remove(user_id);
@@ -150,5 +152,4 @@ mod tests {
         assert!(!mgr.is_unlocked("user-1"));
         assert!(mgr.get("user-1").is_none());
     }
-
 }

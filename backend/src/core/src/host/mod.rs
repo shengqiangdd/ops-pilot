@@ -31,6 +31,8 @@ impl HostStatus {
         }
     }
 
+    // NOTE: Not implementing std::str::FromStr because that returns Result<Self, Err>,
+    // but this method returns Self directly with a default fallback for unknown values.
     #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s {
@@ -198,7 +200,10 @@ pub enum HostError {
 }
 
 /// Serialize credentials to a JSON blob for encryption.
-fn serialize_credentials(password: &Option<String>, private_key: &Option<String>) -> Option<Vec<u8>> {
+fn serialize_credentials(
+    password: &Option<String>,
+    private_key: &Option<String>,
+) -> Option<Vec<u8>> {
     if password.is_none() && private_key.is_none() {
         return None;
     }
@@ -212,8 +217,14 @@ fn serialize_credentials(password: &Option<String>, private_key: &Option<String>
 /// Deserialize credentials from a decrypted JSON blob.
 fn deserialize_credentials(data: &[u8]) -> (Option<String>, Option<String>) {
     let map: serde_json::Value = serde_json::from_slice(data).unwrap_or(serde_json::Value::Null);
-    let password = map.get("password").and_then(|v| v.as_str()).map(String::from);
-    let private_key = map.get("private_key").and_then(|v| v.as_str()).map(String::from);
+    let password = map
+        .get("password")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let private_key = map
+        .get("private_key")
+        .and_then(|v| v.as_str())
+        .map(String::from);
     (password, private_key)
 }
 
@@ -253,7 +264,9 @@ impl HostService {
             return Err(HostError::InvalidInput("username cannot be empty".into()));
         }
         if input.auth_method.is_empty() {
-            return Err(HostError::InvalidInput("auth_method cannot be empty".into()));
+            return Err(HostError::InvalidInput(
+                "auth_method cannot be empty".into(),
+            ));
         }
 
         let id = Uuid::new_v4().to_string();
@@ -263,7 +276,8 @@ impl HostService {
 
         // Encrypt credentials using vault key if unlocked, else MasterKey
         let enc_key = self.resolve_key(owner_id);
-        let (cred_blob, iv_blob) = match serialize_credentials(&input.password, &input.private_key) {
+        let (cred_blob, iv_blob) = match serialize_credentials(&input.password, &input.private_key)
+        {
             Some(plaintext) => {
                 let (ciphertext, iv) = crypto::encrypt(&plaintext, &enc_key)?;
                 (Some(ciphertext), Some(iv))
@@ -332,7 +346,12 @@ impl HostService {
     }
 
     /// Update a host by ID and owner (partial update).
-    pub async fn update(&self, id: &str, owner_id: &str, input: UpdateHost) -> Result<Host, HostError> {
+    pub async fn update(
+        &self,
+        id: &str,
+        owner_id: &str,
+        input: UpdateHost,
+    ) -> Result<Host, HostError> {
         // Fetch existing encrypted credentials so we can preserve them if not updated
         let existing: HostRowWithCreds = sqlx::query_as(
             "SELECT id, name, address, port, username, auth_method, status, owner_id, credentials_encrypted, credentials_iv, created_at, updated_at FROM hosts WHERE id = ? AND owner_id = ?",
@@ -348,7 +367,9 @@ impl HostService {
         let port = input.port.unwrap_or(existing.port);
         let username = input.username.unwrap_or(existing.username);
         let auth_method = input.auth_method.unwrap_or(existing.auth_method);
-        let status = input.status.unwrap_or(HostStatus::from_str(&existing.status));
+        let status = input
+            .status
+            .unwrap_or(HostStatus::from_str(&existing.status));
 
         // Update credentials only if provided
         let enc_key = self.resolve_key(owner_id);
@@ -400,10 +421,14 @@ impl HostService {
     }
 
     /// Build an `SshConfig` from a host record (with decrypted credentials).
-    pub async fn ssh_config_for(&self, id: &str, owner_id: &str) -> Result<crate::ssh::SshConfig, HostError> {
+    pub async fn ssh_config_for(
+        &self,
+        id: &str,
+        owner_id: &str,
+    ) -> Result<crate::ssh::SshConfig, HostError> {
         let host = self.get_decrypted(id, owner_id).await?;
-        let mut config = crate::ssh::SshConfig::new(&host.address, &host.username)
-            .port(host.port as u16);
+        let mut config =
+            crate::ssh::SshConfig::new(&host.address, &host.username).port(host.port as u16);
 
         if let Some(ref pw) = host.password {
             config = config.password(pw);
@@ -448,7 +473,9 @@ mod tests {
     fn sample_create_with_creds() -> CreateHost {
         CreateHost {
             password: Some("s3cret!".into()),
-            private_key: Some("-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----".into()),
+            private_key: Some(
+                "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----".into(),
+            ),
             ..sample_create()
         }
     }
@@ -521,11 +548,14 @@ mod tests {
     async fn test_list_hosts_by_owner() {
         let svc = setup().await;
         svc.create(sample_create(), OWNER).await.unwrap();
-        svc.create(CreateHost {
-            name: "db-server".into(),
-            address: "192.168.1.20".into(),
-            ..sample_create()
-        }, OWNER)
+        svc.create(
+            CreateHost {
+                name: "db-server".into(),
+                address: "192.168.1.20".into(),
+                ..sample_create()
+            },
+            OWNER,
+        )
         .await
         .unwrap();
         // Different owner's host — should not appear
@@ -620,7 +650,10 @@ mod tests {
         let svc = setup().await;
         let created = svc.create(sample_create(), OWNER).await.unwrap();
         svc.delete(&created.id, OWNER).await.unwrap();
-        assert!(matches!(svc.get(&created.id, OWNER).await, Err(HostError::NotFound(_))));
+        assert!(matches!(
+            svc.get(&created.id, OWNER).await,
+            Err(HostError::NotFound(_))
+        ));
     }
 
     #[tokio::test]
@@ -642,9 +675,18 @@ mod tests {
 
     #[test]
     fn test_host_status_serde() {
-        assert_eq!(serde_json::to_string(&HostStatus::Online).unwrap(), "\"online\"");
-        assert_eq!(serde_json::to_string(&HostStatus::Offline).unwrap(), "\"offline\"");
-        assert_eq!(serde_json::to_string(&HostStatus::Unknown).unwrap(), "\"unknown\"");
+        assert_eq!(
+            serde_json::to_string(&HostStatus::Online).unwrap(),
+            "\"online\""
+        );
+        assert_eq!(
+            serde_json::to_string(&HostStatus::Offline).unwrap(),
+            "\"offline\""
+        );
+        assert_eq!(
+            serde_json::to_string(&HostStatus::Unknown).unwrap(),
+            "\"unknown\""
+        );
         assert_eq!(
             serde_json::to_string(&HostStatus::Maintenance).unwrap(),
             "\"maintenance\""
@@ -685,7 +727,11 @@ mod tests {
         // get_decrypted() SHOULD return credentials
         let decrypted = svc.get_decrypted(&host.id, OWNER).await.unwrap();
         assert_eq!(decrypted.password.as_deref(), Some("s3cret!"));
-        assert!(decrypted.private_key.as_ref().unwrap().contains("RSA PRIVATE KEY"));
+        assert!(decrypted
+            .private_key
+            .as_ref()
+            .unwrap()
+            .contains("RSA PRIVATE KEY"));
     }
 
     #[tokio::test]

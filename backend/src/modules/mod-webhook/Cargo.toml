@@ -1,9 +1,9 @@
 [package]
-name = "ops-pilot-mod-core"
+name = "ops-pilot-mod-webhook"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Core module: SSH, Docker, host management, monitoring"
+description = "Webhook notification module — dispatch events to Slack, DingTalk, Feishu, etc."
 
 [dependencies]
 ops-pilot-sdk = { path = "../../sdk" }
@@ -12,11 +12,13 @@ tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
-uuid.workspace = true
+reqwest.workspace = true
 anyhow.workspace = true
-thiserror.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
+futures-util = "0.3"
+
+[dev-dependencies]
 sqlx.workspace = true
 
 [lints]

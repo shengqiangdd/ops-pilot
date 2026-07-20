@@ -102,10 +102,18 @@ impl OpsModule for DockerModule {
         tracing::info!(tool, "docker module execute (stub)");
         match tool {
             "docker_list_containers" => Ok(serde_json::json!({"containers": []})),
-            "docker_start" => Ok(serde_json::json!({"status": "started", "id": params["container_id"]})),
-            "docker_stop" => Ok(serde_json::json!({"status": "stopped", "id": params["container_id"]})),
-            "docker_restart" => Ok(serde_json::json!({"status": "restarted", "id": params["container_id"]})),
-            "docker_stats" => Ok(serde_json::json!({"id": params["container_id"], "cpu": 0.0, "memory": 0.0})),
+            "docker_start" => {
+                Ok(serde_json::json!({"status": "started", "id": params["container_id"]}))
+            }
+            "docker_stop" => {
+                Ok(serde_json::json!({"status": "stopped", "id": params["container_id"]}))
+            }
+            "docker_restart" => {
+                Ok(serde_json::json!({"status": "restarted", "id": params["container_id"]}))
+            }
+            "docker_stats" => {
+                Ok(serde_json::json!({"id": params["container_id"], "cpu": 0.0, "memory": 0.0}))
+            }
             _ => anyhow::bail!("unknown tool: {}", tool),
         }
     }
@@ -116,5 +124,87 @@ impl OpsModule for DockerModule {
 
     async fn health_check(&self, _ctx: &ModuleContext) -> HealthStatus {
         HealthStatus::Healthy
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ops_pilot_sdk::context::{EventBus, ModuleContext};
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
+    async fn make_ctx() -> ModuleContext {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        ModuleContext::new(
+            Arc::new(pool),
+            EventBus::new(16),
+            PathBuf::from("/tmp/test-docker"),
+            "test-docker".into(),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_module_metadata() {
+        let m = DockerModule::new();
+        assert_eq!(m.name(), "mod-core::docker");
+        assert_eq!(m.version(), "0.1.0");
+        assert!(m.description().contains("Docker"));
+    }
+
+    #[tokio::test]
+    async fn test_tools_registered() {
+        let m = DockerModule::new();
+        let tools = m.tools();
+        assert_eq!(tools.len(), 5);
+        let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+        assert!(names.contains(&"docker_list_containers"));
+        assert!(names.contains(&"docker_start"));
+        assert!(names.contains(&"docker_stop"));
+        assert!(names.contains(&"docker_restart"));
+        assert!(names.contains(&"docker_stats"));
+    }
+
+    #[tokio::test]
+    async fn test_health_check() {
+        let m = DockerModule::new();
+        let ctx = make_ctx().await;
+        let status = m.health_check(&ctx).await;
+        assert!(matches!(status, HealthStatus::Healthy));
+    }
+
+    #[tokio::test]
+    async fn test_unknown_tool() {
+        let m = DockerModule::new();
+        let ctx = make_ctx().await;
+        let result = m.execute(&ctx, "nonexistent", serde_json::json!({})).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_docker_list_containers_stub() {
+        let m = DockerModule::new();
+        let ctx = make_ctx().await;
+        let result = m
+            .execute(&ctx, "docker_list_containers", serde_json::json!({}))
+            .await
+            .unwrap();
+        assert!(result["containers"].as_array().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_docker_start_stub() {
+        let m = DockerModule::new();
+        let ctx = make_ctx().await;
+        let result = m
+            .execute(
+                &ctx,
+                "docker_start",
+                serde_json::json!({ "container_id": "abc123" }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(result["status"], "started");
+        assert_eq!(result["id"], "abc123");
     }
 }

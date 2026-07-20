@@ -31,9 +31,18 @@ pub struct ScanSummary {
 
 impl From<&[ScanResult]> for ScanSummary {
     fn from(results: &[ScanResult]) -> Self {
-        let passed = results.iter().filter(|r| r.status == CheckStatus::Pass).count();
-        let failed = results.iter().filter(|r| r.status == CheckStatus::Fail).count();
-        let warnings = results.iter().filter(|r| r.status == CheckStatus::Warn).count();
+        let passed = results
+            .iter()
+            .filter(|r| r.status == CheckStatus::Pass)
+            .count();
+        let failed = results
+            .iter()
+            .filter(|r| r.status == CheckStatus::Fail)
+            .count();
+        let warnings = results
+            .iter()
+            .filter(|r| r.status == CheckStatus::Warn)
+            .count();
         let critical_findings: Vec<String> = results
             .iter()
             .filter(|r| r.status != CheckStatus::Pass && r.severity == Severity::Critical)
@@ -118,14 +127,20 @@ impl LlmScanner {
                 .map(|r| {
                     format!(
                         "  - [{}][{}] {} — actual: {}, expected: {}\n    Remediation: {}",
-                        r.severity, r.check_id, r.rule_name, r.actual_value, r.expected_value, r.remediation_steps
+                        r.severity,
+                        r.check_id,
+                        r.rule_name,
+                        r.actual_value,
+                        r.expected_value,
+                        r.remediation_steps
                     )
                 })
                 .collect::<Vec<_>>()
                 .join("\n")
         };
 
-        let system_prompt = "You are an expert Linux/Docker security engineer and CIS benchmark auditor. \
+        let system_prompt =
+            "You are an expert Linux/Docker security engineer and CIS benchmark auditor. \
             You analyze compliance scan results and produce actionable security reports. \
             Be specific and technical. Structure your response with: \
             1. Executive Summary \
@@ -153,19 +168,16 @@ impl LlmScanner {
             summary.high_findings.len(),
         );
 
-        vec![
-            Message::system(system_prompt),
-            Message::user(user_prompt),
-        ]
+        vec![Message::system(system_prompt), Message::user(user_prompt)]
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use async_trait::async_trait;
     use crate::engine::ScanResult;
     use crate::rules::Severity;
+    use async_trait::async_trait;
     use futures_util::stream;
     use ops_pilot_sdk::llm::{LlmError, Message};
     use std::pin::Pin;
@@ -183,8 +195,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             let chunks: Vec<Result<String, LlmError>> = self
                 .response
                 .split_whitespace()
@@ -208,8 +222,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             Err(LlmError::StreamClosed)
         }
     }

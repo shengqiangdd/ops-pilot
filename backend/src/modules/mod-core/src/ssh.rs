@@ -1,11 +1,29 @@
 //! SSH sub-module: exposes SSH connection and command execution as tools.
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use ops_pilot_core::crypto::{self, MasterKey};
+use ops_pilot_core::ssh::{SshConfig, SshConnectionPool};
 use ops_pilot_sdk::context::ModuleContext;
 use ops_pilot_sdk::events::OpsEvent;
 use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinition};
+use sqlx::FromRow;
 
-pub struct SshModule;
+/// Row type for querying host credentials from the database.
+#[derive(Debug, FromRow)]
+struct HostRow {
+    id: String,
+    address: String,
+    port: i32,
+    username: String,
+    credentials_encrypted: Option<Vec<u8>>,
+    credentials_iv: Option<Vec<u8>>,
+}
+
+pub struct SshModule {
+    pool: Arc<SshConnectionPool>,
+}
 
 impl Default for SshModule {
     fn default() -> Self {
@@ -15,7 +33,62 @@ impl Default for SshModule {
 
 impl SshModule {
     pub fn new() -> Self {
-        Self
+        Self {
+            pool: Arc::new(SshConnectionPool::new()),
+        }
+    }
+
+    pub fn with_pool(pool: Arc<SshConnectionPool>) -> Self {
+        Self { pool }
+    }
+
+    /// Query host from DB and build an SshConfig.
+    async fn resolve_host_config(
+        db: &sqlx::SqlitePool,
+        host_id: &str,
+    ) -> anyhow::Result<SshConfig> {
+        let row: HostRow = sqlx::query_as(
+            "SELECT id, address, port, username, credentials_encrypted, credentials_iv \
+             FROM hosts WHERE id = ?",
+        )
+        .bind(host_id)
+        .fetch_optional(db)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("host not found: {}", host_id))?;
+
+        let key = MasterKey::load();
+        let (password, private_key) = match (row.credentials_encrypted, row.credentials_iv) {
+            (Some(ciphertext), Some(iv)) => {
+                let plaintext = crypto::decrypt(&ciphertext, &key, &iv)
+                    .map_err(|e| anyhow::anyhow!("failed to decrypt credentials: {}", e))?;
+                let map: serde_json::Value = serde_json::from_slice(&plaintext)
+                    .map_err(|e| anyhow::anyhow!("failed to parse credentials: {}", e))?;
+                let password = map
+                    .get("password")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                let private_key = map
+                    .get("private_key")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                (password, private_key)
+            }
+            _ => (None, None),
+        };
+
+        let mut config = SshConfig::new(&row.address, &row.username).port(row.port as u16);
+
+        if let Some(pw) = password {
+            config = config.password(pw);
+        }
+        if let Some(pk) = private_key {
+            let path = std::env::temp_dir().join(format!("ops_pilot_key_{}", row.id));
+            std::fs::write(&path, &pk)
+                .map_err(|e| anyhow::anyhow!("failed to write temp key: {}", e))?;
+            config = config.key_path(path.to_string_lossy());
+        }
+
+        Ok(config)
     }
 }
 
@@ -75,16 +148,53 @@ impl OpsModule for SshModule {
 
     async fn execute(
         &self,
-        _ctx: &ModuleContext,
+        ctx: &ModuleContext,
         tool: &str,
         params: serde_json::Value,
     ) -> anyhow::Result<serde_json::Value> {
-        // TODO: Wire up to ops_pilot_core::ssh::SshConnectionPool
-        tracing::info!(tool, "ssh module execute (stub)");
+        tracing::info!(tool, "ssh module execute");
         match tool {
-            "ssh_connect" => Ok(serde_json::json!({"status": "connected", "host_id": params["host_id"]})),
-            "ssh_exec" => Ok(serde_json::json!({"exit_code": 0, "output": "stub output"})),
-            "ssh_disconnect" => Ok(serde_json::json!({"status": "disconnected"})),
+            "ssh_connect" => {
+                let host_id = params["host_id"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("host_id is required"))?;
+
+                let config = Self::resolve_host_config(ctx.db(), host_id).await?;
+                self.pool.connect(host_id, config).await?;
+
+                Ok(serde_json::json!({
+                    "status": "connected",
+                    "host_id": host_id
+                }))
+            }
+            "ssh_exec" => {
+                let host_id = params["host_id"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("host_id is required"))?;
+                let command = params["command"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("command is required"))?;
+
+                let conn = self.pool.get(host_id).await?;
+                let output = conn.exec(command).await?;
+
+                Ok(serde_json::json!({
+                    "exit_code": 0,
+                    "output": output
+                }))
+            }
+            "ssh_disconnect" => {
+                let host_id = params["host_id"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("host_id is required"))?;
+
+                self.pool.disconnect(host_id).await?;
+
+                Ok(serde_json::json!({
+                    "status": "disconnected",
+                    "host_id": host_id
+                }))
+            }
             _ => anyhow::bail!("unknown tool: {}", tool),
         }
     }

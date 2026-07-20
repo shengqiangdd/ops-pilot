@@ -1,10 +1,10 @@
 //! mod-core: Wraps core infrastructure (SSH, Docker, Host, Monitor)
 //! as an OpsModule, making them manageable via the ModuleLoader.
 
-pub mod ssh;
 pub mod docker;
 pub mod host;
 pub mod monitor;
+pub mod ssh;
 
 use async_trait::async_trait;
 use ops_pilot_sdk::context::ModuleContext;

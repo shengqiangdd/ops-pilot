@@ -209,8 +209,11 @@ impl LlmClient for RetryClient {
                 }
                 Err(e) => {
                     if attempt < self.config.max_retries && Self::should_retry(&e) {
-                        let delay =
-                            Self::retry_delay(attempt, self.config.base_delay, self.config.max_delay);
+                        let delay = Self::retry_delay(
+                            attempt,
+                            self.config.base_delay,
+                            self.config.max_delay,
+                        );
                         tokio::time::sleep(delay).await;
                         last_err = Some(e);
                     } else {
@@ -241,8 +244,11 @@ impl LlmClient for RetryClient {
                 }
                 Err(e) => {
                     if attempt < self.config.max_retries && Self::should_retry(&e) {
-                        let delay =
-                            Self::retry_delay(attempt, self.config.base_delay, self.config.max_delay);
+                        let delay = Self::retry_delay(
+                            attempt,
+                            self.config.base_delay,
+                            self.config.max_delay,
+                        );
                         tokio::time::sleep(delay).await;
                         last_err = Some(e);
                     } else {
@@ -272,8 +278,11 @@ impl LlmClient for RetryClient {
                 }
                 Err(e) => {
                     if attempt < self.config.max_retries && Self::should_retry(&e) {
-                        let delay =
-                            Self::retry_delay(attempt, self.config.base_delay, self.config.max_delay);
+                        let delay = Self::retry_delay(
+                            attempt,
+                            self.config.base_delay,
+                            self.config.max_delay,
+                        );
                         tokio::time::sleep(delay).await;
                         last_err = Some(e);
                     } else {

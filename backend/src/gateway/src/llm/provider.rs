@@ -36,8 +36,7 @@ impl ProviderConfig {
         let api_key = std::env::var("LLM_API_KEY")
             .map_err(|_| LlmError::Other("LLM_API_KEY not set".into()))?;
         let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "gpt-4o".into());
-        let provider_name =
-            std::env::var("LLM_PROVIDER").unwrap_or_else(|_| "openai".into());
+        let provider_name = std::env::var("LLM_PROVIDER").unwrap_or_else(|_| "openai".into());
 
         Ok(Self {
             base_url: base_url.trim_end_matches('/').to_string(),
@@ -112,10 +111,7 @@ impl ProviderLlm {
     }
 
     /// Send a request and return the raw response (or error).
-    async fn send_request(
-        &self,
-        body: &serde_json::Value,
-    ) -> Result<reqwest::Response, LlmError> {
+    async fn send_request(&self, body: &serde_json::Value) -> Result<reqwest::Response, LlmError> {
         let resp = self
             .client
             .post(self.chat_url())
@@ -193,7 +189,9 @@ impl LlmClient for ProviderLlm {
         );
 
         let resp = self.send_request(&body).await?;
-        let completion: ChatCompletionResponse = resp.json().await
+        let completion: ChatCompletionResponse = resp
+            .json()
+            .await
             .map_err(|e| LlmError::Http(e.to_string()))?;
 
         let content = completion
@@ -220,7 +218,9 @@ impl LlmClient for ProviderLlm {
         );
 
         let resp = self.send_request(&body).await?;
-        let completion: ChatCompletionResponse = resp.json().await
+        let completion: ChatCompletionResponse = resp
+            .json()
+            .await
             .map_err(|e| LlmError::Http(e.to_string()))?;
 
         let choice = completion
@@ -231,14 +231,16 @@ impl LlmClient for ProviderLlm {
         let content = choice.message.content.clone().unwrap_or_default();
         let tool_calls = choice.message.tool_calls.clone();
 
-        Ok(CompletionResponse { content, tool_calls })
+        Ok(CompletionResponse {
+            content,
+            tool_calls,
+        })
     }
 
     async fn complete_stream(
         &self,
         messages: &[Message],
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-    {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<String, LlmError>> + Send>>, LlmError> {
         let body = self.build_request_body(messages, None, true);
         debug!(
             provider = %self.config.provider_name,
@@ -395,10 +397,7 @@ mod tests {
     #[test]
     fn test_chat_url() {
         let client = ProviderLlm::new(test_config("http://localhost"));
-        assert_eq!(
-            client.chat_url(),
-            "http://localhost/chat/completions"
-        );
+        assert_eq!(client.chat_url(), "http://localhost/chat/completions");
     }
 
     #[test]
@@ -455,10 +454,7 @@ mod tests {
     fn test_build_request_body_system_message() {
         let client = ProviderLlm::new(test_config("http://localhost"));
         let body = client.build_request_body(
-            &[
-                Message::system("You are helpful."),
-                Message::user("Hello"),
-            ],
+            &[Message::system("You are helpful."), Message::user("Hello")],
             None,
             false,
         );
@@ -574,10 +570,7 @@ mod tests {
             .await;
 
         let client = ProviderLlm::new(test_config(&server.uri()));
-        let err = client
-            .complete(&[Message::user("test")])
-            .await
-            .unwrap_err();
+        let err = client.complete(&[Message::user("test")]).await.unwrap_err();
         assert!(matches!(err, LlmError::Api { status: 401, .. }));
     }
 
@@ -591,10 +584,7 @@ mod tests {
             .await;
 
         let client = ProviderLlm::new(test_config(&server.uri()));
-        let err = client
-            .complete(&[Message::user("test")])
-            .await
-            .unwrap_err();
+        let err = client.complete(&[Message::user("test")]).await.unwrap_err();
         assert!(matches!(err, LlmError::Api { status: 500, .. }));
     }
 
@@ -610,10 +600,7 @@ mod tests {
             .await;
 
         let client = ProviderLlm::new(test_config(&server.uri()));
-        let result = client
-            .complete(&[Message::user("test")])
-            .await
-            .unwrap();
+        let result = client.complete(&[Message::user("test")]).await.unwrap();
         assert_eq!(result, "");
     }
 

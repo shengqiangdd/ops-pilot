@@ -60,7 +60,10 @@ impl LlmAnalyzer {
                 llm_success: true,
             }),
             Err(e) => {
-                tracing::warn!("LLM analysis failed, falling back to rule-based only: {}", e);
+                tracing::warn!(
+                    "LLM analysis failed, falling back to rule-based only: {}",
+                    e
+                );
                 Ok(LlmAnalysisResult {
                     rule_results: rule_results.to_vec(),
                     issue_description: issue_description.to_string(),
@@ -92,7 +95,11 @@ impl LlmAnalyzer {
                 .map(|r| {
                     format!(
                         "  - [{}] {} (confidence: {:.0}%): {} → Fix: {}",
-                        r.severity, r.rule_name, r.confidence * 100.0, r.description, r.suggested_fix
+                        r.severity,
+                        r.rule_name,
+                        r.confidence * 100.0,
+                        r.description,
+                        r.suggested_fix
                     )
                 })
                 .collect::<Vec<_>>()
@@ -116,18 +123,15 @@ impl LlmAnalyzer {
              Based on the above, provide a detailed root cause analysis with specific fix suggestions."
         );
 
-        vec![
-            Message::system(system_prompt),
-            Message::user(user_prompt),
-        ]
+        vec![Message::system(system_prompt), Message::user(user_prompt)]
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use async_trait::async_trait;
     use crate::rules::Severity;
+    use async_trait::async_trait;
     use futures_util::stream;
     use ops_pilot_sdk::llm::{LlmError, Message};
     use std::pin::Pin;
@@ -146,8 +150,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             let chunks: Vec<Result<String, LlmError>> = self
                 .response
                 .split_whitespace()
@@ -172,8 +178,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             Err(LlmError::StreamClosed)
         }
     }

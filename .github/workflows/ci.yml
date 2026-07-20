@@ -74,7 +74,10 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           cache: always
-          components: clippy
+          components: clippy, rustfmt
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
 
       - name: cargo check
         run: cargo check --workspace --all-targets

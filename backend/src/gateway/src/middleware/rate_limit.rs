@@ -19,9 +19,9 @@ pub type LoginRateLimiter = RateLimiter<
 
 /// Create a login rate limiter: 5 requests per minute per IP.
 pub fn login_limiter() -> Arc<LoginRateLimiter> {
-    Arc::new(RateLimiter::keyed(
-        Quota::per_minute(NonZeroU32::new(5).unwrap()),
-    ))
+    Arc::new(RateLimiter::keyed(Quota::per_minute(
+        NonZeroU32::new(5).unwrap(),
+    )))
 }
 
 /// Extract client IP from request headers or socket address.

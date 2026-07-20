@@ -107,9 +107,7 @@ impl CompletionResponse {
     }
 
     pub fn has_tool_calls(&self) -> bool {
-        self.tool_calls
-            .as_ref()
-            .is_some_and(|tc| !tc.is_empty())
+        self.tool_calls.as_ref().is_some_and(|tc| !tc.is_empty())
     }
 }
 

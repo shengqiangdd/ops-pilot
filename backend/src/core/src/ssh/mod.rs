@@ -19,8 +19,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use dashmap::DashMap;
-use russh::keys::{self, load_secret_key, PublicKey};
 use russh::client::{connect, Config, Handle, Handler};
+use russh::keys::{self, load_secret_key, PublicKey};
 use russh::ChannelMsg;
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
@@ -36,6 +36,8 @@ pub enum StrictHostKeyChecking {
     AcceptNew,
 }
 
+// NOTE: Cannot use derive(Default) because the desired default (AcceptNew)
+// is not the first enum variant — derive would default to Yes.
 #[allow(clippy::derivable_impls)]
 impl Default for StrictHostKeyChecking {
     fn default() -> Self {
@@ -140,7 +142,9 @@ impl SshConfig {
             return Err(SshError::InvalidConfig("host cannot be empty".to_string()));
         }
         if self.username.is_empty() {
-            return Err(SshError::InvalidConfig("username cannot be empty".to_string()));
+            return Err(SshError::InvalidConfig(
+                "username cannot be empty".to_string(),
+            ));
         }
         if self.password.is_none() && self.key_path.is_none() {
             return Err(SshError::InvalidConfig(
@@ -148,7 +152,9 @@ impl SshConfig {
             ));
         }
         if self.max_retries == 0 {
-            return Err(SshError::InvalidConfig("max_retries must be > 0".to_string()));
+            return Err(SshError::InvalidConfig(
+                "max_retries must be > 0".to_string(),
+            ));
         }
         Ok(())
     }
@@ -214,11 +220,7 @@ impl KnownHosts {
     /// Check if the given host key is known and matches.
     /// Returns Ok(true) if verified, Ok(false) if unknown (should be accepted),
     /// Err if the key has changed (hostile).
-    pub fn check_host_key(
-        &self,
-        hostname: &str,
-        key: &PublicKey,
-    ) -> Result<bool, SshError> {
+    pub fn check_host_key(&self, hostname: &str, key: &PublicKey) -> Result<bool, SshError> {
         // ssh_key 0.7: use algorithm() which returns Algorithm enum, format it
         let key_type = format!("{:?}", key.algorithm());
         // Remove the "Other(" wrapper if present (for custom algorithms)
@@ -282,7 +284,12 @@ impl KnownHosts {
             .push(entry);
 
         // Append to file
-        let line = format!("{} {} {}\n", hostname, key_type, self.entries[hostname].last().unwrap().base64_key);
+        let line = format!(
+            "{} {} {}\n",
+            hostname,
+            key_type,
+            self.entries[hostname].last().unwrap().base64_key
+        );
         fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -382,11 +389,7 @@ impl SshConnection {
 
         let result = tokio::time::timeout(
             config.timeout,
-            connect(
-                Arc::new(Config::default()),
-                addr,
-                handler,
-            ),
+            connect(Arc::new(Config::default()), addr, handler),
         )
         .await;
 
@@ -489,7 +492,11 @@ impl SshConnection {
             }
         }
 
-        debug!(command_len = command.len(), output_len = output.len(), "command executed");
+        debug!(
+            command_len = command.len(),
+            output_len = output.len(),
+            "command executed"
+        );
         Ok(output)
     }
 
@@ -543,7 +550,11 @@ pub struct ClientHandler {
 }
 
 impl ClientHandler {
-    fn new(hostname: String, known_hosts: Option<KnownHosts>, strict_mode: StrictHostKeyChecking) -> Self {
+    fn new(
+        hostname: String,
+        known_hosts: Option<KnownHosts>,
+        strict_mode: StrictHostKeyChecking,
+    ) -> Self {
         Self {
             hostname,
             known_hosts,
@@ -932,10 +943,7 @@ mod tests {
             .known_hosts_path("/custom/known_hosts")
             .strict_host_key_checking(StrictHostKeyChecking::Yes);
 
-        assert_eq!(
-            config.strict_host_key_checking,
-            StrictHostKeyChecking::Yes
-        );
+        assert_eq!(config.strict_host_key_checking, StrictHostKeyChecking::Yes);
         assert_eq!(
             config.known_hosts_path,
             Some(PathBuf::from("/custom/known_hosts"))

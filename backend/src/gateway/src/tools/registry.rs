@@ -76,7 +76,12 @@ impl ToolRegistry {
     ///
     /// Uses the cached `tool_index` for O(1) module lookup. If the tool is
     /// not in the index, falls back to a full scan (handles stale cache).
-    pub async fn invoke_tool(&self, ctx: &ModuleContext, name: &str, params: Value) -> Result<Value> {
+    pub async fn invoke_tool(
+        &self,
+        ctx: &ModuleContext,
+        name: &str,
+        params: Value,
+    ) -> Result<Value> {
         // Fast path: check the index cache
         let module_name = {
             let index = self.tool_index.read().await;
@@ -225,7 +230,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_tools_aggregates_from_multiple_modules() {
         let registry = build_registry(vec![
-            ("mod-a", vec![make_tool("tool_a1", "A1"), make_tool("tool_a2", "A2")], true),
+            (
+                "mod-a",
+                vec![make_tool("tool_a1", "A1"), make_tool("tool_a2", "A2")],
+                true,
+            ),
             ("mod-b", vec![make_tool("tool_b1", "B1")], true),
         ])
         .await;
@@ -245,35 +254,35 @@ mod tests {
     #[tokio::test]
     async fn test_invoke_routes_to_correct_module() {
         let registry = build_registry(vec![
-            (
-                "mod-alpha",
-                vec![make_tool("alpha_tool", "Alpha")],
-                true,
-            ),
-            (
-                "mod-beta",
-                vec![make_tool("beta_tool", "Beta")],
-                true,
-            ),
+            ("mod-alpha", vec![make_tool("alpha_tool", "Alpha")], true),
+            ("mod-beta", vec![make_tool("beta_tool", "Beta")], true),
         ])
         .await;
 
         let ctx = make_ctx("test").await;
 
-        let result = registry.invoke_tool(&ctx, "alpha_tool", json!({})).await.unwrap();
+        let result = registry
+            .invoke_tool(&ctx, "alpha_tool", json!({}))
+            .await
+            .unwrap();
         assert_eq!(result["module"], "mod-alpha");
         assert_eq!(result["executed"], "alpha_tool");
 
-        let result = registry.invoke_tool(&ctx, "beta_tool", json!({})).await.unwrap();
+        let result = registry
+            .invoke_tool(&ctx, "beta_tool", json!({}))
+            .await
+            .unwrap();
         assert_eq!(result["module"], "mod-beta");
         assert_eq!(result["executed"], "beta_tool");
     }
 
     #[tokio::test]
     async fn test_invoke_unknown_tool_returns_error() {
-        let registry = build_registry(vec![
-            ("mod-x", vec![make_tool("real_tool", "Exists")], true),
-        ])
+        let registry = build_registry(vec![(
+            "mod-x",
+            vec![make_tool("real_tool", "Exists")],
+            true,
+        )])
         .await;
 
         let ctx = make_ctx("test").await;
@@ -300,10 +309,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_tool_schemas_json_returns_array() {
-        let registry = build_registry(vec![
-            ("mod-j", vec![make_tool("j_tool", "JSON")], true),
-        ])
-        .await;
+        let registry =
+            build_registry(vec![("mod-j", vec![make_tool("j_tool", "JSON")], true)]).await;
 
         let schemas = registry.tool_schemas_json().await;
         assert!(schemas.is_array());
@@ -360,15 +367,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_invoke_tool_uses_index_cache() {
-        let registry = build_registry(vec![
-            ("mod-fast", vec![make_tool("fast_tool", "Fast")], true),
-        ])
+        let registry = build_registry(vec![(
+            "mod-fast",
+            vec![make_tool("fast_tool", "Fast")],
+            true,
+        )])
         .await;
 
         registry.rebuild_index().await;
 
         let ctx = make_ctx("test").await;
-        let result = registry.invoke_tool(&ctx, "fast_tool", json!({})).await.unwrap();
+        let result = registry
+            .invoke_tool(&ctx, "fast_tool", json!({}))
+            .await
+            .unwrap();
         assert_eq!(result["module"], "mod-fast");
     }
 }

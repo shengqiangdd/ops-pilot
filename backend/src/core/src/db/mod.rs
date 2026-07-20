@@ -60,23 +60,44 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::FromRow;
+
+    #[derive(FromRow)]
+    struct CountRow {
+        count: i64,
+    }
+
+    #[derive(FromRow)]
+    struct ConnectionRow {
+        name: String,
+        host: String,
+        status: String,
+    }
+
+    #[derive(FromRow)]
+    struct AuditLogRow {
+        user: String,
+        action: String,
+        resource: String,
+        outcome: String,
+    }
 
     #[tokio::test]
     async fn test_open_in_memory() {
         let db = Database::open_in_memory().await.unwrap();
 
         // Verify the tables exist
-        let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM connections")
+        let result: CountRow = sqlx::query_as("SELECT COUNT(*) as count FROM connections")
             .fetch_one(&db.pool)
             .await
             .unwrap();
-        assert_eq!(result.0, 0);
+        assert_eq!(result.count, 0);
 
-        let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM audit_log")
+        let result: CountRow = sqlx::query_as("SELECT COUNT(*) as count FROM audit_log")
             .fetch_one(&db.pool)
             .await
             .unwrap();
-        assert_eq!(result.0, 0);
+        assert_eq!(result.count, 0);
     }
 
     #[tokio::test]
@@ -100,16 +121,16 @@ mod tests {
         .await
         .unwrap();
 
-        let row: (String, String, String) =
+        let row: ConnectionRow =
             sqlx::query_as("SELECT name, host, status FROM connections WHERE id = ?")
                 .bind(&id)
                 .fetch_one(&db.pool)
                 .await
                 .unwrap();
 
-        assert_eq!(row.0, "test-server");
-        assert_eq!(row.1, "192.168.1.100");
-        assert_eq!(row.2, "active");
+        assert_eq!(row.name, "test-server");
+        assert_eq!(row.host, "192.168.1.100");
+        assert_eq!(row.status, "active");
     }
 
     #[tokio::test]
@@ -131,7 +152,7 @@ mod tests {
         .await
         .unwrap();
 
-        let row: (String, String, String, String) = sqlx::query_as(
+        let row: AuditLogRow = sqlx::query_as(
             r#"SELECT "user", action, resource, outcome FROM audit_log WHERE id = ?"#,
         )
         .bind(&log_id)
@@ -139,9 +160,9 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(row.0, "admin");
-        assert_eq!(row.1, "connect");
-        assert_eq!(row.2, "host/prod-web");
-        assert_eq!(row.3, "success");
+        assert_eq!(row.user, "admin");
+        assert_eq!(row.action, "connect");
+        assert_eq!(row.resource, "host/prod-web");
+        assert_eq!(row.outcome, "success");
     }
 }

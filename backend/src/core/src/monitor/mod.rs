@@ -58,13 +58,19 @@ struct ProcStat {
 
 impl ProcStat {
     fn total(&self) -> u64 {
-        self.user + self.nice + self.system + self.idle + self.iowait + self.irq + self.softirq + self.steal
+        self.user
+            + self.nice
+            + self.system
+            + self.idle
+            + self.iowait
+            + self.irq
+            + self.softirq
+            + self.steal
     }
 }
 
 fn read_proc_stat() -> Result<ProcStat> {
-    let content =
-        std::fs::read_to_string("/proc/stat").context("failed to read /proc/stat")?;
+    let content = std::fs::read_to_string("/proc/stat").context("failed to read /proc/stat")?;
     let line = content
         .lines()
         .find(|l| l.starts_with("cpu "))
@@ -127,7 +133,11 @@ pub fn read_disk_usage(path: &str) -> Result<(u64, u64, f64)> {
 
     let ret = unsafe { libc::statvfs(c_path.as_ptr(), &mut stat) };
     if ret != 0 {
-        anyhow::bail!("statvfs failed for {}: {}", path, std::io::Error::last_os_error());
+        anyhow::bail!(
+            "statvfs failed for {}: {}",
+            path,
+            std::io::Error::last_os_error()
+        );
     }
 
     let block_size = stat.f_frsize;
@@ -209,10 +219,7 @@ impl OpsModule for MonitorModule {
     async fn execute(&self, _ctx: &ModuleContext, tool: &str, params: Value) -> Result<Value> {
         match tool {
             "monitor.get_stats" => {
-                let path = params
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("/");
+                let path = params.get("path").and_then(|v| v.as_str()).unwrap_or("/");
                 let stats = get_host_stats()?;
                 let mut result = serde_json::to_value(&stats)?;
                 result["disk_path"] = json!(path);
@@ -261,35 +268,63 @@ mod tests {
     #[test]
     fn test_read_cpu_usage() {
         let result = read_cpu_usage();
-        assert!(result.is_ok(), "CPU read should succeed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "CPU read should succeed: {:?}",
+            result.err()
+        );
         let usage = result.unwrap();
-        assert!((0.0..=100.0).contains(&usage), "CPU usage should be 0-100: {}", usage);
+        assert!(
+            (0.0..=100.0).contains(&usage),
+            "CPU usage should be 0-100: {}",
+            usage
+        );
     }
 
     #[test]
     fn test_read_memory_usage() {
         let result = read_memory_usage();
-        assert!(result.is_ok(), "Memory read should succeed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Memory read should succeed: {:?}",
+            result.err()
+        );
         let (total, used, pct) = result.unwrap();
         assert!(total > 0, "Total memory should be positive");
         assert!(used <= total, "Used should not exceed total");
-        assert!((0.0..=100.0).contains(&pct), "Memory percent should be 0-100: {}", pct);
+        assert!(
+            (0.0..=100.0).contains(&pct),
+            "Memory percent should be 0-100: {}",
+            pct
+        );
     }
 
     #[test]
     fn test_read_disk_usage() {
         let result = read_disk_usage("/");
-        assert!(result.is_ok(), "Disk read should succeed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Disk read should succeed: {:?}",
+            result.err()
+        );
         let (total, used, pct) = result.unwrap();
         assert!(total > 0, "Total disk should be positive");
         assert!(used <= total, "Used should not exceed total");
-        assert!((0.0..=100.0).contains(&pct), "Disk percent should be 0-100: {}", pct);
+        assert!(
+            (0.0..=100.0).contains(&pct),
+            "Disk percent should be 0-100: {}",
+            pct
+        );
     }
 
     #[test]
     fn test_get_host_stats() {
         let stats = get_host_stats();
-        assert!(stats.is_ok(), "get_host_stats should succeed: {:?}", stats.err());
+        assert!(
+            stats.is_ok(),
+            "get_host_stats should succeed: {:?}",
+            stats.err()
+        );
         let stats = stats.unwrap();
         assert!((0.0..=100.0).contains(&stats.cpu_usage_percent));
         assert!(stats.memory_total_bytes > 0);
@@ -345,7 +380,10 @@ mod tests {
 
         let m = MonitorModule::new();
         let status = m.health_check(&ctx).await;
-        assert!(matches!(status, HealthStatus::Healthy | HealthStatus::Degraded { .. } | HealthStatus::Unhealthy { .. }));
+        assert!(matches!(
+            status,
+            HealthStatus::Healthy | HealthStatus::Degraded { .. } | HealthStatus::Unhealthy { .. }
+        ));
     }
 
     #[test]

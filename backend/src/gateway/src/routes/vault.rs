@@ -1,11 +1,6 @@
 //! REST handlers for vault passphrase management — all endpoints require JWT auth.
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use ops_pilot_core::auth::AuthService;
 use ops_pilot_core::vault::VaultKeyManager;
 use serde::{Deserialize, Serialize};
@@ -95,7 +90,9 @@ pub async fn unlock(
         Err(e) => {
             let status = match &e {
                 ops_pilot_core::auth::AuthError::VaultNotSetup => StatusCode::NOT_FOUND,
-                ops_pilot_core::auth::AuthError::VaultPassphraseMismatch => StatusCode::UNAUTHORIZED,
+                ops_pilot_core::auth::AuthError::VaultPassphraseMismatch => {
+                    StatusCode::UNAUTHORIZED
+                }
                 ops_pilot_core::auth::AuthError::InvalidCredentials => StatusCode::UNAUTHORIZED,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             };
@@ -110,7 +107,11 @@ pub async fn lock(
     AuthLayer(claims): AuthLayer,
 ) -> impl IntoResponse {
     state.vault_keys.remove(&claims.sub);
-    (StatusCode::OK, Json(serde_json::json!({"status": "locked"}))).into_response()
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({"status": "locked"})),
+    )
+        .into_response()
 }
 
 /// GET /api/vault/status — check vault lock status and passphrase existence.
@@ -149,7 +150,7 @@ pub fn vault_routes(auth: Arc<AuthService>, vault_keys: Arc<VaultKeyManager>) ->
 mod tests {
     use super::*;
     use axum::body::Body;
-    use axum::http::{Request, Method};
+    use axum::http::{Method, Request};
     use axum::routing::{get, post};
     use ops_pilot_core::auth::AuthService;
     use ops_pilot_core::db::Database;
@@ -219,7 +220,12 @@ mod tests {
             "passphrase": "my-vault-pass",
             "passphrase_confirm": "my-vault-pass"
         });
-        let req = auth_request(Method::POST, "/api/vault/set-passphrase", &token, Some(body));
+        let req = auth_request(
+            Method::POST,
+            "/api/vault/set-passphrase",
+            &token,
+            Some(body),
+        );
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
@@ -234,7 +240,12 @@ mod tests {
             "passphrase": "my-vault-pass",
             "passphrase_confirm": "different-pass"
         });
-        let req = auth_request(Method::POST, "/api/vault/set-passphrase", &token, Some(body));
+        let req = auth_request(
+            Method::POST,
+            "/api/vault/set-passphrase",
+            &token,
+            Some(body),
+        );
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
@@ -249,7 +260,12 @@ mod tests {
             "passphrase": "my-vault-pass",
             "passphrase_confirm": "my-vault-pass"
         });
-        let req = auth_request(Method::POST, "/api/vault/set-passphrase", &token, Some(body));
+        let req = auth_request(
+            Method::POST,
+            "/api/vault/set-passphrase",
+            &token,
+            Some(body),
+        );
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
     }
@@ -265,7 +281,12 @@ mod tests {
             "passphrase": "my-vault-pass",
             "passphrase_confirm": "my-vault-pass"
         });
-        let req = auth_request(Method::POST, "/api/vault/set-passphrase", &token, Some(body));
+        let req = auth_request(
+            Method::POST,
+            "/api/vault/set-passphrase",
+            &token,
+            Some(body),
+        );
         app.clone().oneshot(req).await.unwrap();
 
         // Unlock
@@ -308,7 +329,12 @@ mod tests {
             "passphrase": "my-vault-pass",
             "passphrase_confirm": "my-vault-pass"
         });
-        let req = auth_request(Method::POST, "/api/vault/set-passphrase", &token, Some(body));
+        let req = auth_request(
+            Method::POST,
+            "/api/vault/set-passphrase",
+            &token,
+            Some(body),
+        );
         app.clone().oneshot(req).await.unwrap();
 
         let body = serde_json::json!({
@@ -354,7 +380,12 @@ mod tests {
             "passphrase": "my-vault-pass",
             "passphrase_confirm": "my-vault-pass"
         });
-        let req = auth_request(Method::POST, "/api/vault/set-passphrase", &token, Some(body));
+        let req = auth_request(
+            Method::POST,
+            "/api/vault/set-passphrase",
+            &token,
+            Some(body),
+        );
         app.clone().oneshot(req).await.unwrap();
 
         let req = auth_request(Method::GET, "/api/vault/status", &token, None);

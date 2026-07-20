@@ -33,7 +33,12 @@ pub struct RcaAnalyzer {
     history: Vec<RcaHistoryEntry>,
 }
 
-#[allow(clippy::new_without_default)]
+impl Default for RcaAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RcaAnalyzer {
     /// Create a new analyzer with the built-in rule set.
     pub fn new() -> Self {
@@ -64,9 +69,7 @@ impl RcaAnalyzer {
                 let matched_symptoms: Vec<String> = rule
                     .conditions
                     .iter()
-                    .filter_map(|c| {
-                        symptoms.get(&c.metric).map(|_| c.metric.clone())
-                    })
+                    .filter_map(|c| symptoms.get(&c.metric).map(|_| c.metric.clone()))
                     .collect();
 
                 results.push(RcaResult {

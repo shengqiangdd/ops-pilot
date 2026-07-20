@@ -1,9 +1,9 @@
 [package]
-name = "ops-pilot-mod-core"
+name = "ops-pilot-mod-config"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Core module: SSH, Docker, host management, monitoring"
+description = "Centralized configuration management — CRUD, hot-reload, and validation"
 
 [dependencies]
 ops-pilot-sdk = { path = "../../sdk" }
@@ -12,11 +12,8 @@ tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
-uuid.workspace = true
 anyhow.workspace = true
-thiserror.workspace = true
 async-trait.workspace = true
-chrono.workspace = true
 sqlx.workspace = true
 
 [lints]

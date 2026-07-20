@@ -114,9 +114,18 @@ impl SecurityEngine {
                 .then(severity_rank(&a.severity).cmp(&severity_rank(&b.severity)))
         });
 
-        let passed = results.iter().filter(|r| r.status == CheckStatus::Pass).count();
-        let failed = results.iter().filter(|r| r.status == CheckStatus::Fail).count();
-        let warnings = results.iter().filter(|r| r.status == CheckStatus::Warn).count();
+        let passed = results
+            .iter()
+            .filter(|r| r.status == CheckStatus::Pass)
+            .count();
+        let failed = results
+            .iter()
+            .filter(|r| r.status == CheckStatus::Fail)
+            .count();
+        let warnings = results
+            .iter()
+            .filter(|r| r.status == CheckStatus::Warn)
+            .count();
 
         ScanOutput {
             host_id: host_id.to_string(),

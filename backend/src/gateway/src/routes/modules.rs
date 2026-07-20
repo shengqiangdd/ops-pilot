@@ -228,7 +228,10 @@ async fn health_all(State(state): State<ModuleState>) -> impl IntoResponse {
 }
 
 /// Build the module routes sub-router.
-pub fn module_routes(manager: Arc<RwLock<ModuleManager>>, ctx: Arc<ops_pilot_sdk::context::ModuleContext>) -> Router {
+pub fn module_routes(
+    manager: Arc<RwLock<ModuleManager>>,
+    ctx: Arc<ops_pilot_sdk::context::ModuleContext>,
+) -> Router {
     let state = ModuleState { manager, ctx };
 
     Router::new()
@@ -291,7 +294,12 @@ mod tests {
         fn tools(&self) -> Vec<ToolDefinition> {
             vec![]
         }
-        async fn execute(&self, _ctx: &ModuleContext, _tool: &str, _p: Value) -> anyhow::Result<Value> {
+        async fn execute(
+            &self,
+            _ctx: &ModuleContext,
+            _tool: &str,
+            _p: Value,
+        ) -> anyhow::Result<Value> {
             Ok(Value::Null)
         }
         async fn on_event(&self, _ctx: &ModuleContext, _e: &OpsEvent) -> Option<ModuleAction> {

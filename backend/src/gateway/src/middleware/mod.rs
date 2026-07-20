@@ -77,14 +77,10 @@ where
         parts: &mut axum::http::request::Parts,
         _state: &S,
     ) -> Result<Self, Self::Rejection> {
-        let claims = parts
-            .extensions
-            .get::<UserIdClaims>()
-            .cloned()
-            .ok_or((
-                StatusCode::UNAUTHORIZED,
-                "missing authentication claims".to_string(),
-            ))?;
+        let claims = parts.extensions.get::<UserIdClaims>().cloned().ok_or((
+            StatusCode::UNAUTHORIZED,
+            "missing authentication claims".to_string(),
+        ))?;
         Ok(AuthLayer(claims))
     }
 }
@@ -93,14 +89,12 @@ where
 mod tests {
     use super::*;
     use axum::body::Body;
-    use axum::Router;
     use axum::routing::get;
+    use axum::Router;
     use tower::ServiceExt;
 
     async fn setup_svc() -> Arc<AuthService> {
-        let pool = sqlx::SqlitePool::connect("sqlite::memory:")
-            .await
-            .unwrap();
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY NOT NULL,

@@ -12,9 +12,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::RwLock;
 
-use ops_pilot_sdk::llm::LlmClient;
 use ops_pilot_sdk::context::ModuleContext;
 use ops_pilot_sdk::events::OpsEvent;
+use ops_pilot_sdk::llm::LlmClient;
 use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinition};
 
 use engine::SecurityEngine;
@@ -23,8 +23,9 @@ use llm_scanner::LlmScanner;
 /// The Security and Compliance module.
 pub struct ModSecurity {
     engine: Arc<RwLock<SecurityEngine>>,
+    /// TODO: Used by LLM-powered security analysis (not yet wired into execute).
     #[allow(dead_code)]
-    llm_scanner: Option<LlmScanner>,
+    pub(crate) llm_scanner: Option<LlmScanner>,
 }
 
 impl Default for ModSecurity {
@@ -213,12 +214,7 @@ impl OpsModule for ModSecurity {
                         r.status != engine::CheckStatus::Pass
                             && r.severity == rules::Severity::Critical
                     })
-                    .map(|r| {
-                        format!(
-                            "[{}] {} — {}",
-                            r.check_id, r.rule_name, r.remediation_steps
-                        )
-                    })
+                    .map(|r| format!("[{}] {} — {}", r.check_id, r.rule_name, r.remediation_steps))
                     .collect();
 
                 let recommendations: Vec<String> = scan_output
@@ -259,8 +255,8 @@ impl OpsModule for ModSecurity {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ops_pilot_sdk::llm::{LlmError, Message};
     use ops_pilot_sdk::context::EventBus;
+    use ops_pilot_sdk::llm::{LlmError, Message};
     use sqlx::SqlitePool;
     use std::path::PathBuf;
     use std::pin::Pin;
@@ -289,8 +285,10 @@ mod tests {
         async fn complete_stream(
             &self,
             _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
+        ) -> Result<
+            Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>,
+            LlmError,
+        > {
             use futures_util::stream;
             let chunks: Vec<Result<String, LlmError>> = self
                 .response
@@ -298,27 +296,6 @@ mod tests {
                 .map(|w| Ok(format!("{w} ")))
                 .collect();
             Ok(Box::pin(stream::iter(chunks)))
-        }
-    }
-
-    #[allow(dead_code)]
-    struct FailingLlmClient;
-
-    #[async_trait]
-    impl LlmClient for FailingLlmClient {
-        async fn complete(&self, _messages: &[Message]) -> Result<String, LlmError> {
-            Err(LlmError::Api {
-                status: 503,
-                message: "unavailable".into(),
-            })
-        }
-
-        async fn complete_stream(
-            &self,
-            _messages: &[Message],
-        ) -> Result<Pin<Box<dyn futures_util::Stream<Item = Result<String, LlmError>> + Send>>, LlmError>
-        {
-            Err(LlmError::StreamClosed)
         }
     }
 
@@ -440,7 +417,10 @@ mod tests {
 
         assert_eq!(result["status"], "remediated");
         assert_eq!(result["check_id"], "CIS-1.1");
-        assert!(result["details"].as_str().unwrap().contains("Separate partition"));
+        assert!(result["details"]
+            .as_str()
+            .unwrap()
+            .contains("Separate partition"));
     }
 
     #[tokio::test]
@@ -461,7 +441,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(result["status"], "error");
-        assert!(result["details"].as_str().unwrap().contains("Unknown check ID"));
+        assert!(result["details"]
+            .as_str()
+            .unwrap()
+            .contains("Unknown check ID"));
     }
 
     #[tokio::test]
@@ -510,7 +493,9 @@ mod tests {
     async fn test_module_unknown_tool() {
         let module = ModSecurity::new();
         let ctx = make_ctx().await;
-        let result = module.execute(&ctx, "nonexistent", serde_json::json!({})).await;
+        let result = module
+            .execute(&ctx, "nonexistent", serde_json::json!({}))
+            .await;
         assert!(result.is_err());
     }
 
@@ -573,7 +558,8 @@ mod tests {
     #[tokio::test]
     async fn test_with_llm_success() {
         let client = Arc::new(MockLlmClient {
-            response: "Critical: SSH root login enabled. Remediate by setting PermitRootLogin no.".into(),
+            response: "Critical: SSH root login enabled. Remediate by setting PermitRootLogin no."
+                .into(),
         });
         let module = ModSecurity::with_llm(client);
         let ctx = make_ctx().await;

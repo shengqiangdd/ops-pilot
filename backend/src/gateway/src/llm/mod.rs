@@ -3,5 +3,7 @@
 pub mod chat;
 pub mod provider;
 
-pub use chat::{ChatService, CompletionResponse, FunctionCall, LlmClient, LlmError, Message, Role, ToolCall};
+pub use chat::{
+    ChatService, CompletionResponse, FunctionCall, LlmClient, LlmError, Message, Role, ToolCall,
+};
 pub use provider::{ProviderConfig, ProviderLlm};

@@ -1,3 +1,31 @@
+//! # OpsPilot Gateway
+//!
+//! 应用入口 —— 初始化所有服务并启动 HTTP 服务器。
+//!
+//! ## 启动流程
+//!
+//! 1. 初始化 tracing 日志系统（从 `RUST_LOG` 环境变量读取过滤级别）
+//! 2. 连接 SQLite 数据库并运行迁移
+//! 3. 创建 AuthService、HostService、SshConnectionPool 等核心服务
+//! 4. 初始化 LLM 客户端（从环境变量配置，或使用 PlaceholderLlm）
+//! 5. 注册模块（mod-core、mod-rca、mod-security）到 ModuleLoader
+//! 6. 创建 AgentOrchestrator 并从数据库恢复会话
+//! 7. 组装 Axum 路由（认证、主机、Vault、模块、Agent、终端、静态文件）
+//! 8. 绑定 TCP 监听器并启动服务
+//!
+//! ## 环境变量
+//!
+//! | 变量 | 说明 | 默认值 |
+//! |------|------|--------|
+//! | `DATABASE_URL` | SQLite 数据库路径 | `sqlite:ops-pilot.db` |
+//! | `JWT_SECRET` | JWT 签名密钥 | `change-me-to-a-random-string` |
+//! | `LISTEN_ADDR` | 监听地址 | `0.0.0.0:3001` |
+//! | `STATIC_DIR` | 前端静态文件目录 | `static` |
+//! | `LLM_PROVIDER` | LLM 提供商 | （可选） |
+//! | `LLM_BASE_URL` | LLM API 地址 | （可选） |
+//! | `LLM_API_KEY` | LLM API 密钥 | （可选） |
+//! | `RUST_LOG` | 日志过滤 | `ops_pilot=info,tower_http=info` |
+
 use std::sync::Arc;
 
 use axum::{
@@ -144,9 +172,8 @@ impl ops_pilot_gateway::llm::LlmClient for PlaceholderLlm {
     ) -> Result<
         std::pin::Pin<
             Box<
-                dyn futures_util::Stream<
-                        Item = Result<String, ops_pilot_gateway::llm::LlmError>,
-                    > + Send,
+                dyn futures_util::Stream<Item = Result<String, ops_pilot_gateway::llm::LlmError>>
+                    + Send,
             >,
         >,
         ops_pilot_gateway::llm::LlmError,
@@ -191,7 +218,10 @@ async fn main() {
 
     let auth_service = Arc::new(AuthService::new(pool.clone(), jwt_secret));
     let vault_keys = Arc::new(ops_pilot_core::vault::VaultKeyManager::new());
-    let host_service = Arc::new(ops_pilot_core::host::HostService::new(pool.clone(), vault_keys.clone()));
+    let host_service = Arc::new(ops_pilot_core::host::HostService::new(
+        pool.clone(),
+        vault_keys.clone(),
+    ));
     let ssh_pool = Arc::new(SshConnectionPool::new());
 
     let module_loader = ops_pilot_sdk::loader::ModuleLoader::new();
@@ -199,7 +229,10 @@ async fn main() {
     let tool_registry = Arc::new(ToolRegistry::new(module_manager.clone()));
 
     let event_bus = EventBus::new(256);
-    let audit = Arc::new(ops_pilot_core::audit::AuditTrail::new(&db, event_bus.clone()));
+    let audit = Arc::new(ops_pilot_core::audit::AuditTrail::new(
+        &db,
+        event_bus.clone(),
+    ));
     let ctx = Arc::new(ModuleContext::new(
         Arc::new(pool.clone()),
         event_bus,
@@ -229,11 +262,23 @@ async fn main() {
         let mut mgr = module_manager.write().await;
         let loader = mgr.loader_mut();
 
-        loader.load_module(ctx.as_ref().clone(), Box::new(ModCore::new())).await
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(ModCore::new()))
+            .await
             .expect("failed to register mod-core");
-        loader.load_module(ctx.as_ref().clone(), Box::new(ModRca::with_llm(llm_client.clone()))).await
+        loader
+            .load_module(
+                ctx.as_ref().clone(),
+                Box::new(ModRca::with_llm(llm_client.clone())),
+            )
+            .await
             .expect("failed to register mod-rca");
-        loader.load_module(ctx.as_ref().clone(), Box::new(ModSecurity::with_llm(llm_client.clone()))).await
+        loader
+            .load_module(
+                ctx.as_ref().clone(),
+                Box::new(ModSecurity::with_llm(llm_client.clone())),
+            )
+            .await
             .expect("failed to register mod-security");
 
         tracing::info!("registered mod-core, mod-rca, mod-security");
@@ -248,10 +293,9 @@ async fn main() {
     let _ = orchestrator.load_sessions().await;
 
     // Serve frontend static files from /app/static (or relative ./static)
-    let static_dir = std::env::var("STATIC_DIR")
-        .unwrap_or_else(|_| "static".into());
-    let static_service = tower_http::services::ServeDir::new(&static_dir)
-        .append_index_html_on_directories(true);
+    let static_dir = std::env::var("STATIC_DIR").unwrap_or_else(|_| "static".into());
+    let static_service =
+        tower_http::services::ServeDir::new(&static_dir).append_index_html_on_directories(true);
 
     // Rate limiter for login endpoint: 5 requests/minute/IP
     let login_limiter = ops_pilot_gateway::middleware::rate_limit::login_limiter();
@@ -260,12 +304,10 @@ async fn main() {
     let auth_middleware_state = ops_pilot_gateway::middleware::AuthState {
         service: auth_service.clone(),
     };
-    let protected_hosts = host_routes(host_service).layer(
-        axum::middleware::from_fn_with_state(
-            auth_middleware_state.clone(),
-            ops_pilot_gateway::middleware::auth_middleware,
-        ),
-    );
+    let protected_hosts = host_routes(host_service).layer(axum::middleware::from_fn_with_state(
+        auth_middleware_state.clone(),
+        ops_pilot_gateway::middleware::auth_middleware,
+    ));
 
     // Vault routes require JWT authentication
     let protected_vault = vault_routes(auth_service.clone(), vault_keys.clone()).layer(

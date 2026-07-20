@@ -78,8 +78,8 @@ impl MasterKey {
 ///
 /// Returns `(ciphertext, nonce_iv)` where both are owned byte vecs.
 pub fn encrypt(plaintext: &[u8], key: &MasterKey) -> Result<(Vec<u8>, Vec<u8>), CryptoError> {
-    let cipher =
-        Aes256Gcm::new_from_slice(key.as_bytes()).map_err(|e| CryptoError::Cipher(e.to_string()))?;
+    let cipher = Aes256Gcm::new_from_slice(key.as_bytes())
+        .map_err(|e| CryptoError::Cipher(e.to_string()))?;
 
     let mut nonce_bytes = [0u8; 12];
     use aes_gcm::aead::rand_core::RngCore;
@@ -94,13 +94,9 @@ pub fn encrypt(plaintext: &[u8], key: &MasterKey) -> Result<(Vec<u8>, Vec<u8>), 
 }
 
 /// Decrypt `ciphertext` using AES-256-GCM.
-pub fn decrypt(
-    ciphertext: &[u8],
-    key: &MasterKey,
-    iv: &[u8],
-) -> Result<Vec<u8>, CryptoError> {
-    let cipher =
-        Aes256Gcm::new_from_slice(key.as_bytes()).map_err(|e| CryptoError::Cipher(e.to_string()))?;
+pub fn decrypt(ciphertext: &[u8], key: &MasterKey, iv: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    let cipher = Aes256Gcm::new_from_slice(key.as_bytes())
+        .map_err(|e| CryptoError::Cipher(e.to_string()))?;
 
     let nonce = Nonce::from_slice(iv);
 

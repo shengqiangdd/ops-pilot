@@ -7,6 +7,7 @@
 use std::collections::{HashSet, VecDeque};
 
 use dashmap::DashMap;
+use ops_pilot_sdk::events::{global_event_bus, OpsEvent};
 use serde::{Deserialize, Serialize};
 
 use crate::audit::AuditEntry;
@@ -59,10 +60,8 @@ impl AlertRule {
 }
 
 /// Sliding window entry for a user.
-#[allow(dead_code)]
 struct WindowEntry {
     timestamp: i64,
-    action: String,
     outcome: String,
     resource: String,
 }
@@ -116,7 +115,6 @@ impl AlertEngine {
             .or_default()
             .push_back(WindowEntry {
                 timestamp: ts,
-                action: entry.action.clone(),
                 outcome: entry.outcome.clone(),
                 resource: entry.resource.clone(),
             });
@@ -125,6 +123,14 @@ impl AlertEngine {
             if let Some(alert) = self.evaluate_rule(rule, entry, ts) {
                 alerts.push(alert);
             }
+        }
+
+        // Publish events for triggered alerts via the global event bus
+        for alert in &alerts {
+            let _ = global_event_bus().publish(OpsEvent::AlertTriggered {
+                severity: format!("{:?}", alert.severity).to_lowercase(),
+                message: alert.message.clone(),
+            });
         }
 
         alerts
@@ -187,9 +193,7 @@ impl AlertEngine {
                         user: user_id.into(),
                         message: format!(
                             "High failure rate: {} failed operations in {} minutes (threshold: {})",
-                            failures,
-                            window_minutes,
-                            threshold,
+                            failures, window_minutes, threshold,
                         ),
                         severity: AlertSeverity::Critical,
                         created_at: now,
@@ -214,10 +218,7 @@ impl AlertEngine {
                     Some(AlertEvent {
                         rule_name: rule.name().into(),
                         user: user_id.into(),
-                        message: format!(
-                            "First connection to {}",
-                            entry.resource,
-                        ),
+                        message: format!("First connection to {}", entry.resource,),
                         severity: AlertSeverity::Info,
                         created_at: now,
                     })
@@ -228,8 +229,7 @@ impl AlertEngine {
 
     /// Prune old entries from sliding windows (call periodically).
     pub fn prune_windows(&self, max_age_minutes: i64) {
-        let cutoff =
-            chrono::Utc::now().timestamp() - max_age_minutes * 60;
+        let cutoff = chrono::Utc::now().timestamp() - max_age_minutes * 60;
         for mut entry in self.windows.iter_mut() {
             entry.retain(|e| e.timestamp > cutoff);
         }
@@ -303,12 +303,7 @@ mod tests {
         }]);
 
         for i in 0..3 {
-            let e = make_entry(
-                "user1",
-                &format!("action_{i}"),
-                "host:server-1",
-                "failure",
-            );
+            let e = make_entry("user1", &format!("action_{i}"), "host:server-1", "failure");
             let alerts = engine.handle_event(&e);
             if i < 2 {
                 assert!(alerts.is_empty(), "Should not trigger at attempt {}", i + 1);

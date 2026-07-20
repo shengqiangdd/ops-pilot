@@ -43,6 +43,25 @@ pub enum AuthError {
     PassphraseTooShort,
 }
 
+impl From<AuthError> for ops_pilot_sdk::OpsError {
+    fn from(e: AuthError) -> Self {
+        match &e {
+            AuthError::UserExists => ops_pilot_sdk::OpsError::InvalidInput(e.to_string()),
+            AuthError::InvalidCredentials => ops_pilot_sdk::OpsError::AuthFailed(e.to_string()),
+            AuthError::InvalidToken => ops_pilot_sdk::OpsError::AuthFailed(e.to_string()),
+            AuthError::PasswordTooShort => ops_pilot_sdk::OpsError::InvalidInput(e.to_string()),
+            AuthError::Database(_) => ops_pilot_sdk::OpsError::Internal(e.to_string()),
+            AuthError::PasswordHash(_) => ops_pilot_sdk::OpsError::Internal(e.to_string()),
+            AuthError::Jwt(_) => ops_pilot_sdk::OpsError::AuthFailed(e.to_string()),
+            AuthError::VaultNotSetup => ops_pilot_sdk::OpsError::NotFound(e.to_string()),
+            AuthError::VaultPassphraseMismatch => {
+                ops_pilot_sdk::OpsError::AuthFailed(e.to_string())
+            }
+            AuthError::PassphraseTooShort => ops_pilot_sdk::OpsError::InvalidInput(e.to_string()),
+        }
+    }
+}
+
 /// A registered user.
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct User {
@@ -144,8 +163,8 @@ impl AuthService {
             .await?
             .ok_or(AuthError::InvalidCredentials)?;
 
-        let parsed_hash =
-            PasswordHash::new(&user.password_hash).map_err(|e| AuthError::PasswordHash(e.to_string()))?;
+        let parsed_hash = PasswordHash::new(&user.password_hash)
+            .map_err(|e| AuthError::PasswordHash(e.to_string()))?;
 
         Argon2::default()
             .verify_password(password.as_bytes(), &parsed_hash)
@@ -212,8 +231,8 @@ impl AuthService {
             .await?
             .ok_or(AuthError::InvalidCredentials)?;
 
-        let parsed_hash =
-            PasswordHash::new(&user.password_hash).map_err(|e| AuthError::PasswordHash(e.to_string()))?;
+        let parsed_hash = PasswordHash::new(&user.password_hash)
+            .map_err(|e| AuthError::PasswordHash(e.to_string()))?;
         Argon2::default()
             .verify_password(login_password.as_bytes(), &parsed_hash)
             .map_err(|_| AuthError::InvalidCredentials)?;
@@ -241,7 +260,8 @@ impl AuthService {
             .map_err(|e| AuthError::PasswordHash(format!("encryption error: {e}")))?;
 
         // Encode as base64 for storage
-        let ct_b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &ciphertext);
+        let ct_b64 =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &ciphertext);
         let iv_b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &iv);
         let vault_key_encrypted = format!("{salt1}:{salt3}:{ct_b64}:{iv_b64}");
 
@@ -279,14 +299,16 @@ impl AuthService {
             .ok_or(AuthError::InvalidCredentials)?;
 
         // Verify login password first
-        let parsed_login_hash =
-            PasswordHash::new(&user.password_hash).map_err(|e| AuthError::PasswordHash(e.to_string()))?;
+        let parsed_login_hash = PasswordHash::new(&user.password_hash)
+            .map_err(|e| AuthError::PasswordHash(e.to_string()))?;
         Argon2::default()
             .verify_password(login_password.as_bytes(), &parsed_login_hash)
             .map_err(|_| AuthError::InvalidCredentials)?;
 
         // Verify vault is set up
-        let vault_password_hash = user.vault_password_hash.as_ref()
+        let vault_password_hash = user
+            .vault_password_hash
+            .as_ref()
             .ok_or(AuthError::VaultNotSetup)?;
 
         // Verify passphrase
@@ -297,7 +319,9 @@ impl AuthService {
             .map_err(|_| AuthError::VaultPassphraseMismatch)?;
 
         // Parse vault_key_encrypted
-        let vault_key_encrypted = user.vault_key_encrypted.as_ref()
+        let vault_key_encrypted = user
+            .vault_key_encrypted
+            .as_ref()
             .ok_or(AuthError::VaultNotSetup)?;
 
         let parts: Vec<&str> = vault_key_encrypted.splitn(4, ':').collect();
@@ -337,15 +361,19 @@ impl AuthService {
 
     /// Check if a user has vault set up (has vault_password_hash).
     pub async fn has_vault(&self, user_id: &str) -> Result<bool, AuthError> {
-        let row: Option<(Option<String>,)> = sqlx::query_as(
-            "SELECT vault_password_hash FROM users WHERE id = ?",
-        )
-        .bind(user_id)
-        .fetch_optional(&self.pool)
-        .await?;
+        #[derive(sqlx::FromRow)]
+        struct VaultHashRow {
+            vault_password_hash: Option<String>,
+        }
+
+        let row: Option<VaultHashRow> =
+            sqlx::query_as("SELECT vault_password_hash FROM users WHERE id = ?")
+                .bind(user_id)
+                .fetch_optional(&self.pool)
+                .await?;
         match row {
-            Some((Some(_),)) => Ok(true),
-            _ => Ok(false),
+            Some(r) => Ok(r.vault_password_hash.is_some()),
+            None => Ok(false),
         }
     }
 }
@@ -378,7 +406,10 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "test-secret-key".into());
 
-        let user = svc.register("alice", "alice@example.com", "password123").await.unwrap();
+        let user = svc
+            .register("alice", "alice@example.com", "password123")
+            .await
+            .unwrap();
         assert_eq!(user.username, "alice");
         assert_eq!(user.email, "alice@example.com");
 
@@ -394,8 +425,13 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        svc.register("bob", "bob@example.com", "password123").await.unwrap();
-        let err = svc.register("bob", "bob2@example.com", "password123").await.unwrap_err();
+        svc.register("bob", "bob@example.com", "password123")
+            .await
+            .unwrap();
+        let err = svc
+            .register("bob", "bob2@example.com", "password123")
+            .await
+            .unwrap_err();
         assert!(matches!(err, AuthError::UserExists));
     }
 
@@ -404,7 +440,10 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let err = svc.register("charlie", "c@example.com", "short").await.unwrap_err();
+        let err = svc
+            .register("charlie", "c@example.com", "short")
+            .await
+            .unwrap_err();
         assert!(matches!(err, AuthError::PasswordTooShort));
     }
 
@@ -413,7 +452,9 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        svc.register("dave", "dave@example.com", "password123").await.unwrap();
+        svc.register("dave", "dave@example.com", "password123")
+            .await
+            .unwrap();
         let err = svc.login("dave", "wrongpassword").await.unwrap_err();
         assert!(matches!(err, AuthError::InvalidCredentials));
     }
@@ -442,7 +483,9 @@ mod tests {
         let svc1 = AuthService::new(pool.clone(), "secret-one".into());
         let svc2 = AuthService::new(pool, "secret-two".into());
 
-        svc1.register("eve", "eve@example.com", "password123").await.unwrap();
+        svc1.register("eve", "eve@example.com", "password123")
+            .await
+            .unwrap();
         let token = svc1.login("eve", "password123").await.unwrap();
 
         let err = svc2.verify_token(&token).unwrap_err();
@@ -469,8 +512,13 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let user = svc.register("vault_user", "v@test.com", "password123").await.unwrap();
-        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass").await.unwrap();
+        let user = svc
+            .register("vault_user", "v@test.com", "password123")
+            .await
+            .unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass")
+            .await
+            .unwrap();
 
         assert!(svc.has_vault(&user.id).await.unwrap());
     }
@@ -480,10 +528,18 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let user = svc.register("unlock_user", "u@test.com", "password123").await.unwrap();
-        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass").await.unwrap();
+        let user = svc
+            .register("unlock_user", "u@test.com", "password123")
+            .await
+            .unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass")
+            .await
+            .unwrap();
 
-        let key = svc.unlock_vault(&user.id, "password123", "my-vault-pass").await.unwrap();
+        let key = svc
+            .unlock_vault(&user.id, "password123", "my-vault-pass")
+            .await
+            .unwrap();
         assert_eq!(key.len(), 32);
     }
 
@@ -492,10 +548,17 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let user = svc.register("wrong_pass", "w@test.com", "password123").await.unwrap();
-        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass").await.unwrap();
+        let user = svc
+            .register("wrong_pass", "w@test.com", "password123")
+            .await
+            .unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass")
+            .await
+            .unwrap();
 
-        let result = svc.unlock_vault(&user.id, "password123", "wrong-passphrase").await;
+        let result = svc
+            .unlock_vault(&user.id, "password123", "wrong-passphrase")
+            .await;
         assert!(matches!(result, Err(AuthError::VaultPassphraseMismatch)));
     }
 
@@ -504,7 +567,10 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let user = svc.register("no_vault", "n@test.com", "password123").await.unwrap();
+        let user = svc
+            .register("no_vault", "n@test.com", "password123")
+            .await
+            .unwrap();
         let result = svc.unlock_vault(&user.id, "password123", "anything").await;
         assert!(matches!(result, Err(AuthError::VaultNotSetup)));
     }
@@ -514,10 +580,17 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let user = svc.register("wrong_login", "wl@test.com", "password123").await.unwrap();
-        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass").await.unwrap();
+        let user = svc
+            .register("wrong_login", "wl@test.com", "password123")
+            .await
+            .unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "my-vault-pass")
+            .await
+            .unwrap();
 
-        let result = svc.unlock_vault(&user.id, "wrongpassword", "my-vault-pass").await;
+        let result = svc
+            .unlock_vault(&user.id, "wrongpassword", "my-vault-pass")
+            .await;
         assert!(matches!(result, Err(AuthError::InvalidCredentials)));
     }
 
@@ -526,20 +599,33 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let user = svc.register("update_vault", "uv@test.com", "password123").await.unwrap();
-        svc.set_vault_passphrase(&user.id, "password123", "old-pass").await.unwrap();
+        let user = svc
+            .register("update_vault", "uv@test.com", "password123")
+            .await
+            .unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "old-pass")
+            .await
+            .unwrap();
 
-        let old_key = svc.unlock_vault(&user.id, "password123", "old-pass").await.unwrap();
+        let old_key = svc
+            .unlock_vault(&user.id, "password123", "old-pass")
+            .await
+            .unwrap();
 
         // Update passphrase
-        svc.set_vault_passphrase(&user.id, "password123", "new-pass").await.unwrap();
+        svc.set_vault_passphrase(&user.id, "password123", "new-pass")
+            .await
+            .unwrap();
 
         // Old passphrase should fail
         let result = svc.unlock_vault(&user.id, "password123", "old-pass").await;
         assert!(matches!(result, Err(AuthError::VaultPassphraseMismatch)));
 
         // New passphrase should work
-        let new_key = svc.unlock_vault(&user.id, "password123", "new-pass").await.unwrap();
+        let new_key = svc
+            .unlock_vault(&user.id, "password123", "new-pass")
+            .await
+            .unwrap();
         assert_eq!(new_key.len(), 32);
         // Keys should be different since salts are random
         assert_ne!(old_key, new_key);
@@ -550,8 +636,13 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let user = svc.register("short_pass", "sp@test.com", "password123").await.unwrap();
-        let result = svc.set_vault_passphrase(&user.id, "password123", "short").await;
+        let user = svc
+            .register("short_pass", "sp@test.com", "password123")
+            .await
+            .unwrap();
+        let result = svc
+            .set_vault_passphrase(&user.id, "password123", "short")
+            .await;
         assert!(matches!(result, Err(AuthError::PassphraseTooShort)));
     }
 
@@ -560,7 +651,10 @@ mod tests {
         let pool = setup_db().await;
         let svc = AuthService::new(pool, "secret".into());
 
-        let user = svc.register("no_vault2", "nv2@test.com", "password123").await.unwrap();
+        let user = svc
+            .register("no_vault2", "nv2@test.com", "password123")
+            .await
+            .unwrap();
         assert!(!svc.has_vault(&user.id).await.unwrap());
     }
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ModuleBrowser } from './components/ModuleBrowser';
 import { HealthDashboard } from './components/HealthDashboard';
@@ -118,8 +118,6 @@ function AppShell() {
     </div>
   );
 }
-
-import React from 'react';
 
 export function App() {
   const { token } = useAuthStore();

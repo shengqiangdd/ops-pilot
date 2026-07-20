@@ -69,10 +69,7 @@ impl WebSocketHandler {
         pool: Arc<SshConnectionPool>,
         host_id: String,
     ) -> Result<(), TerminalError> {
-        let conn = pool
-            .get(&host_id)
-            .await
-            .map_err(TerminalError::Ssh)?;
+        let conn = pool.get(&host_id).await.map_err(TerminalError::Ssh)?;
 
         // Open an interactive shell channel.
         let handle = conn.handle.read().await;
@@ -107,11 +104,7 @@ impl WebSocketHandler {
         // ssh→ws: forward channel output to the WebSocket.
         let ssh_to_ws = tokio::spawn(async move {
             while let Some(msg) = rx.recv().await {
-                if ws_sender
-                    .send(Message::Binary(msg.into()))
-                    .await
-                    .is_err()
-                {
+                if ws_sender.send(Message::Binary(msg.into())).await.is_err() {
                     break;
                 }
             }
@@ -130,26 +123,20 @@ impl WebSocketHandler {
             };
 
             match ws_msg {
-                Message::Text(text) => {
-                    match parse_message(&text) {
-                        TerminalMessage::Data(data) => {
-                            if channel.data(&data[..]).await.is_err() {
-                                warn!("failed to write data to SSH channel");
-                                break;
-                            }
-                        }
-                        TerminalMessage::Resize { cols, rows } => {
-                            debug!(cols, rows, "terminal resize");
-                            if channel
-                                .window_change(cols, rows, 0, 0)
-                                .await
-                                .is_err()
-                            {
-                                warn!("failed to resize SSH terminal");
-                            }
+                Message::Text(text) => match parse_message(&text) {
+                    TerminalMessage::Data(data) => {
+                        if channel.data(&data[..]).await.is_err() {
+                            warn!("failed to write data to SSH channel");
+                            break;
                         }
                     }
-                }
+                    TerminalMessage::Resize { cols, rows } => {
+                        debug!(cols, rows, "terminal resize");
+                        if channel.window_change(cols, rows, 0, 0).await.is_err() {
+                            warn!("failed to resize SSH terminal");
+                        }
+                    }
+                },
                 Message::Binary(data) => {
                     if channel.data(&data[..]).await.is_err() {
                         warn!("failed to write binary data to SSH channel");
@@ -235,7 +222,12 @@ pub async fn handle_ws_connection(
             Err(e) => {
                 error!(host_id = %host_id, error = %e, "terminal session error");
                 let _ = audit
-                    .log(&user_id, "ssh.disconnect", &resource, &format!("failure: {e}"))
+                    .log(
+                        &user_id,
+                        "ssh.disconnect",
+                        &resource,
+                        &format!("failure: {e}"),
+                    )
                     .await;
             }
         }
@@ -286,13 +278,7 @@ mod tests {
     fn test_parse_resize_message_minimal() {
         let input = r#"{"type":"resize","cols":80,"rows":24}"#;
         let msg = parse_message(input);
-        assert_eq!(
-            msg,
-            TerminalMessage::Resize {
-                cols: 80,
-                rows: 24
-            }
-        );
+        assert_eq!(msg, TerminalMessage::Resize { cols: 80, rows: 24 });
     }
 
     #[test]
@@ -316,10 +302,7 @@ mod tests {
     fn test_parse_data_message_invalid_json() {
         let input = "not json at all";
         let msg = parse_message(input);
-        assert_eq!(
-            msg,
-            TerminalMessage::Data(b"not json at all".to_vec())
-        );
+        assert_eq!(msg, TerminalMessage::Data(b"not json at all".to_vec()));
     }
 
     #[test]
@@ -345,10 +328,7 @@ mod tests {
         assert_eq!(msg.msg_type, "data");
         // parse_message should fall through to Data
         let parsed = parse_message(json);
-        assert_eq!(
-            parsed,
-            TerminalMessage::Data(json.as_bytes().to_vec())
-        );
+        assert_eq!(parsed, TerminalMessage::Data(json.as_bytes().to_vec()));
     }
 
     #[test]
@@ -371,7 +351,9 @@ mod tests {
     #[tokio::test]
     async fn test_terminal_state_clone() {
         let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
-        let db = ops_pilot_core::db::Database::open_in_memory().await.unwrap();
+        let db = ops_pilot_core::db::Database::open_in_memory()
+            .await
+            .unwrap();
         let bus = ops_pilot_sdk::context::EventBus::new(16);
         let state = TerminalState {
             pool: Arc::new(SshConnectionPool::new()),
@@ -406,8 +388,7 @@ mod tests {
 
     #[test]
     fn test_terminal_query_deserialize() {
-        let query: TerminalQuery =
-            serde_json::from_str(r#"{"token":"abc123"}"#).unwrap();
+        let query: TerminalQuery = serde_json::from_str(r#"{"token":"abc123"}"#).unwrap();
         assert_eq!(query.token.as_deref(), Some("abc123"));
     }
 

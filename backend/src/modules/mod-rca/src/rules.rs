@@ -71,11 +71,15 @@ impl RcaRule {
             return 0.0;
         }
 
-        let matched = self.conditions.iter().filter(|cond| {
-            symptoms
-                .get(&cond.metric)
-                .is_some_and(|&v| cond.comparison.evaluate(v, cond.threshold))
-        }).count();
+        let matched = self
+            .conditions
+            .iter()
+            .filter(|cond| {
+                symptoms
+                    .get(&cond.metric)
+                    .is_some_and(|&v| cond.comparison.evaluate(v, cond.threshold))
+            })
+            .count();
 
         matched as f64 / self.conditions.len() as f64
     }

@@ -4,9 +4,11 @@ members = [
     "src/gateway",
     "src/sdk",
     "src/modules/mod-core",
+    "src/modules/mod-config",
     "src/modules/mod-rca",
     # "src/modules/mod-finops",
     "src/modules/mod-security",
+    "src/modules/mod-webhook",
     # "src/modules/mod-topo",
     # "src/modules/mod-chatops",
 ]

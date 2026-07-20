@@ -47,7 +47,12 @@ pub trait OpsModule: Send + Sync + 'static {
     fn tools(&self) -> Vec<ToolDefinition>;
 
     /// Execute a tool with the given parameters.
-    async fn execute(&self, ctx: &ModuleContext, tool: &str, params: Value) -> anyhow::Result<Value>;
+    async fn execute(
+        &self,
+        ctx: &ModuleContext,
+        tool: &str,
+        params: Value,
+    ) -> anyhow::Result<Value>;
 
     /// Handle an event and optionally return an action.
     async fn on_event(&self, ctx: &ModuleContext, event: &OpsEvent) -> Option<ModuleAction>;

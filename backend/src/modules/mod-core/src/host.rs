@@ -103,10 +103,14 @@ impl OpsModule for HostModule {
         tracing::info!(tool, "host module execute (stub)");
         match tool {
             "host_list" => Ok(serde_json::json!({"hosts": []})),
-            "host_get" => Ok(serde_json::json!({"host_id": params["host_id"], "status": "unknown"})),
+            "host_get" => {
+                Ok(serde_json::json!({"host_id": params["host_id"], "status": "unknown"}))
+            }
             "host_create" => Ok(serde_json::json!({"host_id": "new-uuid", "name": params["name"]})),
             "host_delete" => Ok(serde_json::json!({"deleted": true, "host_id": params["host_id"]})),
-            "host_health_check" => Ok(serde_json::json!({"host_id": params["host_id"], "status": "healthy"})),
+            "host_health_check" => {
+                Ok(serde_json::json!({"host_id": params["host_id"], "status": "healthy"}))
+            }
             _ => anyhow::bail!("unknown tool: {}", tool),
         }
     }
@@ -117,5 +121,71 @@ impl OpsModule for HostModule {
 
     async fn health_check(&self, _ctx: &ModuleContext) -> HealthStatus {
         HealthStatus::Healthy
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ops_pilot_sdk::context::{EventBus, ModuleContext};
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
+    async fn make_ctx() -> ModuleContext {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        ModuleContext::new(
+            Arc::new(pool),
+            EventBus::new(16),
+            PathBuf::from("/tmp/test-host"),
+            "test-host".into(),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_module_metadata() {
+        let m = HostModule::new();
+        assert_eq!(m.name(), "mod-core::host");
+        assert_eq!(m.version(), "0.1.0");
+        assert!(m.description().contains("Host"));
+    }
+
+    #[tokio::test]
+    async fn test_tools_registered() {
+        let m = HostModule::new();
+        let tools = m.tools();
+        assert_eq!(tools.len(), 5);
+        let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+        assert!(names.contains(&"host_list"));
+        assert!(names.contains(&"host_get"));
+        assert!(names.contains(&"host_create"));
+        assert!(names.contains(&"host_delete"));
+        assert!(names.contains(&"host_health_check"));
+    }
+
+    #[tokio::test]
+    async fn test_health_check() {
+        let m = HostModule::new();
+        let ctx = make_ctx().await;
+        let status = m.health_check(&ctx).await;
+        assert!(matches!(status, HealthStatus::Healthy));
+    }
+
+    #[tokio::test]
+    async fn test_unknown_tool() {
+        let m = HostModule::new();
+        let ctx = make_ctx().await;
+        let result = m.execute(&ctx, "nonexistent", serde_json::json!({})).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_host_list_stub() {
+        let m = HostModule::new();
+        let ctx = make_ctx().await;
+        let result = m
+            .execute(&ctx, "host_list", serde_json::json!({}))
+            .await
+            .unwrap();
+        assert!(result["hosts"].as_array().unwrap().is_empty());
     }
 }

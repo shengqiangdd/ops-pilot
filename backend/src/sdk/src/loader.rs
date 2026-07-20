@@ -143,7 +143,12 @@ mod tests {
         fn tools(&self) -> Vec<ToolDefinition> {
             vec![]
         }
-        async fn execute(&self, _ctx: &ModuleContext, _tool: &str, _p: Value) -> anyhow::Result<Value> {
+        async fn execute(
+            &self,
+            _ctx: &ModuleContext,
+            _tool: &str,
+            _p: Value,
+        ) -> anyhow::Result<Value> {
             Ok(Value::Null)
         }
         async fn on_event(&self, _ctx: &ModuleContext, _e: &OpsEvent) -> Option<ModuleAction> {
@@ -309,7 +314,10 @@ mod tests {
         let mut loader = ModuleLoader::new();
         // Load parent first, then child that depends on it.
         loader
-            .load_module(make_ctx("parent").await, Box::new(StubModule::new("parent", vec![])))
+            .load_module(
+                make_ctx("parent").await,
+                Box::new(StubModule::new("parent", vec![])),
+            )
             .await
             .unwrap();
         loader
@@ -326,11 +334,17 @@ mod tests {
     async fn loader_health_check_all() {
         let mut loader = ModuleLoader::new();
         loader
-            .load_module(make_ctx("h1").await, Box::new(StubModule::new("h1", vec![])))
+            .load_module(
+                make_ctx("h1").await,
+                Box::new(StubModule::new("h1", vec![])),
+            )
             .await
             .unwrap();
         loader
-            .load_module(make_ctx("h2").await, Box::new(StubModule::new("h2", vec![])))
+            .load_module(
+                make_ctx("h2").await,
+                Box::new(StubModule::new("h2", vec![])),
+            )
             .await
             .unwrap();
 
