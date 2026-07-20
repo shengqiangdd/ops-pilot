@@ -1,0 +1,24 @@
+[package]
+name = "ops-pilot-mod-baseline"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Security baseline auditing — daily compliance checks against hardened configurations"
+
+[dependencies]
+ops-pilot-sdk = { path = "../../sdk" }
+ops-pilot-core = { path = "../../core" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true

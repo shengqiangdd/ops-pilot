@@ -1,0 +1,24 @@
+[package]
+name = "ops-pilot-mod-alert-escalation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Alert escalation policies — severity-based escalation, time-based reminders, multi-channel dispatch"
+
+[dependencies]
+ops-pilot-sdk = { path = "../../sdk" }
+ops-pilot-core = { path = "../../core" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true

@@ -7,14 +7,33 @@ import { HostsPage } from './pages/Hosts';
 import { VaultPage } from './pages/Vault';
 import { LoginPage } from './pages/Login';
 import { SecurityPage } from './pages/Security';
+import { TopologyPage } from './pages/Topology';
+import { MonitorPage } from './pages/Monitor';
+import { EscalationPage } from './pages/Escalation';
+import { FIMPage } from './pages/FIM';
+import { BaselinePage } from './pages/Baseline';
+import { RunbookPage } from './pages/Runbook';
+import { KnowledgePage } from './pages/Knowledge';
+import { ConfigPage } from './pages/Config';
+import { WebhookPage } from './pages/Webhook';
+import { SchedulerPage } from './pages/Scheduler';
+import { FileSyncPage } from './pages/FileSync';
+import { AdvisorPage } from './pages/Advisor';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
 import { cn } from './lib/cn';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-type Tab = 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health';
+type Tab =
+  | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
+  | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
+  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor';
 
-const ALL_TABS: Tab[] = ['chat', 'modules', 'hosts', 'vault', 'security', 'health'];
+const ALL_TABS: Tab[] = [
+  'chat', 'modules', 'hosts', 'vault', 'security', 'health',
+  'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
+  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
+];
 
 const TAB_LABELS: Record<Tab, string> = {
   chat: '💬 Chat',
@@ -23,6 +42,18 @@ const TAB_LABELS: Record<Tab, string> = {
   vault: '🔑 Vault',
   security: '🛡️ Security',
   health: '❤️ Health',
+  topo: '🗺️ Topology',
+  monitor: '📊 Monitor',
+  escalation: '🔔 Escalation',
+  fim: '🔍 FIM',
+  baseline: '✅ Baseline',
+  runbook: '📋 Runbook',
+  knowledge: '📚 Knowledge',
+  config: '⚙️ Config',
+  webhook: '🔌 Webhook',
+  scheduler: '⏰ Scheduler',
+  filesync: '📁 FileSync',
+  advisor: '💡 Advisor',
 };
 
 function AppShell() {
@@ -61,7 +92,7 @@ function AppShell() {
           <h1 className="text-lg font-bold text-gray-900">OpsPilot</h1>
 
           {/* Desktop Nav */}
-          <nav className="hidden gap-1 md:flex">
+          <nav className="hidden gap-1 md:flex flex-wrap">
             {(ALL_TABS as Tab[]).map((key) => (
               <button
                 key={key}
@@ -113,6 +144,18 @@ function AppShell() {
           {tab === 'vault' && <VaultPage />}
           {tab === 'security' && <SecurityPage />}
           {tab === 'health' && <HealthDashboard />}
+          {tab === 'topo' && <TopologyPage />}
+          {tab === 'monitor' && <MonitorPage />}
+          {tab === 'escalation' && <EscalationPage />}
+          {tab === 'fim' && <FIMPage />}
+          {tab === 'baseline' && <BaselinePage />}
+          {tab === 'runbook' && <RunbookPage />}
+          {tab === 'knowledge' && <KnowledgePage />}
+          {tab === 'config' && <ConfigPage />}
+          {tab === 'webhook' && <WebhookPage />}
+          {tab === 'scheduler' && <SchedulerPage />}
+          {tab === 'filesync' && <FileSyncPage />}
+          {tab === 'advisor' && <AdvisorPage />}
         </ErrorBoundary>
       </main>
     </div>

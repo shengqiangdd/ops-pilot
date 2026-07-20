@@ -66,48 +66,227 @@ export interface Host {
 
 /** 创建主机的请求参数 */
 export interface CreateHostInput {
-  /** 主机名称 */
   name: string;
-  /** 主机地址（IP 或域名） */
   address: string;
-  /** SSH 端口号（默认 22） */
   port?: number;
-  /** SSH 登录用户名 */
   username: string;
-  /** 认证方式（"key" 或 "password"） */
   auth_method: string;
-  /** 密码（当 auth_method 为 "password" 时必填） */
   password?: string;
-  /** 私钥内容（当 auth_method 为 "key" 时必填） */
   private_key?: string;
 }
 
 // ── Agent types ─────────────────────────────────────────────────────────
 
-/** Agent 会话标识 */
 export interface AgentSession {
-  /** 会话唯一标识 */
   session_id: string;
 }
 
-/** Agent 响应，包含助手回复内容和工具调用轮次 */
 export interface AgentResponse {
-  /** 会话 ID */
   session_id: string;
-  /** 助手回复的文本内容 */
   content: string;
-  /** 工具调用轮次列表 */
   turns: AgentTurn[];
-  /** 是否因达到最大轮次而截断 */
   truncated: boolean;
 }
 
-/** Agent 单轮工具调用记录 */
 export interface AgentTurn {
-  /** 轮次序号（从 1 开始） */
   turn: number;
-  /** 执行的动作描述，如 "call get_server_status" */
   action: string;
-  /** 工具返回的结果 */
   result: string;
+}
+
+// ── Topology types ──────────────────────────────────────────────────────
+
+export interface TopoNode {
+  id: string;
+  label: string;
+  kind: 'Host' | 'Service' | 'Container' | 'LoadBalancer' | 'Database' | 'External';
+  properties: Record<string, string>;
+}
+
+export interface TopoEdge {
+  source: string;
+  target: string;
+  label: string;
+  protocol?: string;
+  port?: number;
+}
+
+export interface TopoGraph {
+  nodes: TopoNode[];
+  edges: TopoEdge[];
+}
+
+// ── Monitor types ───────────────────────────────────────────────────────
+
+export interface MetricPoint {
+  timestamp: string;
+  host_id: string;
+  metric_type: string;
+  value: number;
+  unit: string;
+}
+
+export interface HostMetrics {
+  host_id: string;
+  timestamp: string;
+  cpu_percent: number;
+  memory_percent: number;
+  memory_total_mb: number;
+  memory_used_mb: number;
+  disk_percent: number;
+  disk_total_gb: number;
+  disk_used_gb: number;
+  network_in_bytes: number;
+  network_out_bytes: number;
+  load_1: number;
+  load_5: number;
+  load_15: number;
+}
+
+// ── Escalation types ────────────────────────────────────────────────────
+
+export interface EscalationPolicy {
+  name: string;
+  severity: string;
+  delay_minutes: number;
+  channels: string[];
+}
+
+export interface EscalationTriggerResult {
+  status: string;
+  alert_id: string;
+  policy?: string;
+  channels?: string[];
+  delay_minutes?: number;
+}
+
+// ── FIM types ───────────────────────────────────────────────────────────
+
+export interface FimChange {
+  path: string;
+  status: 'modified' | 'deleted' | 'added';
+  old_hash?: string;
+  new_hash?: string;
+  hash?: string;
+}
+
+export interface FimScanResult {
+  host_id: string;
+  changes: FimChange[];
+  total_files: number;
+}
+
+// ── Baseline types ──────────────────────────────────────────────────────
+
+export interface BaselineCheckResult {
+  name: string;
+  category: string;
+  status: 'Pass' | 'Fail' | 'Warn' | 'Skip' | 'Info';
+  message: string;
+  remediation?: string;
+}
+
+export interface BaselineRunResult {
+  host_id: string;
+  results: BaselineCheckResult[];
+  score: number;
+}
+
+export interface BaselineReport {
+  host_id: string;
+  results: BaselineCheckResult[];
+  score: number;
+}
+
+// ── Runbook types ───────────────────────────────────────────────────────
+
+export interface RunbookStep {
+  id: string;
+  name: string;
+  command: string;
+  requires_approval: boolean;
+  timeout_seconds: number;
+}
+
+export interface Runbook {
+  name: string;
+  description: string;
+  steps: RunbookStep[];
+}
+
+export interface RunbookExecution {
+  runbook_name: string;
+  host_id: string;
+  started_at: string;
+  finished_at: string;
+  success: boolean;
+  steps: Array<{
+    step_id: string;
+    status: string;
+    output: string;
+    duration_ms: number;
+  }>;
+}
+
+// ── Knowledge types ─────────────────────────────────────────────────────
+
+export interface KnowledgeEntry {
+  id: string;
+  incident_id: string;
+  title: string;
+  root_cause: string;
+  resolution: string;
+  tags: string[];
+  created_at: string;
+}
+
+// ── Config types ────────────────────────────────────────────────────────
+
+export interface ConfigEntry {
+  key: string;
+  value: unknown;
+  description?: string;
+}
+
+// ── Webhook types ───────────────────────────────────────────────────────
+
+export interface WebhookInfo {
+  name: string;
+  url: string;
+  secret?: string;
+  retry_count: number;
+}
+
+// ── Scheduler types ─────────────────────────────────────────────────────
+
+export interface SchedulerJob {
+  name: string;
+  cron_expr: string;
+  action: string;
+  enabled: boolean;
+  last_run_at?: string;
+  next_run_at?: string;
+}
+
+// ── FileSync types ──────────────────────────────────────────────────────
+
+export interface FileSyncResult {
+  status: string;
+  host_id: string;
+  file_path?: string;
+  size?: number;
+}
+
+// ── Advisor types ───────────────────────────────────────────────────────
+
+export interface AdvisorSuggestion {
+  id: string;
+  severity: string;
+  category: string;
+  title: string;
+  description: string;
+  suggested_action: string;
+  created_at: string;
+  acknowledged: boolean;
+  dismissed: boolean;
 }

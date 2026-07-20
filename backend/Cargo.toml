@@ -12,8 +12,14 @@ members = [
     "src/modules/mod-scheduler",
     "src/modules/mod-filesync",
     "src/modules/mod-advisor",
-    # "src/modules/mod-topo",
+    "src/modules/mod-topo",
     # "src/modules/mod-chatops",
+    "src/modules/mod-monitor",
+    "src/modules/mod-alert-escalation",
+    "src/modules/mod-fim",
+    "src/modules/mod-baseline",
+    "src/modules/mod-runbook",
+    "src/modules/mod-knowledge",
 ]
 resolver = "2"
 

@@ -7,6 +7,20 @@ import type {
   CreateHostInput,
   AgentSession,
   AgentResponse,
+  TopoGraph,
+  HostMetrics,
+  MetricPoint,
+  EscalationTriggerResult,
+  FimScanResult,
+  BaselineRunResult,
+  BaselineReport,
+  Runbook,
+  RunbookExecution,
+  KnowledgeEntry,
+  WebhookInfo,
+  SchedulerJob,
+  FileSyncResult,
+  AdvisorSuggestion,
 } from './types';
 
 const BASE = '/api';
@@ -144,5 +158,157 @@ export const api = {
         passphrase,
         passphrase_confirm: confirm,
       }),
+    }),
+
+  // ── Topology ──────────────────────────────────────────────────────────
+
+  getTopoGraph: (token: string) =>
+    requestWithAuth<TopoGraph>('/topo/graph', token),
+
+  discoverTopo: (token: string, hostId?: string) =>
+    requestWithAuth<{ nodes: unknown[] }>('/topo/discover', token, {
+      method: 'POST',
+      body: JSON.stringify(hostId ? { host_id: hostId } : {}),
+    }),
+
+  // ── Monitor ───────────────────────────────────────────────────────────
+
+  getMonitorMetrics: (token: string, hostId: string) =>
+    requestWithAuth<MetricPoint[]>(`/monitor/metrics/${encodeURIComponent(hostId)}`, token),
+
+  collectMonitorMetrics: (token: string, hostId: string) =>
+    requestWithAuth<HostMetrics>('/monitor/collect', token, {
+      method: 'POST',
+      body: JSON.stringify({ host_id: hostId }),
+    }),
+
+  // ── Escalation ────────────────────────────────────────────────────────
+
+  defineEscalationPolicy: (token: string, policy: {
+    name: string;
+    severity: string;
+    escalation_delay_minutes?: number;
+    channels?: string[];
+  }) =>
+    requestWithAuth<{ status: string }>('/escalation/policies', token, {
+      method: 'POST',
+      body: JSON.stringify(policy),
+    }),
+
+  triggerEscalation: (token: string, alertId: string, severity: string, message?: string) =>
+    requestWithAuth<EscalationTriggerResult>('/escalation/trigger', token, {
+      method: 'POST',
+      body: JSON.stringify({ alert_id: alertId, severity, message }),
+    }),
+
+  // ── FIM ───────────────────────────────────────────────────────────────
+
+  createFimBaseline: (token: string, hostId: string, paths?: string[]) =>
+    requestWithAuth<{ status: string; files_baselined: number }>('/fim/baseline', token, {
+      method: 'POST',
+      body: JSON.stringify({ host_id: hostId, paths }),
+    }),
+
+  fimScan: (token: string, hostId: string) =>
+    requestWithAuth<FimScanResult>(`/fim/scan/${encodeURIComponent(hostId)}`, token),
+
+  // ── Baseline ──────────────────────────────────────────────────────────
+
+  runBaselineCheck: (token: string, hostId: string, checkName?: string) =>
+    requestWithAuth<BaselineRunResult>(`/baseline/check/${encodeURIComponent(hostId)}`, token, {
+      method: 'POST',
+      body: JSON.stringify({ check_name: checkName || 'all' }),
+    }),
+
+  getBaselineReport: (token: string, hostId: string) =>
+    requestWithAuth<BaselineReport>(`/baseline/report/${encodeURIComponent(hostId)}`, token),
+
+  // ── Runbook ───────────────────────────────────────────────────────────
+
+  createRunbook: (token: string, name: string, description: string) =>
+    requestWithAuth<Runbook>('/runbook/create', token, {
+      method: 'POST',
+      body: JSON.stringify({ name, description }),
+    }),
+
+  executeRunbook: (token: string, name: string, targetHostId?: string) =>
+    requestWithAuth<RunbookExecution>('/runbook/execute', token, {
+      method: 'POST',
+      body: JSON.stringify({ name, target_host_id: targetHostId }),
+    }),
+
+  // ── Knowledge ─────────────────────────────────────────────────────────
+
+  searchKnowledge: (token: string, query: string) =>
+    requestWithAuth<{ query: string; results: KnowledgeEntry[] }>('/knowledge/search', token, {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    }),
+
+  extractKnowledge: (token: string, incidentId: string) =>
+    requestWithAuth<KnowledgeEntry>('/knowledge/extract', token, {
+      method: 'POST',
+      body: JSON.stringify({ incident_id: incidentId }),
+    }),
+
+  // ── Config ────────────────────────────────────────────────────────────
+
+  getConfigValue: (token: string, _key: string) =>
+    requestWithAuth<{ key: string; value: unknown }>(`/modules/mod-config/config`, token),
+
+  listConfig: (token: string) =>
+    requestWithAuth<Record<string, unknown>>('/modules/mod-config/config', token),
+
+  setConfigValue: (token: string, key: string, value: unknown) =>
+    requestWithAuth<{ ok: boolean }>(`/modules/mod-config/config`, token, {
+      method: 'PUT',
+      body: JSON.stringify({ key, value }),
+    }),
+
+  // ── Webhook ───────────────────────────────────────────────────────────
+
+  listWebhooks: (token: string) =>
+    requestWithAuth<{ webhooks: WebhookInfo[] }>('/modules/mod-webhook/config', token),
+
+  registerWebhook: (token: string, webhook: WebhookInfo) =>
+    requestWithAuth<{ status: string }>('/modules/mod-webhook/config', token, {
+      method: 'PUT',
+      body: JSON.stringify(webhook),
+    }),
+
+  // ── Scheduler ─────────────────────────────────────────────────────────
+
+  listSchedulerJobs: (token: string) =>
+    requestWithAuth<{ jobs: SchedulerJob[] }>('/modules/mod-scheduler/config', token),
+
+  createSchedulerJob: (token: string, job: { name: string; cron_expr: string; action: string }) =>
+    requestWithAuth<{ status: string }>('/modules/mod-scheduler/config', token, {
+      method: 'PUT',
+      body: JSON.stringify(job),
+    }),
+
+  // ── FileSync ──────────────────────────────────────────────────────────
+
+  fileSyncPush: (token: string, hostId: string, filePath: string, content: string) =>
+    requestWithAuth<FileSyncResult>('/modules/mod-filesync/config', token, {
+      method: 'PUT',
+      body: JSON.stringify({ host_id: hostId, file_path: filePath, content }),
+    }),
+
+  // ── Advisor ───────────────────────────────────────────────────────────
+
+  listAdvisorSuggestions: (token: string) =>
+    requestWithAuth<{ suggestions: AdvisorSuggestion[] }>('/modules/mod-advisor/config', token),
+
+  acknowledgeSuggestion: (token: string, id: string) =>
+    requestWithAuth<{ status: string }>('/modules/mod-advisor/config', token, {
+      method: 'PUT',
+      body: JSON.stringify({ action: 'acknowledge', id }),
+    }),
+
+  dismissSuggestion: (token: string, id: string) =>
+    requestWithAuth<{ status: string }>('/modules/mod-advisor/config', token, {
+      method: 'PUT',
+      body: JSON.stringify({ action: 'dismiss', id }),
     }),
 };

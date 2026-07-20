@@ -8,7 +8,7 @@
 //! 2. 连接 SQLite 数据库并运行迁移
 //! 3. 创建 AuthService、HostService、SshConnectionPool 等核心服务
 //! 4. 初始化 LLM 客户端（从环境变量配置，或使用 PlaceholderLlm）
-//! 5. 注册模块（mod-core、mod-rca、mod-security）到 ModuleLoader
+//! 5. 注册全部 12 个模块到 ModuleLoader（core/config/webhook/scheduler/filesync/advisor/rca/security + topo/monitor/escalation/fim/baseline/runbook/knowledge）
 //! 6. 创建 AgentOrchestrator 并从数据库恢复会话
 //! 7. 组装 Axum 路由（认证、主机、Vault、模块、Agent、终端、静态文件）
 //! 8. 绑定 TCP 监听器并启动服务
@@ -41,9 +41,16 @@ use ops_pilot_core::ssh::SshConnectionPool;
 use ops_pilot_gateway::agent::{AgentConfig, AgentOrchestrator};
 use ops_pilot_gateway::routes::audit::audit_routes;
 use ops_pilot_gateway::routes::agent::agent_routes;
+use ops_pilot_gateway::routes::baseline::baseline_routes;
+use ops_pilot_gateway::routes::escalation::escalation_routes;
+use ops_pilot_gateway::routes::fim::fim_routes;
 use ops_pilot_gateway::routes::hosts::host_routes;
+use ops_pilot_gateway::routes::knowledge::knowledge_routes;
 use ops_pilot_gateway::routes::modules::{module_routes, ModuleManager};
+use ops_pilot_gateway::routes::monitor::monitor_routes;
+use ops_pilot_gateway::routes::runbook::runbook_routes;
 use ops_pilot_gateway::routes::security::security_routes;
+use ops_pilot_gateway::routes::topo::topo_routes;
 use ops_pilot_gateway::routes::vault::vault_routes;
 use ops_pilot_gateway::routes::ws_events_handler;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
@@ -264,6 +271,7 @@ async fn main() {
         let mut mgr = module_manager.write().await;
         let loader = mgr.loader_mut();
 
+        // Core modules
         loader
             .load_module(ctx.as_ref().clone(), Box::new(ModCore::new()))
             .await
@@ -283,7 +291,93 @@ async fn main() {
             .await
             .expect("failed to register mod-security");
 
-        tracing::info!("registered mod-core, mod-rca, mod-security");
+        // Previously unregistered modules
+        let config_module = ops_pilot_mod_config::ConfigModule::new(pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(config_module))
+            .await
+            .expect("failed to register mod-config");
+
+        loader
+            .load_module(
+                ctx.as_ref().clone(),
+                Box::new(ops_pilot_mod_webhook::WebhookModule::new()),
+            )
+            .await
+            .expect("failed to register mod-webhook");
+
+        let scheduler_module = ops_pilot_mod_scheduler::SchedulerModule::new(pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(scheduler_module))
+            .await
+            .expect("failed to register mod-scheduler");
+
+        loader
+            .load_module(
+                ctx.as_ref().clone(),
+                Box::new(ops_pilot_mod_filesync::FileSyncModule::new(ssh_pool.clone())),
+            )
+            .await
+            .expect("failed to register mod-filesync");
+
+        let advisor_module = ops_pilot_mod_advisor::AdvisorModule::new(pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(advisor_module))
+            .await
+            .expect("failed to register mod-advisor");
+
+        // New modules
+        loader
+            .load_module(
+                ctx.as_ref().clone(),
+                Box::new(ops_pilot_mod_topo::ModTopo::new(ssh_pool.clone())),
+            )
+            .await
+            .expect("failed to register mod-topo");
+
+        let monitor_module =
+            ops_pilot_mod_monitor::ModMonitor::new(pool.clone(), ssh_pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(monitor_module))
+            .await
+            .expect("failed to register mod-monitor");
+
+        let escalation_module = ops_pilot_mod_alert_escalation::ModAlertEscalation::new(pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(escalation_module))
+            .await
+            .expect("failed to register mod-alert-escalation");
+
+        let fim_module =
+            ops_pilot_mod_fim::ModFim::new(pool.clone(), ssh_pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(fim_module))
+            .await
+            .expect("failed to register mod-fim");
+
+        let baseline_module =
+            ops_pilot_mod_baseline::ModBaseline::new(pool.clone(), ssh_pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(baseline_module))
+            .await
+            .expect("failed to register mod-baseline");
+
+        let runbook_module = ops_pilot_mod_runbook::ModRunbook::new(pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(runbook_module))
+            .await
+            .expect("failed to register mod-runbook");
+
+        let knowledge_module = ops_pilot_mod_knowledge::ModKnowledge::new(pool.clone()).await;
+        loader
+            .load_module(ctx.as_ref().clone(), Box::new(knowledge_module))
+            .await
+            .expect("failed to register mod-knowledge");
+
+        tracing::info!(
+            "registered {} modules",
+            loader.list_modules().len()
+        );
     }
 
     let orchestrator = Arc::new(AgentOrchestrator::new(
@@ -326,14 +420,22 @@ async fn main() {
         .merge(protected_hosts)
         .merge(protected_vault)
         .merge(module_routes(module_manager.clone(), ctx.clone()))
-        .merge(security_routes(module_manager, ctx.clone()))
-        .merge(agent_routes(tool_registry, llm_client, ctx, pool.clone()))
-        .merge(audit_routes(pool))
+        .merge(security_routes(module_manager.clone(), ctx.clone()))
+        .merge(agent_routes(tool_registry, llm_client, ctx.clone(), pool.clone()))
+        .merge(audit_routes(pool.clone()))
         .merge(ops_pilot_gateway::terminal::terminal_routes(
             ssh_pool,
             auth_service,
             audit,
         ))
+        // New module routes
+        .merge(topo_routes(module_manager.clone(), ctx.clone()))
+        .merge(monitor_routes(module_manager.clone(), ctx.clone()))
+        .merge(escalation_routes(module_manager.clone(), ctx.clone()))
+        .merge(fim_routes(module_manager.clone(), ctx.clone()))
+        .merge(baseline_routes(module_manager.clone(), ctx.clone()))
+        .merge(runbook_routes(module_manager.clone(), ctx.clone()))
+        .merge(knowledge_routes(module_manager.clone(), ctx.clone()))
         .fallback_service(static_service)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());

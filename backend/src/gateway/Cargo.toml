@@ -39,6 +39,18 @@ ops-pilot-sdk = { path = "../sdk" }
 ops-pilot-mod-core = { path = "../modules/mod-core" }
 ops-pilot-mod-rca = { path = "../modules/mod-rca" }
 ops-pilot-mod-security = { path = "../modules/mod-security" }
+ops-pilot-mod-config = { path = "../modules/mod-config" }
+ops-pilot-mod-webhook = { path = "../modules/mod-webhook" }
+ops-pilot-mod-scheduler = { path = "../modules/mod-scheduler" }
+ops-pilot-mod-filesync = { path = "../modules/mod-filesync" }
+ops-pilot-mod-advisor = { path = "../modules/mod-advisor" }
+ops-pilot-mod-topo = { path = "../modules/mod-topo" }
+ops-pilot-mod-monitor = { path = "../modules/mod-monitor" }
+ops-pilot-mod-alert-escalation = { path = "../modules/mod-alert-escalation" }
+ops-pilot-mod-fim = { path = "../modules/mod-fim" }
+ops-pilot-mod-baseline = { path = "../modules/mod-baseline" }
+ops-pilot-mod-runbook = { path = "../modules/mod-runbook" }
+ops-pilot-mod-knowledge = { path = "../modules/mod-knowledge" }
 
 [dev-dependencies]
 wiremock = "0.6"

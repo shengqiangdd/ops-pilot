@@ -2243,9 +2243,21 @@ dependencies = [
  "futures-util",
  "governor",
  "ops-pilot-core",
+ "ops-pilot-mod-advisor",
+ "ops-pilot-mod-alert-escalation",
+ "ops-pilot-mod-baseline",
+ "ops-pilot-mod-config",
  "ops-pilot-mod-core",
+ "ops-pilot-mod-filesync",
+ "ops-pilot-mod-fim",
+ "ops-pilot-mod-knowledge",
+ "ops-pilot-mod-monitor",
  "ops-pilot-mod-rca",
+ "ops-pilot-mod-runbook",
+ "ops-pilot-mod-scheduler",
  "ops-pilot-mod-security",
+ "ops-pilot-mod-topo",
+ "ops-pilot-mod-webhook",
  "ops-pilot-sdk",
  "reqwest",
  "russh",
@@ -2266,6 +2278,40 @@ dependencies = [
 
 [[package]]
 name = "ops-pilot-mod-advisor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ops-pilot-mod-alert-escalation"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ops-pilot-mod-baseline"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2332,6 +2378,59 @@ dependencies = [
 ]
 
 [[package]]
+name = "ops-pilot-mod-fim"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "chrono",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ops-pilot-mod-knowledge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ops-pilot-mod-monitor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "ops-pilot-mod-rca"
 version = "0.1.0"
 dependencies = [
@@ -2345,6 +2444,23 @@ dependencies = [
  "serde_json",
  "sqlx",
  "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ops-pilot-mod-runbook"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
+ "sqlx",
  "tokio",
  "tracing",
  "uuid",
@@ -2380,6 +2496,24 @@ dependencies = [
  "serde_json",
  "sqlx",
  "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ops-pilot-mod-topo"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "futures-util",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
+ "sqlx",
  "tokio",
  "tracing",
  "uuid",
