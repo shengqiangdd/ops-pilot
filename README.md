@@ -212,6 +212,49 @@ npm run build   # 生产构建到 dist/
 - **告警引擎**：非工作时间批量操作、高失败率、首次连接检测
 - **CIS 合规扫描**：内置 24 条基准规则
 
+## API 文档
+
+完整的 API 文档使用 OpenAPI 3.0 规范编写，可使用 Swagger UI 查看：
+
+```bash
+# 直接在浏览器打开
+open docs/swagger.html
+
+# 或启动本地服务查看
+cd docs && python3 -m http.server 8080
+# 访问 http://localhost:8080/swagger.html
+```
+
+- **OpenAPI 规范**: [`docs/openapi.yaml`](docs/openapi.yaml)
+- **Swagger UI**: [`docs/swagger.html`](docs/swagger.html)
+
+### API 端点概览
+
+| 模块 | 端点数 | 说明 |
+|------|--------|------|
+| Auth | 2 | 登录、注册 |
+| Hosts | 5 | 主机管理 + 批量执行 |
+| Users | 5 | 用户管理（RBAC） |
+| Vault | 4 | 凭据加密存储 |
+| Modules | 5 | 模块管理 |
+| Health | 2 | 健康检查 |
+| Security | 2 | 安全扫描 |
+| FIM | 2 | 文件完整性监控 |
+| Baseline | 2 | 安全基线 |
+| Topology | 2 | 网络拓扑 |
+| Monitor | 2 | 性能监控 |
+| Escalation | 2 | 告警升级 |
+| Audit | 3 | 审计日志 + 导出 |
+| Alert Rules | 3 | 告警规则 CRUD |
+| Alert History | 1 | 告警历史 |
+| Notification Channels | 3 | 通知渠道管理 |
+| CMDB | 8 | 配置管理数据库 |
+| Agent | 5 | AI 对话 + NL 查询 + 诊断 |
+| Knowledge | 2 | 知识库 |
+| Runbook | 2 | 运维手册 |
+| Terminal | 1 | WebSSH 终端 |
+| **总计** | **62** | |
+
 ## 部署
 
 详见 [DEPLOY.md](DEPLOY.md) —— Docker 部署、TLS 配置、安全检查清单。

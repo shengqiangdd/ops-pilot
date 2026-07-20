@@ -1,0 +1,1626 @@
+openapi: 3.0.3
+info:
+  title: OpsPilot API
+  description: |
+    OpsPilot - AI-Powered Infrastructure Operations Platform API.
+    All protected endpoints require a Bearer JWT token in the Authorization header.
+  version: 2.0.0
+  contact:
+    name: OpsPilot Team
+
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    # ── Auth ──────────────────────────────────────────────────────────
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        role:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+
+    # ── Hosts ─────────────────────────────────────────────────────────
+    Host:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        port:
+          type: integer
+        username:
+          type: string
+        auth_method:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, unknown, maintenance]
+        created_at:
+          type: string
+        updated_at:
+          type: string
+
+    CreateHostInput:
+      type: object
+      required: [name, address, username, auth_method]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        port:
+          type: integer
+          default: 22
+        username:
+          type: string
+        auth_method:
+          type: string
+          enum: [key, password]
+
+    BatchExecuteRequest:
+      type: object
+      required: [host_ids, command]
+      properties:
+        host_ids:
+          type: array
+          items:
+            type: string
+        command:
+          type: string
+        timeout:
+          type: integer
+
+    BatchExecuteResult:
+      type: object
+      properties:
+        host_id:
+          type: string
+        host_name:
+          type: string
+        success:
+          type: boolean
+        stdout:
+          type: string
+        stderr:
+          type: string
+        exit_code:
+          type: integer
+        duration_ms:
+          type: integer
+
+    # ── Users ─────────────────────────────────────────────────────────
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, operator, viewer]
+        created_at:
+          type: string
+
+    CreateUserInput:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, operator, viewer]
+
+    # ── Audit ─────────────────────────────────────────────────────────
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        user:
+          type: string
+        action:
+          type: string
+        resource:
+          type: string
+        outcome:
+          type: string
+        created_at:
+          type: string
+
+    AuditLogResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogEntry'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+
+    # ── Modules ───────────────────────────────────────────────────────
+    ModuleInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+
+    ModuleHealth:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: object
+        enabled:
+          type: boolean
+
+    # ── Vault ─────────────────────────────────────────────────────────
+    VaultStatus:
+      type: object
+      properties:
+        unlocked:
+          type: boolean
+        has_passphrase:
+          type: boolean
+
+    # ── Alert Rules ───────────────────────────────────────────────────
+    AlertRule:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        metric:
+          type: string
+        condition:
+          type: string
+        threshold:
+          type: number
+        severity:
+          type: string
+          enum: [critical, warning, info]
+        silence_minutes:
+          type: integer
+        enabled:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+
+    CreateAlertRuleInput:
+      type: object
+      required: [name, metric, condition, threshold, severity]
+      properties:
+        name:
+          type: string
+        metric:
+          type: string
+        condition:
+          type: string
+        threshold:
+          type: number
+        severity:
+          type: string
+        silence_minutes:
+          type: integer
+
+    AlertHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        rule_id:
+          type: string
+        rule_name:
+          type: string
+        severity:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+        triggered_at:
+          type: string
+        acknowledged_at:
+          type: string
+          nullable: true
+
+    NotificationChannel:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        channel_type:
+          type: string
+          enum: [webhook, email, dingtalk, wecom]
+        config:
+          type: string
+        enabled:
+          type: boolean
+        created_at:
+          type: string
+
+    CreateChannelInput:
+      type: object
+      required: [name, channel_type, config]
+      properties:
+        name:
+          type: string
+        channel_type:
+          type: string
+        config:
+          type: object
+
+    # ── CMDB ──────────────────────────────────────────────────────────
+    CMDBService:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        owner:
+          type: string
+        status:
+          type: string
+          enum: [active, deprecated, archived]
+        created_at:
+          type: string
+        updated_at:
+          type: string
+
+    CreateServiceInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        owner:
+          type: string
+        status:
+          type: string
+
+    ServiceDetail:
+      type: object
+      properties:
+        service:
+          $ref: '#/components/schemas/CMDBService'
+        hosts:
+          type: array
+          items:
+            type: object
+        dependencies:
+          type: array
+          items:
+            type: object
+
+    ConfigVersion:
+      type: object
+      properties:
+        id:
+          type: string
+        service_id:
+          type: string
+        config_json:
+          type: string
+        version:
+          type: integer
+        changed_by:
+          type: string
+        change_note:
+          type: string
+        created_at:
+          type: string
+
+    # ── Agent ─────────────────────────────────────────────────────────
+    NlQueryRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+
+    NlQueryResponse:
+      type: object
+      properties:
+        query:
+          type: string
+        parsed_intent:
+          type: string
+        results:
+          type: array
+          items:
+            type: object
+        summary:
+          type: string
+
+    DiagnoseRequest:
+      type: object
+      required: [issue_description]
+      properties:
+        host_id:
+          type: string
+        issue_description:
+          type: string
+
+    DiagnoseResponse:
+      type: object
+      properties:
+        issue:
+          type: string
+        severity:
+          type: string
+        possible_causes:
+          type: array
+          items:
+            type: string
+        recommended_actions:
+          type: array
+          items:
+            type: string
+        related_knowledge:
+          type: array
+          items:
+            type: object
+
+tags:
+  - name: Auth
+    description: Authentication and registration
+  - name: Hosts
+    description: Host management
+  - name: Users
+    description: User management (admin only)
+  - name: Vault
+    description: Credential vault
+  - name: Modules
+    description: Module management
+  - name: Health
+    description: System health
+  - name: Security
+    description: Security scanning
+  - name: FIM
+    description: File integrity monitoring
+  - name: Baseline
+    description: Security baseline
+  - name: Topology
+    description: Network topology
+  - name: Monitor
+    description: Performance monitoring
+  - name: Escalation
+    description: Alert escalation
+  - name: Audit
+    description: Audit logging
+  - name: Alert Rules
+    description: Alert rule management
+  - name: Alert History
+    description: Alert history
+  - name: Notification Channels
+    description: Notification channel management
+  - name: CMDB
+    description: Configuration management database
+  - name: Agent
+    description: AI agent
+  - name: Knowledge
+    description: Knowledge base
+  - name: Runbook
+    description: Runbook management
+  - name: Config
+    description: System configuration
+  - name: Terminal
+    description: WebSSH terminal
+
+paths:
+  # ── Auth ──────────────────────────────────────────────────────────
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registration successful
+        '400':
+          description: Invalid input
+
+  # ── Hosts ─────────────────────────────────────────────────────────
+  /api/hosts:
+    get:
+      tags: [Hosts]
+      summary: List hosts
+      responses:
+        '200':
+          description: List of hosts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Host'
+    post:
+      tags: [Hosts]
+      summary: Create host
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHostInput'
+      responses:
+        '201':
+          description: Host created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+
+  /api/hosts/{id}:
+    get:
+      tags: [Hosts]
+      summary: Get host by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Host details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+        '404':
+          description: Host not found
+    put:
+      tags: [Hosts]
+      summary: Update host
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHostInput'
+      responses:
+        '200':
+          description: Host updated
+        '404':
+          description: Host not found
+    delete:
+      tags: [Hosts]
+      summary: Delete host
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Host deleted
+        '404':
+          description: Host not found
+
+  /api/hosts/batch/execute:
+    post:
+      tags: [Hosts]
+      summary: Execute command on multiple hosts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchExecuteRequest'
+      responses:
+        '200':
+          description: Execution results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BatchExecuteResult'
+                  total:
+                    type: integer
+                  succeeded:
+                    type: integer
+                  failed:
+                    type: integer
+
+  # ── Users ─────────────────────────────────────────────────────────
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List users (admin only)
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserInfo'
+    post:
+      tags: [Users]
+      summary: Create user (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserInput'
+      responses:
+        '201':
+          description: User created
+        '409':
+          description: User already exists
+
+  /api/users/me:
+    get:
+      tags: [Users]
+      summary: Get current user info
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+
+  /api/users/{id}/role:
+    put:
+      tags: [Users]
+      summary: Update user role (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [admin, operator, viewer]
+      responses:
+        '200':
+          description: Role updated
+
+  /api/users/{id}:
+    delete:
+      tags: [Users]
+      summary: Delete user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User deleted
+
+  # ── Vault ─────────────────────────────────────────────────────────
+  /api/vault/status:
+    get:
+      tags: [Vault]
+      summary: Get vault status
+      responses:
+        '200':
+          description: Vault status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultStatus'
+
+  /api/vault/set-passphrase:
+    post:
+      tags: [Vault]
+      summary: Set vault passphrase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login_password:
+                  type: string
+                passphrase:
+                  type: string
+                passphrase_confirm:
+                  type: string
+      responses:
+        '200':
+          description: Passphrase set
+
+  /api/vault/unlock:
+    post:
+      tags: [Vault]
+      summary: Unlock vault
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login_password:
+                  type: string
+                passphrase:
+                  type: string
+      responses:
+        '200':
+          description: Vault unlocked
+        '401':
+          description: Invalid credentials
+
+  /api/vault/lock:
+    post:
+      tags: [Vault]
+      summary: Lock vault
+      responses:
+        '200':
+          description: Vault locked
+
+  # ── Modules ───────────────────────────────────────────────────────
+  /api/modules:
+    get:
+      tags: [Modules]
+      summary: List modules
+      responses:
+        '200':
+          description: List of modules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleInfo'
+
+  /api/modules/{name}:
+    get:
+      tags: [Modules]
+      summary: Get module details
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Module details
+
+  /api/modules/{name}/enable:
+    post:
+      tags: [Modules]
+      summary: Enable module
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Module enabled
+
+  /api/modules/{name}/disable:
+    post:
+      tags: [Modules]
+      summary: Disable module
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Module disabled
+
+  /api/modules/{name}/health:
+    get:
+      tags: [Modules]
+      summary: Get module health
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Module health status
+
+  # ── Health ────────────────────────────────────────────────────────
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Get all module health status
+      responses:
+        '200':
+          description: Health status for all modules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleHealth'
+
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: System health check
+      security: []
+      responses:
+        '200':
+          description: System healthy
+
+  # ── Security ──────────────────────────────────────────────────────
+  /api/security/scan:
+    post:
+      tags: [Security]
+      summary: Run security scan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Scan results
+
+  /api/security/checks:
+    get:
+      tags: [Security]
+      summary: List security checks
+      responses:
+        '200':
+          description: List of security checks
+
+  # ── FIM ───────────────────────────────────────────────────────────
+  /api/fim/baseline:
+    post:
+      tags: [FIM]
+      summary: Create file integrity baseline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Baseline created
+
+  /api/fim/scan/{host_id}:
+    get:
+      tags: [FIM]
+      summary: Run FIM scan on host
+      parameters:
+        - name: host_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scan results
+
+  # ── Baseline ──────────────────────────────────────────────────────
+  /api/baseline/check/{host_id}:
+    post:
+      tags: [Baseline]
+      summary: Run baseline check on host
+      parameters:
+        - name: host_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Check results
+
+  /api/baseline/report/{host_id}:
+    get:
+      tags: [Baseline]
+      summary: Get baseline report for host
+      parameters:
+        - name: host_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Baseline report
+
+  # ── Topology ──────────────────────────────────────────────────────
+  /api/topo/graph:
+    get:
+      tags: [Topology]
+      summary: Get topology graph
+      responses:
+        '200':
+          description: Topology graph data
+
+  /api/topo/discover:
+    post:
+      tags: [Topology]
+      summary: Discover network topology
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Discovery results
+
+  # ── Monitor ───────────────────────────────────────────────────────
+  /api/monitor/metrics/{host_id}:
+    get:
+      tags: [Monitor]
+      summary: Get host metrics
+      parameters:
+        - name: host_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Host metrics
+
+  /api/monitor/collect:
+    post:
+      tags: [Monitor]
+      summary: Collect metrics from host
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Collected metrics
+
+  # ── Escalation ────────────────────────────────────────────────────
+  /api/escalation/policies:
+    post:
+      tags: [Escalation]
+      summary: Define escalation policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Policy created
+
+  /api/escalation/trigger:
+    post:
+      tags: [Escalation]
+      summary: Trigger escalation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Escalation triggered
+
+  # ── Audit ─────────────────────────────────────────────────────────
+  /api/audit/logs:
+    get:
+      tags: [Audit]
+      summary: List audit logs
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: user
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated audit logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogResponse'
+
+  /api/audit/stats:
+    get:
+      tags: [Audit]
+      summary: Get audit statistics
+      responses:
+        '200':
+          description: Audit statistics
+
+  /api/audit/export:
+    get:
+      tags: [Audit]
+      summary: Export audit logs as CSV
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  # ── Alert Rules ───────────────────────────────────────────────────
+  /api/alert/rules:
+    get:
+      tags: [Alert Rules]
+      summary: List alert rules
+      responses:
+        '200':
+          description: List of alert rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertRule'
+    post:
+      tags: [Alert Rules]
+      summary: Create alert rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRuleInput'
+      responses:
+        '201':
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+
+  /api/alert/rules/{id}:
+    put:
+      tags: [Alert Rules]
+      summary: Update alert rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRuleInput'
+      responses:
+        '200':
+          description: Rule updated
+    delete:
+      tags: [Alert Rules]
+      summary: Delete alert rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Rule deleted
+
+  # ── Alert History ─────────────────────────────────────────────────
+  /api/alert/history:
+    get:
+      tags: [Alert History]
+      summary: List alert history
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: severity
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert history entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertHistoryEntry'
+
+  # ── Notification Channels ─────────────────────────────────────────
+  /api/alert/channels:
+    get:
+      tags: [Notification Channels]
+      summary: List notification channels
+      responses:
+        '200':
+          description: List of channels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationChannel'
+    post:
+      tags: [Notification Channels]
+      summary: Create notification channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChannelInput'
+      responses:
+        '201':
+          description: Channel created
+
+  /api/alert/channels/{id}/test:
+    post:
+      tags: [Notification Channels]
+      summary: Test notification channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Test result
+
+  # ── CMDB ──────────────────────────────────────────────────────────
+  /api/cmdb/services:
+    get:
+      tags: [CMDB]
+      summary: List services
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CMDBService'
+    post:
+      tags: [CMDB]
+      summary: Create service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceInput'
+      responses:
+        '201':
+          description: Service created
+
+  /api/cmdb/services/{id}:
+    get:
+      tags: [CMDB]
+      summary: Get service detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDetail'
+    put:
+      tags: [CMDB]
+      summary: Update service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceInput'
+      responses:
+        '200':
+          description: Service updated
+    delete:
+      tags: [CMDB]
+      summary: Delete service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Service deleted
+
+  /api/cmdb/services/{id}/hosts:
+    post:
+      tags: [CMDB]
+      summary: Add host to service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host_id:
+                  type: string
+                role:
+                  type: string
+                  enum: [web, app, db, cache, queue]
+      responses:
+        '201':
+          description: Host added
+
+  /api/cmdb/services/{id}/hosts/{host_id}:
+    delete:
+      tags: [CMDB]
+      summary: Remove host from service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: host_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Host removed
+
+  /api/cmdb/services/{id}/dependencies:
+    get:
+      tags: [CMDB]
+      summary: Get service dependencies
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service dependencies
+    post:
+      tags: [CMDB]
+      summary: Add service dependency
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_service_id:
+                  type: string
+                dependency_type:
+                  type: string
+                  enum: [hard, soft]
+      responses:
+        '201':
+          description: Dependency added
+
+  /api/cmdb/configs:
+    get:
+      tags: [CMDB]
+      summary: List config versions
+      parameters:
+        - name: service_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Config versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfigVersion'
+    post:
+      tags: [CMDB]
+      summary: Create config version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                service_id:
+                  type: string
+                config_json:
+                  type: string
+                changed_by:
+                  type: string
+                change_note:
+                  type: string
+      responses:
+        '201':
+          description: Config version created
+
+  /api/cmdb/configs/{id}:
+    get:
+      tags: [CMDB]
+      summary: Get config version
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Config version details
+
+  # ── Agent ─────────────────────────────────────────────────────────
+  /api/agent/session:
+    post:
+      tags: [Agent]
+      summary: Create agent session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Session created
+
+  /api/agent/chat/{session_id}:
+    post:
+      tags: [Agent]
+      summary: Send chat message
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Agent response
+
+  /api/agent/session/{session_id}:
+    delete:
+      tags: [Agent]
+      summary: Close agent session
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session closed
+
+  /api/agent/nl-query:
+    post:
+      tags: [Agent]
+      summary: Natural language query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NlQueryRequest'
+      responses:
+        '200':
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NlQueryResponse'
+
+  /api/agent/diagnose:
+    post:
+      tags: [Agent]
+      summary: Automated diagnosis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnoseRequest'
+      responses:
+        '200':
+          description: Diagnosis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnoseResponse'
+
+  # ── Knowledge ─────────────────────────────────────────────────────
+  /api/knowledge/search:
+    post:
+      tags: [Knowledge]
+      summary: Search knowledge base
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+      responses:
+        '200':
+          description: Search results
+
+  /api/knowledge/extract:
+    post:
+      tags: [Knowledge]
+      summary: Extract knowledge from incident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                incident_id:
+                  type: string
+      responses:
+        '201':
+          description: Knowledge extracted
+
+  # ── Runbook ───────────────────────────────────────────────────────
+  /api/runbook/create:
+    post:
+      tags: [Runbook]
+      summary: Create runbook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Runbook created
+
+  /api/runbook/execute:
+    post:
+      tags: [Runbook]
+      summary: Execute runbook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Execution results
+
+  # ── Terminal ──────────────────────────────────────────────────────
+  /api/terminal/{host_id}:
+    get:
+      tags: [Terminal]
+      summary: WebSSH terminal connection
+      description: WebSocket endpoint for interactive SSH terminal
+      parameters:
+        - name: host_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '101':
+          description: WebSocket upgrade
