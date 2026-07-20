@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useVaultStore } from '../stores/useVaultStore';
-import { cn } from '../lib/cn';
 
 export function VaultPage() {
-  const { isUnlocked, hasPassphrase, error, checkStatus, unlock, lock, setPassphrase } =
-    useVaultStore();
+  const { isUnlocked, hasPassphrase, error, checkStatus, unlock, lock, setPassphrase } = useVaultStore();
 
   const [loginPassword, setLoginPassword] = useState('');
   const [passphraseValue, setPassphraseValue] = useState('');
@@ -13,9 +11,7 @@ export function VaultPage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+  useEffect(() => { checkStatus(); }, [checkStatus]);
 
   const handleSetPassphrase = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,147 +58,84 @@ export function VaultPage() {
   const displayError = localError || error;
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-gray-900">Vault</h2>
-      <p className="text-sm text-gray-500">
+    <div className="space-y-4 animate-slide-up">
+      <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Vault</h2>
+      <p className="text-body-medium text-md-on-surface-variant">
         The vault encrypts your host credentials with a per-user key derived from
         your passphrase. Your passphrase is never stored — only a verification hash.
       </p>
 
       {displayError && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{displayError}</div>
+        <div className="bg-md-error-container text-md-on-error-container rounded-md-sm px-4 py-3 text-body-medium">{displayError}</div>
       )}
       {success && (
-        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{success}</div>
+        <div className="bg-md-primary-container text-md-on-primary-container rounded-md-sm px-4 py-3 text-body-medium">{success}</div>
       )}
 
-      {/* ── Not set up yet ─────────────────────────────────────────────── */}
       {!hasPassphrase && (
-        <form
-          onSubmit={handleSetPassphrase}
-          className="rounded-lg border border-gray-200 bg-white p-4 space-y-3"
-        >
-          <h3 className="text-sm font-medium text-gray-900">Set Vault Passphrase</h3>
+        <form onSubmit={handleSetPassphrase} className="bg-md-surface-container-low rounded-md-lg p-4 sm:p-6 space-y-3">
+          <h3 className="text-title-medium font-medium text-md-on-surface">Set Vault Passphrase</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Login Password
-              </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
+              <label className="block text-label-large text-md-on-surface mb-1">Login Password</label>
+              <input type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Passphrase
-              </label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={passphraseValue}
-                onChange={(e) => setPassphraseValue(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
+              <label className="block text-label-large text-md-on-surface mb-1">New Passphrase</label>
+              <input type="password" required minLength={8} value={passphraseValue} onChange={(e) => setPassphraseValue(e.target.value)}
+                className="w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Passphrase
-              </label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
+              <label className="block text-label-large text-md-on-surface mb-1">Confirm Passphrase</label>
+              <input type="password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)}
+                className="w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface" />
             </div>
           </div>
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={loading}
-              className={cn(
-                'rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white',
-                'hover:bg-blue-700 disabled:opacity-50',
-              )}
-            >
+            <button type="submit" disabled={loading}
+              className="bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
               {loading ? 'Setting...' : 'Set Passphrase'}
             </button>
           </div>
         </form>
       )}
 
-      {/* ── Set up but locked ──────────────────────────────────────────── */}
       {hasPassphrase && !isUnlocked && (
-        <form
-          onSubmit={handleUnlock}
-          className="rounded-lg border border-gray-200 bg-white p-4 space-y-3"
-        >
-          <h3 className="text-sm font-medium text-gray-900">Unlock Vault</h3>
+        <form onSubmit={handleUnlock} className="bg-md-surface-container-low rounded-md-lg p-4 sm:p-6 space-y-3">
+          <h3 className="text-title-medium font-medium text-md-on-surface">Unlock Vault</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Login Password
-              </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
+              <label className="block text-label-large text-md-on-surface mb-1">Login Password</label>
+              <input type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vault Passphrase
-              </label>
-              <input
-                type="password"
-                required
-                value={passphraseValue}
-                onChange={(e) => setPassphraseValue(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
+              <label className="block text-label-large text-md-on-surface mb-1">Vault Passphrase</label>
+              <input type="password" required value={passphraseValue} onChange={(e) => setPassphraseValue(e.target.value)}
+                className="w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface" />
             </div>
           </div>
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={loading}
-              className={cn(
-                'rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white',
-                'hover:bg-blue-700 disabled:opacity-50',
-              )}
-            >
+            <button type="submit" disabled={loading}
+              className="bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
               {loading ? 'Unlocking...' : 'Unlock'}
             </button>
           </div>
         </form>
       )}
 
-      {/* ── Unlocked ───────────────────────────────────────────────────── */}
       {hasPassphrase && isUnlocked && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="bg-md-primary-container text-md-on-primary-container rounded-md-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-800">Vault Unlocked</p>
-              <p className="text-xs text-green-600">
+              <p className="text-title-medium font-medium">Vault Unlocked</p>
+              <p className="text-body-medium text-md-on-primary-container/80">
                 Your host credentials are decrypted and available.
               </p>
             </div>
-            <button
-              onClick={handleLock}
-              className={cn(
-                'rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700',
-                'hover:bg-red-50',
-              )}
-            >
+            <button onClick={handleLock}
+              className="border border-md-outline text-md-error rounded-md-lg px-6 py-2.5 font-medium hover:bg-md-error-container/20 transition-colors">
               Lock Vault
             </button>
           </div>

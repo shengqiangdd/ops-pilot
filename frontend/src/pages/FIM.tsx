@@ -5,9 +5,9 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { cn } from '../lib/cn';
 
 const STATUS_COLORS: Record<string, string> = {
-  modified: 'bg-yellow-100 text-yellow-800',
-  deleted: 'bg-red-100 text-red-800',
-  added: 'bg-blue-100 text-blue-800',
+  modified: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200',
+  deleted: 'bg-md-error-container text-md-on-error-container',
+  added: 'bg-md-primary-container text-md-on-primary-container',
 };
 
 export function FIMPage() {
@@ -30,7 +30,7 @@ export function FIMPage() {
     setError(null);
     try {
       const res = await api.createFimBaseline(token, hostId);
-      setBaselineStatus(`基线已创建: ${res.files_baselined} 个文件`);
+      setBaselineStatus(`Baseline created: ${res.files_baselined} files`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed');
     } finally {
@@ -53,53 +53,56 @@ export function FIMPage() {
   }, [token, hostId]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">文件完整性监控</h2>
+        <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">File Integrity</h2>
         <div className="flex gap-2">
-          <select value={hostId} onChange={(e) => setHostId(e.target.value)} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm">
-            <option value="">选择主机</option>
+          <select value={hostId} onChange={(e) => setHostId(e.target.value)}
+            className="bg-md-surface-container-highest rounded-md-sm px-4 py-2.5 border border-md-outline text-body-medium text-md-on-surface">
+            <option value="">Select host</option>
             {hosts.map((h) => (<option key={h.id} value={h.id}>{h.name}</option>))}
           </select>
-          <button onClick={handleBaseline} disabled={loading || !hostId} className={cn('rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50')}>
-            创建基线
+          <button onClick={handleBaseline} disabled={loading || !hostId}
+            className="border border-md-outline text-md-primary rounded-md-lg px-6 py-2.5 font-medium hover:bg-md-surface-container-high disabled:opacity-50">
+            Create Baseline
           </button>
-          <button onClick={handleScan} disabled={loading || !hostId} className={cn('rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50')}>
-            {loading ? '扫描中...' : '执行扫描'}
+          <button onClick={handleScan} disabled={loading || !hostId}
+            className="bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
+            {loading ? 'Scanning...' : 'Run Scan'}
           </button>
         </div>
       </div>
 
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      {baselineStatus && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{baselineStatus}</div>}
+      {error && <div className="bg-md-error-container text-md-on-error-container rounded-md-sm px-4 py-3 text-body-medium">{error}</div>}
+      {baselineStatus && <div className="bg-md-primary-container text-md-on-primary-container rounded-md-sm px-4 py-3 text-body-medium">{baselineStatus}</div>}
 
       {scanResult && (
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-          <div className="border-b border-gray-200 px-4 py-3">
-            <span className="text-sm font-medium text-gray-700">
-              扫描结果: {scanResult.total_files} 个文件, {scanResult.changes.length} 个变更
+        <div className="bg-md-surface-container-low rounded-md-lg shadow-md-1">
+          <div className="border-b border-md-outline-variant px-4 py-3">
+            <span className="text-body-medium font-medium text-md-on-surface">
+              Scan results: {scanResult.total_files} files, {scanResult.changes.length} changes
             </span>
           </div>
           {scanResult.changes.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">状态</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">文件路径</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Hash</th>
+              <table className="min-w-full">
+                <thead>
+                  <tr className="border-b border-md-outline-variant">
+                    <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Status</th>
+                    <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">File Path</th>
+                    <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Hash</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {scanResult.changes.map((c, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
+                    <tr key={i} className="border-b border-md-outline-variant last:border-0 hover:bg-md-surface-container-high/50 transition-colors">
                       <td className="whitespace-nowrap px-4 py-3">
-                        <span className={cn('inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold', STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-800')}>
+                        <span className={cn('inline-block rounded-md-full px-2.5 py-0.5 text-label-medium font-semibold', STATUS_COLORS[c.status] || 'bg-md-surface-container-high text-md-on-surface-variant')}>
                           {c.status}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{c.path}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500 font-mono">
+                      <td className="whitespace-nowrap px-4 py-3 text-body-medium text-md-on-surface">{c.path}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-body-medium text-md-on-surface-variant font-mono">
                         {c.new_hash || c.hash || c.old_hash || '-'}
                       </td>
                     </tr>
@@ -108,14 +111,14 @@ export function FIMPage() {
               </table>
             </div>
           ) : (
-            <div className="p-6 text-center text-sm text-gray-500">所有文件与基线一致</div>
+            <div className="p-6 text-center text-body-medium text-md-on-surface-variant">All files match baseline</div>
           )}
         </div>
       )}
 
       {!scanResult && !loading && (
-        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
-          选择主机后点击"创建基线"建立基准，再点击"执行扫描"检测变更
+        <div className="bg-md-surface-container-low rounded-md-lg p-8 text-center text-body-medium text-md-on-surface-variant shadow-md-1">
+          Select a host, create a baseline, then run a scan to detect changes
         </div>
       )}
     </div>

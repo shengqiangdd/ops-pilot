@@ -47,83 +47,89 @@ export function RunbookPage() {
   }, [token, execName, execHost]);
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Runbook 管理</h2>
+    <div className="space-y-6 animate-slide-up">
+      <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Runbook</h2>
 
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="bg-md-error-container text-md-on-error-container rounded-md-sm px-4 py-3 text-body-medium">{error}</div>}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Create Runbook */}
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-base font-semibold text-gray-900">创建 Runbook</h3>
+        <div className="bg-md-surface-container-low rounded-md-lg p-4 sm:p-6 shadow-md-1">
+          <h3 className="mb-4 text-title-medium font-medium text-md-on-surface">Create Runbook</h3>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700">名称</label>
-              <input value={rbName} onChange={(e) => setRbName(e.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="重启 Nginx 服务" />
+              <label className="block text-label-large text-md-on-surface">Name</label>
+              <input value={rbName} onChange={(e) => setRbName(e.target.value)}
+                className="mt-1 w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface"
+                placeholder="Restart Nginx service" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">步骤描述（每行一步）</label>
-              <textarea value={rbDesc} onChange={(e) => setRbDesc(e.target.value)} rows={5} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder={"检查磁盘空间\n重启 nginx 服务\n确认服务健康"} />
+              <label className="block text-label-large text-md-on-surface">Steps (one per line)</label>
+              <textarea value={rbDesc} onChange={(e) => setRbDesc(e.target.value)} rows={5}
+                className="mt-1 w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface font-mono"
+                placeholder={"Check disk space\nRestart nginx service\nVerify service health"} />
             </div>
-            <button onClick={handleCreate} disabled={loading || !rbName || !rbDesc} className={cn('w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50')}>
-              {loading ? '创建中...' : '创建 Runbook'}
+            <button onClick={handleCreate} disabled={loading || !rbName || !rbDesc}
+              className="w-full bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
+              {loading ? 'Creating...' : 'Create Runbook'}
             </button>
           </div>
         </div>
 
-        {/* Execute Runbook */}
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-base font-semibold text-gray-900">执行 Runbook</h3>
+        <div className="bg-md-surface-container-low rounded-md-lg p-4 sm:p-6 shadow-md-1">
+          <h3 className="mb-4 text-title-medium font-medium text-md-on-surface">Execute Runbook</h3>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Runbook 名称</label>
-              <input value={execName} onChange={(e) => setExecName(e.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm" />
+              <label className="block text-label-large text-md-on-surface">Runbook Name</label>
+              <input value={execName} onChange={(e) => setExecName(e.target.value)}
+                className="mt-1 w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline text-body-medium text-md-on-surface" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">目标主机 ID（可选）</label>
-              <input value={execHost} onChange={(e) => setExecHost(e.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm" placeholder="localhost" />
+              <label className="block text-label-large text-md-on-surface">Target Host (optional)</label>
+              <input value={execHost} onChange={(e) => setExecHost(e.target.value)}
+                className="mt-1 w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline text-body-medium text-md-on-surface"
+                placeholder="localhost" />
             </div>
-            <button onClick={handleExecute} disabled={loading || !execName} className={cn('w-full rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50')}>
-              {loading ? '执行中...' : '执行'}
+            <button onClick={handleExecute} disabled={loading || !execName}
+              className="w-full bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
+              {loading ? 'Executing...' : 'Execute'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Created Runbook */}
       {created && (
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-3 text-base font-semibold text-gray-900">已创建: {created.name}</h3>
-          <p className="mb-3 text-sm text-gray-600">{created.description}</p>
+        <div className="bg-md-surface-container-low rounded-md-lg p-4 sm:p-6 shadow-md-1">
+          <h3 className="mb-3 text-title-medium font-medium text-md-on-surface">Created: {created.name}</h3>
+          <p className="mb-3 text-body-medium text-md-on-surface-variant">{created.description}</p>
           <div className="space-y-2">
             {created.steps.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
-                <span className="text-xs font-mono text-gray-400">{s.id}</span>
-                <span className="text-sm text-gray-700">{s.name}</span>
-                {s.requires_approval && <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-700">需审批</span>}
+              <div key={s.id} className="flex items-center gap-3 bg-md-surface-container rounded-md-md px-3 py-2">
+                <span className="text-label-medium text-md-on-surface-variant font-mono">{s.id}</span>
+                <span className="text-body-medium text-md-on-surface">{s.name}</span>
+                {s.requires_approval && <span className="rounded-md-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-label-medium text-amber-700 dark:text-amber-200">Approval needed</span>}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Execution Result */}
       {execution && (
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="bg-md-surface-container-low rounded-md-lg p-4 sm:p-6 shadow-md-1">
           <div className="mb-3 flex items-center gap-2">
-            <h3 className="text-base font-semibold text-gray-900">执行结果</h3>
-            <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', execution.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
-              {execution.success ? '成功' : '失败'}
+            <h3 className="text-title-medium font-medium text-md-on-surface">Execution Result</h3>
+            <span className={cn('rounded-md-full px-2.5 py-0.5 text-label-medium font-semibold',
+              execution.success ? 'bg-md-primary-container text-md-on-primary-container' : 'bg-md-error-container text-md-on-error-container')}>
+              {execution.success ? 'Success' : 'Failed'}
             </span>
           </div>
           <div className="space-y-2">
             {execution.steps.map((s) => (
-              <div key={s.step_id} className="rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
+              <div key={s.step_id} className="bg-md-surface-container rounded-md-md px-3 py-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">{s.step_id}</span>
-                  <span className="text-xs text-gray-500">{s.duration_ms}ms</span>
+                  <span className="text-body-medium font-medium text-md-on-surface">{s.step_id}</span>
+                  <span className="text-label-medium text-md-on-surface-variant">{s.duration_ms}ms</span>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">{s.output}</p>
+                <p className="mt-1 text-body-medium text-md-on-surface-variant">{s.output}</p>
               </div>
             ))}
           </div>

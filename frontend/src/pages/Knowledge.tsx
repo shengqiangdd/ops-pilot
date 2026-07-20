@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { api } from '../api/client';
 import type { KnowledgeEntry } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
-import { cn } from '../lib/cn';
 
 export function KnowledgePage() {
   const { token } = useAuthStore();
@@ -43,46 +42,47 @@ export function KnowledgePage() {
   }, [token, incidentId]);
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">运维知识库</h2>
+    <div className="space-y-6 animate-slide-up">
+      <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Knowledge Base</h2>
 
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="bg-md-error-container text-md-on-error-container rounded-md-sm px-4 py-3 text-body-medium">{error}</div>}
 
-      {/* Search */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-3 text-base font-semibold text-gray-900">搜索知识库</h3>
+      <div className="bg-md-surface-container-low rounded-md-lg p-4 sm:p-6 shadow-md-1">
+        <h3 className="mb-3 text-title-medium font-medium text-md-on-surface">Search Knowledge</h3>
         <div className="flex gap-2">
-          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="搜索关键词..." />
-          <button onClick={handleSearch} disabled={loading || !query} className={cn('rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50')}>
-            {loading ? '搜索中...' : '搜索'}
+          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="flex-1 bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface"
+            placeholder="Search keywords..." />
+          <button onClick={handleSearch} disabled={loading || !query}
+            className="bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
+            {loading ? 'Searching...' : 'Search'}
           </button>
         </div>
       </div>
 
-      {/* Search Results */}
       {results.length > 0 && (
         <div className="space-y-3">
           {results.map((r) => (
-            <div key={r.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <div key={r.id} className="bg-md-surface-container-low rounded-md-lg p-4 shadow-md-1">
               <div className="flex items-start justify-between">
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{r.title}</h4>
-                  <p className="mt-1 text-xs text-gray-500">事件: {r.incident_id}</p>
+                  <h4 className="text-body-large font-medium text-md-on-surface">{r.title}</h4>
+                  <p className="mt-1 text-body-medium text-md-on-surface-variant">Incident: {r.incident_id}</p>
                 </div>
                 <div className="flex gap-1">
                   {r.tags.map((t) => (
-                    <span key={t} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{t}</span>
+                    <span key={t} className="rounded-md-full bg-md-surface-container-high px-2 py-0.5 text-label-medium text-md-on-surface-variant">{t}</span>
                   ))}
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div>
-                  <span className="text-xs font-medium text-gray-500">根因:</span>
-                  <p className="text-sm text-gray-700">{r.root_cause}</p>
+                  <span className="text-label-medium text-md-on-surface-variant">Root Cause:</span>
+                  <p className="text-body-medium text-md-on-surface">{r.root_cause}</p>
                 </div>
                 <div>
-                  <span className="text-xs font-medium text-gray-500">解决方案:</span>
-                  <p className="text-sm text-gray-700">{r.resolution}</p>
+                  <span className="text-label-medium text-md-on-surface-variant">Resolution:</span>
+                  <p className="text-body-medium text-md-on-surface">{r.resolution}</p>
                 </div>
               </div>
             </div>
@@ -90,22 +90,24 @@ export function KnowledgePage() {
         </div>
       )}
 
-      {/* Extract Knowledge */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-3 text-base font-semibold text-gray-900">从事件中提取知识</h3>
+      <div className="bg-md-surface-container-low rounded-md-lg p-4 sm:p-6 shadow-md-1">
+        <h3 className="mb-3 text-title-medium font-medium text-md-on-surface">Extract Knowledge from Incident</h3>
         <div className="flex gap-2">
-          <input value={incidentId} onChange={(e) => setIncidentId(e.target.value)} className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm" placeholder="INC-001" />
-          <button onClick={handleExtract} disabled={loading || !incidentId} className={cn('rounded-md bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50')}>
-            {loading ? '提取中...' : '提取知识'}
+          <input value={incidentId} onChange={(e) => setIncidentId(e.target.value)}
+            className="flex-1 bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline text-body-medium text-md-on-surface"
+            placeholder="INC-001" />
+          <button onClick={handleExtract} disabled={loading || !incidentId}
+            className="bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
+            {loading ? 'Extracting...' : 'Extract'}
           </button>
         </div>
       </div>
 
       {extracted && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 shadow-sm">
-          <h4 className="text-sm font-semibold text-blue-900">已提取: {extracted.title}</h4>
-          <p className="mt-1 text-sm text-blue-700">根因: {extracted.root_cause}</p>
-          <p className="text-sm text-blue-700">解决方案: {extracted.resolution}</p>
+        <div className="bg-md-tertiary-container text-md-on-tertiary-container rounded-md-lg p-4 shadow-md-1">
+          <h4 className="text-body-large font-medium">Extracted: {extracted.title}</h4>
+          <p className="mt-1 text-body-medium">Root Cause: {extracted.root_cause}</p>
+          <p className="text-body-medium">Resolution: {extracted.resolution}</p>
         </div>
       )}
     </div>

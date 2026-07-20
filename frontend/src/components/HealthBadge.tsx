@@ -15,17 +15,14 @@ function statusLabel(status: HealthStatus): string {
 
 function statusColor(status: HealthStatus): string {
   if ('Healthy' in status) return 'bg-green-500';
-  if ('Degraded' in status) return 'bg-yellow-500';
-  if ('Unhealthy' in status) return 'bg-red-500';
-  return 'bg-gray-400';
+  if ('Degraded' in status) return 'bg-amber-500';
+  if ('Unhealthy' in status) return 'bg-md-error';
+  return 'bg-md-outline';
 }
 
 export function HealthBadge({ status, className }: HealthBadgeProps) {
   return (
-    <span
-      className={cn('inline-flex items-center gap-1.5 text-sm', className)}
-      title={statusLabel(status)}
-    >
+    <span className={cn('inline-flex items-center gap-1.5 text-body-medium', className)} title={statusLabel(status)}>
       <span className={cn('h-2.5 w-2.5 rounded-full', statusColor(status))} />
       <span>{'Healthy' in status ? 'Healthy' : 'Degraded' in status ? 'Degraded' : 'Unhealthy'}</span>
     </span>

@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { cn } from '../lib/cn';
 
-// ── Types ───────────────────────────────────────────────────────────────────
-
 type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
 interface Toast {
@@ -16,29 +14,22 @@ interface ToastContextValue {
   addToast: (message: string, variant?: ToastVariant, duration?: number) => void;
 }
 
-// ── Context ─────────────────────────────────────────────────────────────────
-
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {
-    // Fallback for components rendered outside provider
-    return {
-      addToast: (_msg: string, _variant?: ToastVariant, _duration?: number) => {},
-    };
+    return { addToast: (_msg: string, _variant?: ToastVariant, _duration?: number) => {} };
   }
   return ctx;
 }
 
-// ── Variant styles ──────────────────────────────────────────────────────────
-
 const variantStyles: Record<ToastVariant, string> = {
-  success: 'bg-green-600 text-white',
-  error: 'bg-red-600 text-white',
-  warning: 'bg-yellow-500 text-white',
-  info: 'bg-blue-600 text-white',
+  success: 'bg-md-primary text-md-on-primary',
+  error: 'bg-md-error text-md-on-error',
+  warning: 'bg-amber-500 text-white',
+  info: 'bg-md-secondary text-md-on-secondary',
 };
 
 const variantIcons: Record<ToastVariant, string> = {
@@ -47,8 +38,6 @@ const variantIcons: Record<ToastVariant, string> = {
   warning: '⚠',
   info: 'ℹ',
 };
-
-// ── Toast Item ──────────────────────────────────────────────────────────────
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
   const [exiting, setExiting] = useState(false);
@@ -64,20 +53,17 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   return (
     <div
       className={cn(
-        'pointer-events-auto flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all duration-300',
+        'pointer-events-auto flex items-center gap-2 rounded-md-lg px-4 py-3 text-body-medium font-medium shadow-md-2 transition-all duration-300',
         variantStyles[toast.variant],
         exiting ? 'translate-x-4 opacity-0' : 'translate-x-0 opacity-100',
       )}
     >
-      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
+      <span className="flex h-5 w-5 items-center justify-center rounded-md-full bg-white/20 text-xs font-bold">
         {variantIcons[toast.variant]}
       </span>
       <span className="flex-1">{toast.message}</span>
       <button
-        onClick={() => {
-          setExiting(true);
-          setTimeout(() => onDismiss(toast.id), 300);
-        }}
+        onClick={() => { setExiting(true); setTimeout(() => onDismiss(toast.id), 300); }}
         className="ml-2 text-white/70 hover:text-white"
       >
         ✕
@@ -85,8 +71,6 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
     </div>
   );
 }
-
-// ── Provider ────────────────────────────────────────────────────────────────
 
 let toastCounter = 0;
 
@@ -108,7 +92,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      {/* Toast container — fixed position bottom-right */}
       <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
