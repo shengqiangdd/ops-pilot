@@ -33,3 +33,7 @@ data/
 *.so
 *.dylib
 core
+
+# Coding tool config (local, not to upload)
+docs/mimo.json
+docs/opencode.json
