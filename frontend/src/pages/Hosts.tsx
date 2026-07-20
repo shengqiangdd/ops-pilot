@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import type { Host, CreateHostInput } from '../api/types';
+import { useAuthStore } from '../stores/useAuthStore';
 import { useVaultStore } from '../stores/useVaultStore';
 
 const EMPTY_FORM: CreateHostInput = {
@@ -20,19 +21,21 @@ export function HostsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const { isUnlocked } = useVaultStore();
+  const { token } = useAuthStore();
 
   const load = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const list = await api.listHosts();
+      const list = await api.listHosts(token);
       setHosts(list);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load hosts');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -41,7 +44,7 @@ export function HostsPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await api.createHost(form);
+      await api.createHost(token!, form);
       setForm(EMPTY_FORM);
       setShowForm(false);
       await load();
@@ -57,7 +60,7 @@ export function HostsPage() {
     setDeleting(id);
     setError(null);
     try {
-      await api.deleteHost(id);
+      await api.deleteHost(token!, id);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete host');

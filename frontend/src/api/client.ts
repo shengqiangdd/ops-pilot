@@ -92,16 +92,16 @@ export const api = {
 
   // ── Hosts ──────────────────────────────────────────────────────────────
 
-  listHosts: () => request<Host[]>('/hosts'),
+  listHosts: (token: string) => requestWithAuth<Host[]>('/api/hosts', token),
 
-  createHost: (input: CreateHostInput) =>
-    request<Host>('/hosts', {
+  createHost: (token: string, input: CreateHostInput) =>
+    requestWithAuth<Host>('/api/hosts', token, {
       method: 'POST',
       body: JSON.stringify(input),
     }),
 
-  deleteHost: (id: string) =>
-    request<void>(`/hosts/${encodeURIComponent(id)}`, {
+  deleteHost: (token: string, id: string) =>
+    requestWithAuth<void>(`/api/hosts/${encodeURIComponent(id)}`, token, {
       method: 'DELETE',
     }),
 

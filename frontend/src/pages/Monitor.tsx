@@ -15,7 +15,7 @@ export function MonitorPage() {
 
   useEffect(() => {
     if (!token) return;
-    api.listHosts().then((h) => setHosts(h.map((x) => ({ id: x.id, name: x.name })))).catch(() => {});
+    api.listHosts(token).then((h) => setHosts(h.map((x) => ({ id: x.id, name: x.name })))).catch(() => {});
   }, [token]);
 
   const collect = useCallback(async () => {

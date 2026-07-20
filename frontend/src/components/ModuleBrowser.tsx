@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
-import type { ModuleInfo, HealthStatus } from '../api/types';
+import type { ModuleInfo } from '../api/types';
+import { getHealthLabel, getHealthColor } from '../lib/health';
+import { useI18n } from '../i18n';
 
 interface ModuleRow extends ModuleInfo {
-  health?: HealthStatus;
+  health?: import('../api/types').HealthStatus;
 }
 
 export function ModuleBrowser() {
+  const { t } = useI18n();
   const [modules, setModules] = useState<ModuleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,10 +51,10 @@ export function ModuleBrowser() {
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">
-        <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Modules</h2>
+        <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">{t('modules.title')}</h2>
         <button onClick={load} disabled={loading}
           className="bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
-          {loading ? 'Loading...' : 'Reload'}
+          {loading ? '…' : t('modules.reload')}
         </button>
       </div>
 
@@ -61,20 +64,20 @@ export function ModuleBrowser() {
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-md-outline-variant">
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Name</th>
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Version</th>
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Description</th>
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Health</th>
-              <th className="px-4 py-3 text-right text-label-medium text-md-on-surface-variant">Enabled</th>
+              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">{t('modules.name')}</th>
+              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">{t('modules.version')}</th>
+              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">{t('modules.description')}</th>
+              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">{t('modules.health')}</th>
+              <th className="px-4 py-3 text-right text-label-medium text-md-on-surface-variant">{t('modules.enabled')}</th>
             </tr>
           </thead>
           <tbody>
             {modules.map((m) => {
-              const dotColor = m.health
-                ? ('Healthy' in m.health ? 'bg-green-500' : 'Degraded' in m.health ? 'bg-amber-500' : 'bg-md-error')
-                : '';
-              const healthLabel = m.health
-                ? ('Healthy' in m.health ? 'Healthy' : 'Degraded' in m.health ? 'Degraded' : 'Unhealthy')
+              const healthLabel = m.health ? getHealthLabel(m.health) : null;
+              const dotColor = m.health ? getHealthColor(m.health) : '';
+              const labelKey = healthLabel === 'Healthy' ? 'modules.healthy'
+                : healthLabel === 'Degraded' ? 'modules.degraded'
+                : healthLabel === 'Unhealthy' ? 'modules.unhealthy'
                 : null;
               return (
                 <tr key={m.name} className={`border-b border-md-outline-variant last:border-0 hover:bg-md-surface-container-high/50 transition-colors ${!m.enabled ? 'opacity-60' : ''}`}>
@@ -82,10 +85,10 @@ export function ModuleBrowser() {
                   <td className="whitespace-nowrap px-4 py-3 text-body-medium text-md-on-surface-variant">{m.version}</td>
                   <td className="px-4 py-3 text-body-medium text-md-on-surface-variant">{m.description}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-body-medium">
-                    {healthLabel ? (
+                    {healthLabel && labelKey ? (
                       <span className="inline-flex items-center gap-1.5">
                         <span className={`h-2 w-2 rounded-full ${dotColor}`} />
-                        {healthLabel}
+                        {t(labelKey)}
                       </span>
                     ) : <span className="text-md-outline">--</span>}
                   </td>
@@ -100,7 +103,7 @@ export function ModuleBrowser() {
               );
             })}
             {!loading && modules.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-body-medium text-md-on-surface-variant">No modules loaded</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-body-medium text-md-on-surface-variant">{t('modules.title')}</td></tr>
             )}
           </tbody>
         </table>

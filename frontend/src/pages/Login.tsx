@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { api } from '../api/client';
+import { useI18n } from '../i18n';
 
 type Mode = 'login' | 'register';
 
@@ -12,6 +13,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,15 +50,15 @@ export function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </div>
-          <h1 className="text-headline-medium font-medium text-md-on-surface">OpsPilot</h1>
+          <h1 className="text-headline-medium font-medium text-md-on-surface">{t('app.name')}</h1>
           <p className="mt-1 text-body-medium text-md-on-surface-variant">
-            AI-Powered Infrastructure Operations Platform
+            {t('app.tagline')}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-label-large text-md-on-surface mb-1">Username</label>
+            <label className="block text-label-large text-md-on-surface mb-1">{t('login.username')}</label>
             <input
               type="text"
               required
@@ -64,13 +66,13 @@ export function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="block w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface"
-              placeholder="Enter your username"
+              placeholder={t('login.username')}
             />
           </div>
 
           {mode === 'register' && (
             <div>
-              <label className="block text-label-large text-md-on-surface mb-1">Email</label>
+              <label className="block text-label-large text-md-on-surface mb-1">{t('login.email')}</label>
               <input
                 type="email"
                 required
@@ -83,7 +85,7 @@ export function LoginPage() {
           )}
 
           <div>
-            <label className="block text-label-large text-md-on-surface mb-1">Password</label>
+            <label className="block text-label-large text-md-on-surface mb-1">{t('login.password')}</label>
             <input
               type="password"
               required
@@ -91,7 +93,7 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="block w-full bg-md-surface-container-highest rounded-md-sm px-4 py-3 border border-md-outline focus:border-md-primary focus:ring-2 focus:ring-md-primary/20 outline-none text-body-medium text-md-on-surface"
-              placeholder={mode === 'register' ? 'At least 6 characters' : 'Enter your password'}
+              placeholder={mode === 'register' ? 'At least 6 characters' : t('login.password')}
             />
           </div>
 
@@ -112,10 +114,10 @@ export function LoginPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                 </svg>
-                {mode === 'login' ? 'Signing in...' : 'Creating account...'}
+                {mode === 'login' ? '登录中…' : '创建中…'}
               </span>
             ) : (
-              mode === 'login' ? 'Sign In' : 'Create Account'
+              mode === 'login' ? t('login.signin') : t('login.create_account')
             )}
           </button>
         </form>
@@ -123,16 +125,16 @@ export function LoginPage() {
         <div className="mt-6 text-center text-body-medium text-md-on-surface-variant">
           {mode === 'login' ? (
             <>
-              Don't have an account?{' '}
+              {t('login.no_account')}{' '}
               <button onClick={switchMode} className="font-medium text-md-primary hover:underline">
-                Create one
+                {t('login.create')}
               </button>
             </>
           ) : (
             <>
-              Already have an account?{' '}
+              {t('login.has_account')}{' '}
               <button onClick={switchMode} className="font-medium text-md-primary hover:underline">
-                Sign in
+                {t('login.sign_in')}
               </button>
             </>
           )}

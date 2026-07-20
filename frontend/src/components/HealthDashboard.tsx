@@ -1,119 +1,106 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import type { ModuleHealth } from '../api/types';
-
-const REFRESH_INTERVAL = 30_000;
+import { cn } from '../lib/cn';
+import { getHealthLabel, getHealthColor } from '../lib/health';
+import { useI18n } from '../i18n';
 
 export function HealthDashboard() {
+  const { t } = useI18n();
   const [modules, setModules] = useState<ModuleHealth[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
       const data = await api.getHealthAll();
       setModules(data);
-      setLastRefresh(new Date());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch health');
+      setError(e instanceof Error ? e.message : 'Failed to load health');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    load();
-    timerRef.current = setInterval(load, REFRESH_INTERVAL);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [load]);
+  useEffect(() => { load(); const interval = setInterval(load, 30000); return () => clearInterval(interval); }, [load]);
 
-  const healthy = modules.filter((m) => 'Healthy' in m.status).length;
-  const degraded = modules.filter((m) => 'Degraded' in m.status).length;
-  const unhealthy = modules.filter((m) => 'Unhealthy' in m.status).length;
+  const healthy = modules.filter((m) => getHealthLabel(m.status) === 'Healthy').length;
+  const degraded = modules.filter((m) => getHealthLabel(m.status) === 'Degraded').length;
+  const unhealthy = modules.filter((m) => getHealthLabel(m.status) === 'Unhealthy').length;
+
+  const labelFor = (label: string | null) => {
+    if (label === 'Healthy') return t('modules.healthy');
+    if (label === 'Degraded') return t('modules.degraded');
+    if (label === 'Unhealthy') return t('modules.unhealthy');
+    return label ?? '--';
+  };
 
   return (
     <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Health Dashboard</h2>
-          {lastRefresh && (
-            <p className="text-label-medium text-md-on-surface-variant">Last refreshed: {lastRefresh.toLocaleTimeString()}</p>
-          )}
-        </div>
+        <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">{t('health.title')}</h2>
         <button onClick={load} disabled={loading}
           className="bg-md-primary text-md-on-primary rounded-md-lg px-6 py-2.5 font-medium hover:shadow-md-2 active:scale-[0.97] transition-all disabled:opacity-50">
-          Refresh Now
+          {loading ? '…' : t('health.refresh')}
         </button>
       </div>
 
       {error && <div className="bg-md-error-container text-md-on-error-container rounded-md-sm px-4 py-3 text-body-medium">{error}</div>}
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-md-primary-container text-md-on-primary-container rounded-md-lg p-4 text-center shadow-md-1">
-          <div className="text-headline-medium font-medium">{healthy}</div>
-          <div className="text-body-medium">Healthy</div>
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-md-primary-container rounded-md-lg p-4 shadow-md-1 animate-slide-up">
+          <p className="text-label-medium text-md-on-primary-container/70">{t('modules.healthy')}</p>
+          <p className="text-headline-medium font-medium text-md-on-primary-container">{healthy}</p>
         </div>
-        <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-200 rounded-md-lg p-4 text-center shadow-md-1">
-          <div className="text-headline-medium font-medium">{degraded}</div>
-          <div className="text-body-medium">Degraded</div>
+        <div className="bg-amber-50 dark:bg-amber-900/30 rounded-md-lg p-4 shadow-md-1 animate-slide-up" style={{ animationDelay: '100ms' }}>
+          <p className="text-label-medium text-amber-700 dark:text-amber-200/70">{t('modules.degraded')}</p>
+          <p className="text-headline-medium font-medium text-amber-800 dark:text-amber-100">{degraded}</p>
         </div>
-        <div className="bg-md-error-container text-md-on-error-container rounded-md-lg p-4 text-center shadow-md-1">
-          <div className="text-headline-medium font-medium">{unhealthy}</div>
-          <div className="text-body-medium">Unhealthy</div>
+        <div className="bg-md-error-container rounded-md-lg p-4 shadow-md-1 animate-slide-up" style={{ animationDelay: '200ms' }}>
+          <p className="text-label-medium text-md-on-error-container/70">{t('modules.unhealthy')}</p>
+          <p className="text-headline-medium font-medium text-md-on-error-container">{unhealthy}</p>
         </div>
       </div>
 
+      {/* Module health table */}
       <div className="bg-md-surface-container-low rounded-md-lg shadow-md-1 overflow-hidden">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-md-outline-variant">
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Module</th>
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Status</th>
-              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">Details</th>
+              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">{t('health.module')}</th>
+              <th className="px-4 py-3 text-left text-label-medium text-md-on-surface-variant">{t('health.status')}</th>
+              <th className="px-4 py-3 text-right text-label-medium text-md-on-surface-variant">{t('health.enabled')}</th>
             </tr>
           </thead>
           <tbody>
             {modules.map((m) => {
-              const isUnhealthy = 'Unhealthy' in m.status;
-              const isDegraded = 'Degraded' in m.status;
-              const reason = 'Degraded' in m.status ? m.status.Degraded.reason
-                : 'Unhealthy' in m.status ? m.status.Unhealthy.reason : null;
-              const dotColor = 'Healthy' in m.status ? 'bg-green-500'
-                : 'Degraded' in m.status ? 'bg-amber-500' : 'bg-md-error';
-
+              const label = getHealthLabel(m.status);
               return (
-                <tr key={m.name}
-                  className={`border-b border-md-outline-variant last:border-0 hover:bg-md-surface-container-high/50 transition-colors ${isUnhealthy ? 'bg-md-error-container/20' : isDegraded ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}>
-                  <td className="whitespace-nowrap px-4 py-3 text-body-medium font-medium text-md-on-surface">
-                    {m.name}
-                    {!m.enabled && <span className="ml-2 text-label-medium text-md-outline">(disabled)</span>}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-body-medium">
+                <tr key={m.name} className="border-b border-md-outline-variant last:border-0 hover:bg-md-surface-container-high/50 transition-colors">
+                  <td className="px-4 py-3 text-body-medium font-medium text-md-on-surface">{m.name}</td>
+                  <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className={`h-2.5 w-2.5 rounded-full ${dotColor}`} />
-                      {'Healthy' in m.status ? 'Healthy' : 'Degraded' in m.status ? 'Degraded' : 'Unhealthy'}
+                      <span className={cn('h-2 w-2 rounded-full', getHealthColor(m.status))} />
+                      {labelFor(label)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-body-medium text-md-on-surface-variant">{reason || '--'}</td>
+                  <td className="px-4 py-3 text-right">
+                    <span className={cn('inline-flex items-center gap-1.5 text-label-medium', m.enabled ? 'text-green-600 dark:text-green-400' : 'text-md-on-surface-variant')}>
+                      <span className={cn('h-2 w-2 rounded-full', m.enabled ? 'bg-green-500' : 'bg-md-outline')} />
+                      {m.enabled ? '已启用' : '已禁用'}
+                    </span>
+                  </td>
                 </tr>
               );
             })}
             {!loading && modules.length === 0 && (
-              <tr><td colSpan={3} className="px-4 py-8 text-center text-body-medium text-md-on-surface-variant">No modules to display</td></tr>
+              <tr><td colSpan={3} className="px-4 py-8 text-center text-body-medium text-md-on-surface-variant">{t('modules.title')}</td></tr>
             )}
           </tbody>
         </table>
-      </div>
-
-      <div className="flex items-center gap-2 text-label-medium text-md-outline">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-        </span>
-        Auto-refreshing every {REFRESH_INTERVAL / 1000}s
       </div>
     </div>
   );

@@ -5,7 +5,8 @@
 @tailwind utilities;
 
 @layer base {
-  * { @apply transition-colors duration-300; }
+  /* 默认主题 (Magenta) — 放在 :root 上 */
+  :root { @apply theme-magenta; }
 
   html { font-family: 'Inter', system-ui, sans-serif; }
 
@@ -15,7 +16,7 @@
   }
 
   /* ===== MD3 色板: Magenta (默认) ===== */
-  .theme-magenta, :root {
+  .theme-magenta {
     --md-sys-color-primary: #6750A4;
     --md-sys-color-on-primary: #FFFFFF;
     --md-sys-color-primary-container: #EADDFF;
