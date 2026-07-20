@@ -432,7 +432,17 @@ const zh: Record<string, string> = {
   'chat.title': 'AI 对话',
   'chat.placeholder': '输入消息...',
   'chat.send': '发送',
-  'chat.start': '与 OpsPilot 智能体开始对话。',
+  'chat.start': '与 OpsPilot 智能体开始对话。使用快捷按钮或直接输入消息。',
+  'chat.login_required': '请先登录以使用 AI 对话。',
+  'chat.connecting': '连接中...',
+  'chat.thinking': '思考中...',
+  'chat.step': '步骤',
+  'chat.hint': '提示：输入"诊断:"可触发自动诊断，输入"查询:"可触发自然语言查询',
+  'chat.quick.diagnose': '运维诊断',
+  'chat.quick.knowledge': '查询知识库',
+  'chat.quick.metrics': '查询指标',
+  'chat.quick.hosts': '主机状态',
+  'chat.quick.alerts': '最近告警',
 
   /* Login page */
   'login.username': '用户名',

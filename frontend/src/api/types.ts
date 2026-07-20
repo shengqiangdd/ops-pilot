@@ -462,3 +462,29 @@ export interface BatchExecuteResponse {
   succeeded: number;
   failed: number;
 }
+
+// ── AI Assistant types ─────────────────────────────────────────────────
+
+export interface NlQueryRequest {
+  query: string;
+}
+
+export interface NlQueryResponse {
+  query: string;
+  parsed_intent: string;
+  results: Array<Record<string, unknown>>;
+  summary: string;
+}
+
+export interface DiagnoseRequest {
+  host_id?: string;
+  issue_description: string;
+}
+
+export interface DiagnoseResponse {
+  issue: string;
+  severity: string;
+  possible_causes: string[];
+  recommended_actions: string[];
+  related_knowledge: Array<Record<string, unknown>>;
+}

@@ -37,6 +37,9 @@ import type {
   CreateConfigInput,
   BatchExecuteRequest,
   BatchExecuteResponse,
+  NlQueryResponse,
+  DiagnoseRequest,
+  DiagnoseResponse,
 } from './types';
 
 const BASE = '/api';
@@ -482,6 +485,20 @@ export const api = {
 
   batchExecute: (token: string, input: BatchExecuteRequest) =>
     requestWithAuth<BatchExecuteResponse>('/hosts/batch/execute', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  // ── AI Assistant ─────────────────────────────────────────────────────
+
+  nlQuery: (token: string, query: string) =>
+    requestWithAuth<NlQueryResponse>('/agent/nl-query', token, {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    }),
+
+  diagnose: (token: string, input: DiagnoseRequest) =>
+    requestWithAuth<DiagnoseResponse>('/agent/diagnose', token, {
       method: 'POST',
       body: JSON.stringify(input),
     }),

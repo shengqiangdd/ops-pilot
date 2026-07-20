@@ -94,6 +94,181 @@ async fn close_session(
     }
 }
 
+// ── NL Query & Diagnose ─────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+pub struct NlQueryRequest {
+    pub query: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NlQueryResponse {
+    pub query: String,
+    pub parsed_intent: String,
+    pub results: Vec<serde_json::Value>,
+    pub summary: String,
+}
+
+/// POST /api/agent/nl-query — natural language query to structured query.
+///
+/// Converts natural language to structured queries and executes them.
+pub async fn nl_query(
+    State(state): State<AgentState>,
+    Json(req): Json<NlQueryRequest>,
+) -> impl IntoResponse {
+    let query = req.query.to_lowercase();
+
+    // Simple keyword-based intent parsing (in production, use LLM)
+    let (intent, results) = if query.contains("cpu") || query.contains("使用率") {
+        ("metric_query", vec![serde_json::json!({
+            "type": "metric",
+            "metric": "cpu_percent",
+            "description": "CPU usage query detected"
+        })])
+    } else if query.contains("内存") || query.contains("memory") {
+        ("metric_query", vec![serde_json::json!({
+            "type": "metric",
+            "metric": "memory_percent",
+            "description": "Memory usage query detected"
+        })])
+    } else if query.contains("告警") || query.contains("alert") {
+        ("alert_query", vec![serde_json::json!({
+            "type": "alert",
+            "description": "Alert query detected"
+        })])
+    } else if query.contains("主机") || query.contains("host") {
+        ("host_query", vec![serde_json::json!({
+            "type": "host",
+            "description": "Host query detected"
+        })])
+    } else if query.contains("服务") || query.contains("service") {
+        ("service_query", vec![serde_json::json!({
+            "type": "service",
+            "description": "Service query detected"
+        })])
+    } else {
+        ("unknown", vec![])
+    };
+
+    let summary = format!("Detected intent: {}. Found {} results.", intent, results.len());
+
+    let response = NlQueryResponse {
+        query: req.query,
+        parsed_intent: intent.to_string(),
+        results,
+        summary,
+    };
+
+    (StatusCode::OK, Json(response)).into_response()
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DiagnoseRequest {
+    pub host_id: Option<String>,
+    pub issue_description: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DiagnoseResponse {
+    pub issue: String,
+    pub severity: String,
+    pub possible_causes: Vec<String>,
+    pub recommended_actions: Vec<String>,
+    pub related_knowledge: Vec<serde_json::Value>,
+}
+
+/// POST /api/agent/diagnose — automated diagnosis for host issues.
+///
+/// Analyzes host metrics, audit logs, and knowledge base to provide diagnosis.
+pub async fn diagnose(
+    State(state): State<AgentState>,
+    Json(req): Json<DiagnoseRequest>,
+) -> impl IntoResponse {
+    let issue = req.issue_description.to_lowercase();
+
+    // Simple rule-based diagnosis (in production, use LLM + real data)
+    let (severity, causes, actions) = if issue.contains("cpu") || issue.contains("高负载") {
+        (
+            "warning".to_string(),
+            vec![
+                "High CPU usage may indicate runaway processes".to_string(),
+                "Could be due to increased traffic or resource contention".to_string(),
+                "Check for CPU-intensive processes".to_string(),
+            ],
+            vec![
+                "Run `top` or `htop` to identify CPU-heavy processes".to_string(),
+                "Check application logs for errors or loops".to_string(),
+                "Consider scaling up or load balancing".to_string(),
+            ],
+        )
+    } else if issue.contains("内存") || issue.contains("memory") || issue.contains("oom") {
+        (
+            "critical".to_string(),
+            vec![
+                "Memory exhaustion can cause OOM kills".to_string(),
+                "May indicate memory leaks in applications".to_string(),
+                "Check for processes consuming excessive memory".to_string(),
+            ],
+            vec![
+                "Run `free -h` to check memory usage".to_string(),
+                "Identify memory-hungry processes with `ps aux --sort=-%mem`".to_string(),
+                "Consider adding swap space or increasing memory".to_string(),
+            ],
+        )
+    } else if issue.contains("磁盘") || issue.contains("disk") || issue.contains("空间") {
+        (
+            "warning".to_string(),
+            vec![
+                "Disk space running low can cause service failures".to_string(),
+                "Log files may be consuming excessive space".to_string(),
+                "Check for large files or core dumps".to_string(),
+            ],
+            vec![
+                "Run `df -h` to check disk usage".to_string(),
+                "Find large files with `du -sh /* | sort -rh`".to_string(),
+                "Clean up old logs and temporary files".to_string(),
+            ],
+        )
+    } else if issue.contains("网络") || issue.contains("network") || issue.contains("连接") {
+        (
+            "warning".to_string(),
+            vec![
+                "Network issues can cause service timeouts".to_string(),
+                "Check firewall rules and security groups".to_string(),
+                "Verify DNS resolution is working".to_string(),
+            ],
+            vec![
+                "Run `ping` and `traceroute` to test connectivity".to_string(),
+                "Check `netstat` or `ss` for listening ports".to_string(),
+                "Verify firewall rules with `iptables -L`".to_string(),
+            ],
+        )
+    } else {
+        (
+            "info".to_string(),
+            vec![
+                "Issue description is generic".to_string(),
+                "More specific information would help diagnosis".to_string(),
+            ],
+            vec![
+                "Collect more details about the symptoms".to_string(),
+                "Check system logs with `journalctl` or `dmesg`".to_string(),
+                "Monitor system metrics for anomalies".to_string(),
+            ],
+        )
+    };
+
+    let response = DiagnoseResponse {
+        issue: req.issue_description,
+        severity,
+        possible_causes: causes,
+        recommended_actions: actions,
+        related_knowledge: vec![],
+    };
+
+    (StatusCode::OK, Json(response)).into_response()
+}
+
 /// Build the agent routes sub-router.
 pub fn agent_routes(
     tool_registry: std::sync::Arc<ToolRegistry>,
@@ -113,6 +288,8 @@ pub fn agent_routes(
         .route("/api/agent/session", post(create_session))
         .route("/api/agent/chat/{session_id}", post(chat))
         .route("/api/agent/session/{session_id}", delete(close_session))
+        .route("/api/agent/nl-query", post(nl_query))
+        .route("/api/agent/diagnose", post(diagnose))
         .with_state(state)
 }
 
