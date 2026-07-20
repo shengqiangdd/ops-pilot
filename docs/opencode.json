@@ -47,31 +47,31 @@
   },
   "agents": {
     "system-architect": {
-      "file": ".opencode/agents/system-architect.md",
+      "file": "docs/agents/system-architect.md",
       "model": "opencode-go/mimo-v2.5"
     },
     "rust-developer": {
-      "file": ".opencode/agents/rust-developer.md",
+      "file": "docs/agents/rust-developer.md",
       "model": "opencode-go/mimo-v2.5"
     },
     "frontend-developer": {
-      "file": ".opencode/agents/frontend-developer.md",
+      "file": "docs/agents/frontend-developer.md",
       "model": "opencode-go/mimo-v2.5"
     },
     "code-reviewer": {
-      "file": ".opencode/agents/code-reviewer.md",
+      "file": "docs/agents/code-reviewer.md",
       "model": "opencode-go/mimo-v2.5"
     },
     "devops-engineer": {
-      "file": ".opencode/agents/devops-engineer.md",
+      "file": "docs/agents/devops-engineer.md",
       "model": "opencode-go/mimo-v2.5"
     },
     "testing-engineer": {
-      "file": ".opencode/agents/testing-engineer.md",
+      "file": "docs/agents/testing-engineer.md",
       "model": "opencode-go/mimo-v2.5"
     },
     "documentation": {
-      "file": ".opencode/agents/documentation.md",
+      "file": "docs/agents/documentation.md",
       "model": "opencode-go/mimo-v2.5"
     }
   },
