@@ -5,6 +5,7 @@ const en: Record<string, string> = {
   'nav.light': 'Light',
   'nav.dark': 'Dark',
   'nav.logout': 'Logout',
+  'nav.back': 'Back',
 
   'cat.dashboard': 'Dashboard',
   'cat.system': 'System',
@@ -34,6 +35,7 @@ const en: Record<string, string> = {
   'tab.scheduler': 'Cron',
   'tab.filesync': 'Sync',
   'tab.advisor': 'Adv',
+  'tab.terminal': 'Term',
 
   'title.dashboard': 'Dashboard',
   'title.chat': 'Agent Chat',
@@ -54,6 +56,21 @@ const en: Record<string, string> = {
   'title.scheduler': 'Scheduler',
   'title.filesync': 'File Sync',
   'title.advisor': 'Advisor',
+  'title.terminal': 'Web Terminal',
+
+  /* Terminal page */
+  'terminal.title': 'Web Terminal',
+  'terminal.status.connecting': 'Connecting...',
+  'terminal.status.connected': 'Connected',
+  'terminal.status.disconnected': 'Disconnected',
+  'terminal.status.error': 'Error',
+  'terminal.connecting': 'Establishing SSH connection...',
+  'terminal.connection_error': 'WebSocket connection failed',
+  'terminal.reconnect': 'Reconnect',
+  'terminal.disconnect': 'Disconnect',
+  'terminal.ssh': 'WebSSH',
+  'terminal.select_host_hint': 'Please select a host from the Hosts page and click the "WebSSH" button to connect.',
+  'terminal.go_to_hosts': 'Go to Hosts',
 
   'modules.title': 'Modules',
   'modules.reload': 'Reload',

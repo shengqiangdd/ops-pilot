@@ -20,6 +20,7 @@ import { WebhookPage } from './pages/Webhook';
 import { SchedulerPage } from './pages/Scheduler';
 import { FileSyncPage } from './pages/FileSync';
 import { AdvisorPage } from './pages/Advisor';
+import { TerminalPage } from './pages/Terminal';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -32,12 +33,12 @@ import { cn } from './lib/cn';
 type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
-  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor';
+  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor' | 'terminal';
 
 const ALL_TABS: Tab[] = [
   'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
-  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
+  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor', 'terminal',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -64,13 +65,14 @@ const ICONS: Record<Tab, string> = {
   scheduler: '⏰',
   filesync: '📁',
   advisor: '💡',
+  terminal: '⌨️',
 };
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
   { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault'] },
-  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'topo', 'monitor'] },
+  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'monitor'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['scheduler', 'runbook', 'filesync'] },
   { icon: '🔔', catKey: 'cat.monitor', tabs: ['escalation', 'health'] },
@@ -91,8 +93,8 @@ const CAT_KEY_LABELS: Record<string, string> = {
 };
 
 /* ── AppShell ── */
-function AppShell() {
-  const [tab, setTab] = useState<Tab>('dashboard');
+function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
+  const [tab, setTab] = useState<Tab>(initialTab ?? 'dashboard');
   const { token, username, logout } = useAuthStore();
   const { isUnlocked, checkStatus } = useVaultStore();
   const { isDark, toggleDark } = useTheme();
@@ -103,11 +105,11 @@ function AppShell() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const path = location.pathname.slice(1) as Tab;
-    if ((ALL_TABS as readonly string[]).includes(path)) {
-      setTab(path);
+    const firstSegment = location.pathname.split('/')[1] as Tab;
+    if ((ALL_TABS as readonly string[]).includes(firstSegment)) {
+      setTab(firstSegment);
       for (const item of SIDEBAR_ITEMS) {
-        if (item.tabs.includes(path)) {
+        if (item.tabs.includes(firstSegment)) {
           setCollapsed(prev => ({ ...prev, [item.catKey]: false }));
         }
       }
@@ -150,6 +152,7 @@ function AppShell() {
       case 'scheduler': return <SchedulerPage />;
       case 'filesync': return <FileSyncPage />;
       case 'advisor': return <AdvisorPage />;
+      case 'terminal': return <TerminalPage />;
       default: return <Dashboard />;
     }
   };
@@ -334,6 +337,7 @@ export function App() {
     <ErrorBoundary>
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+        <Route path="/terminal/:hostId" element={token ? <AppShell initialTab="terminal" /> : <Navigate to="/login" replace />} />
         <Route path="/*" element={token ? <AppShell /> : <Navigate to="/login" replace />} />
       </Routes>
     </ErrorBoundary>

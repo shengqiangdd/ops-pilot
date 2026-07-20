@@ -6,6 +6,7 @@ const zh: Record<string, string> = {
   'nav.light': '浅色',
   'nav.dark': '深色',
   'nav.logout': '退出',
+  'nav.back': '返回',
 
   /* Sidebar categories */
   'cat.dashboard': '数据大屏',
@@ -37,6 +38,7 @@ const zh: Record<string, string> = {
   'tab.scheduler': '调度',
   'tab.filesync': '同步',
   'tab.advisor': '建议',
+  'tab.terminal': '终端',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -58,6 +60,21 @@ const zh: Record<string, string> = {
   'title.scheduler': '任务调度',
   'title.filesync': '文件同步',
   'title.advisor': '智能建议',
+  'title.terminal': 'Web 终端',
+
+  /* Terminal page */
+  'terminal.title': 'Web 终端',
+  'terminal.status.connecting': '连接中...',
+  'terminal.status.connected': '已连接',
+  'terminal.status.disconnected': '已断开',
+  'terminal.status.error': '连接错误',
+  'terminal.connecting': '正在建立 SSH 连接...',
+  'terminal.connection_error': 'WebSocket 连接失败',
+  'terminal.reconnect': '重新连接',
+  'terminal.disconnect': '断开连接',
+  'terminal.ssh': 'WebSSH',
+  'terminal.select_host_hint': '请从主机管理页面选择一台主机，然后点击「WebSSH」按钮连接终端。',
+  'terminal.go_to_hosts': '前往主机管理',
 
   /* Desk */
   'desk': '桌面',

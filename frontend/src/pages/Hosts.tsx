@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Host, CreateHostInput } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useVaultStore } from '../stores/useVaultStore';
+import { useI18n } from '../i18n';
 
 const EMPTY_FORM: CreateHostInput = {
   name: '',
@@ -22,6 +24,8 @@ export function HostsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const { isUnlocked } = useVaultStore();
   const { token } = useAuthStore();
+  const navigate = useNavigate();
+  const { t } = useI18n();
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -181,15 +185,23 @@ export function HostsPage() {
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-body-medium text-md-on-surface-variant">{h.auth_method}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
-                  <button onClick={() => handleDelete(h.id)} disabled={deleting === h.id}
-                    className="text-md-error rounded-md-sm px-2.5 py-1 text-label-large hover:bg-md-error-container/30 disabled:opacity-50 transition-colors">
-                    {deleting === h.id ? 'Deleting...' : 'Delete'}
-                  </button>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => navigate(`/terminal/${h.id}`)}
+                      className="text-md-primary rounded-md-sm px-2.5 py-1 text-label-large hover:bg-md-primary-container/30 transition-colors"
+                    >
+                      {t('terminal.ssh')}
+                    </button>
+                    <button onClick={() => handleDelete(h.id)} disabled={deleting === h.id}
+                      className="text-md-error rounded-md-sm px-2.5 py-1 text-label-large hover:bg-md-error-container/30 disabled:opacity-50 transition-colors">
+                      {deleting === h.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
             {!loading && hosts.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-body-medium text-md-on-surface-variant">No hosts configured</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-body-medium text-md-on-surface-variant">{t('hosts.empty')}</td></tr>
             )}
           </tbody>
         </table>
