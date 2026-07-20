@@ -1,4 +1,5 @@
 pub mod agent;
+pub mod alert;
 pub mod audit;
 pub mod baseline;
 pub mod escalation;
@@ -16,6 +17,7 @@ pub mod vault;
 pub use crate::terminal::terminal_routes;
 pub use crate::ws_events::ws_events_handler;
 pub use agent::agent_routes;
+pub use alert::alert_routes;
 pub use audit::audit_routes;
 pub use baseline::baseline_routes;
 pub use escalation::escalation_routes;

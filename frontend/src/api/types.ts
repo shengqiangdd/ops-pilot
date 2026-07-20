@@ -325,3 +325,54 @@ export interface CreateUserInput {
   password: string;
   role?: string;
 }
+
+// ── Alert types ────────────────────────────────────────────────────────
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  metric: string;
+  condition: string;
+  threshold: number;
+  severity: string;
+  silence_minutes: number;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAlertRuleInput {
+  name: string;
+  metric: string;
+  condition: string;
+  threshold: number;
+  severity: string;
+  silence_minutes?: number;
+  channel_ids?: string[];
+}
+
+export interface AlertHistoryEntry {
+  id: string;
+  rule_id: string;
+  rule_name: string;
+  severity: string;
+  message: string;
+  status: string;
+  triggered_at: string;
+  acknowledged_at: string | null;
+}
+
+export interface NotificationChannel {
+  id: string;
+  name: string;
+  channel_type: string;
+  config: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface CreateChannelInput {
+  name: string;
+  channel_type: string;
+  config: Record<string, unknown>;
+}

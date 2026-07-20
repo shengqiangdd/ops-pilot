@@ -24,6 +24,11 @@ import type {
   AuditLogEntry,
   UserInfo,
   CreateUserInput,
+  AlertRule,
+  CreateAlertRuleInput,
+  AlertHistoryEntry,
+  NotificationChannel,
+  CreateChannelInput,
 } from './types';
 
 const BASE = '/api';
@@ -357,5 +362,50 @@ export const api = {
   deleteUser: (token: string, userId: string) =>
     requestWithAuth<void>(`/users/${userId}`, token, {
       method: 'DELETE',
+    }),
+
+  // ── Alert Rules ─────────────────────────────────────────────────────
+
+  listAlertRules: (token: string) =>
+    requestWithAuth<AlertRule[]>('/alert/rules', token),
+
+  createAlertRule: (token: string, input: CreateAlertRuleInput) =>
+    requestWithAuth<AlertRule>('/alert/rules', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateAlertRule: (token: string, ruleId: string, updates: Partial<AlertRule>) =>
+    requestWithAuth<AlertRule>(`/alert/rules/${ruleId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  deleteAlertRule: (token: string, ruleId: string) =>
+    requestWithAuth<void>(`/alert/rules/${ruleId}`, token, {
+      method: 'DELETE',
+    }),
+
+  // ── Alert History ───────────────────────────────────────────────────
+
+  listAlertHistory: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<AlertHistoryEntry[]>(`/alert/history${qs ? '?' + qs : ''}`, token);
+  },
+
+  // ── Notification Channels ───────────────────────────────────────────
+
+  listNotificationChannels: (token: string) =>
+    requestWithAuth<NotificationChannel[]>('/alert/channels', token),
+
+  createNotificationChannel: (token: string, input: CreateChannelInput) =>
+    requestWithAuth<NotificationChannel>('/alert/channels', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  testNotificationChannel: (token: string, channelId: string) =>
+    requestWithAuth<{ status: string }>(`/alert/channels/${channelId}/test`, token, {
+      method: 'POST',
     }),
 };

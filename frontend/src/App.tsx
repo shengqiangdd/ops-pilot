@@ -23,6 +23,9 @@ import { AdvisorPage } from './pages/Advisor';
 import { TerminalPage } from './pages/Terminal';
 import { AuditLogPage } from './pages/AuditLog';
 import { UsersPage } from './pages/Users';
+import { AlertRulesPage } from './pages/AlertRules';
+import { AlertHistoryPage } from './pages/AlertHistory';
+import { NotificationChannelsPage } from './pages/NotificationChannels';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -35,12 +38,14 @@ import { cn } from './lib/cn';
 type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
-  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor' | 'terminal' | 'audit' | 'users';
+  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
+  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels';
 
 const ALL_TABS: Tab[] = [
   'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
-  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor', 'terminal', 'audit', 'users',
+  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
+  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -70,6 +75,9 @@ const ICONS: Record<Tab, string> = {
   terminal: '⌨️',
   audit: '📋',
   users: '👥',
+  'alert-rules': '📐',
+  'alert-history': '📜',
+  channels: '📢',
 };
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
@@ -79,7 +87,7 @@ const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'monitor'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['scheduler', 'runbook', 'filesync'] },
-  { icon: '🔔', catKey: 'cat.monitor', tabs: ['escalation', 'health'] },
+  { icon: '🔔', catKey: 'cat.monitor', tabs: ['escalation', 'health', 'alert-rules', 'alert-history', 'channels'] },
   { icon: '🧠', catKey: 'cat.intelligence', tabs: ['advisor'] },
   { icon: '🔗', catKey: 'cat.integration', tabs: ['webhook', 'config', 'knowledge'] },
 ];
@@ -159,6 +167,9 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'terminal': return <TerminalPage />;
       case 'audit': return <AuditLogPage />;
       case 'users': return <UsersPage />;
+      case 'alert-rules': return <AlertRulesPage />;
+      case 'alert-history': return <AlertHistoryPage />;
+      case 'channels': return <NotificationChannelsPage />;
       default: return <Dashboard />;
     }
   };
