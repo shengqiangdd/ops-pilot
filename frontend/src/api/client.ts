@@ -40,6 +40,7 @@ import type {
   NlQueryResponse,
   DiagnoseRequest,
   DiagnoseResponse,
+  TimelineEvent,
 } from './types';
 
 const BASE = '/api';
@@ -502,4 +503,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input),
     }),
+
+  // ── Timeline ────────────────────────────────────────────────────────
+
+  getTimelineEvents: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<TimelineEvent[]>(`/timeline/events${qs ? '?' + qs : ''}`, token);
+  },
 };

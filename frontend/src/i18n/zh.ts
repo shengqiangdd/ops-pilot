@@ -45,6 +45,7 @@ const zh: Record<string, string> = {
   'tab.alert-history': '历史',
   'tab.channels': '渠道',
   'tab.cmdb': 'CMDB',
+  'tab.timeline': '时间线',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -91,6 +92,7 @@ const zh: Record<string, string> = {
   'title.alert_history': '告警历史',
   'title.channels': '通知渠道',
   'title.cmdb': '配置管理',
+  'title.timeline': '事件时间线',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -253,6 +255,22 @@ const zh: Record<string, string> = {
   'cmdb.config_col.changed_by': '修改人',
   'cmdb.config_col.note': '备注',
   'cmdb.config_col.time': '时间',
+
+  /* Timeline page */
+  'timeline.title': '事件时间线',
+  'timeline.reload': '刷新',
+  'timeline.loading': '加载中...',
+  'timeline.empty': '暂无事件',
+  'timeline.events': '条事件',
+  'timeline.filter.from': '开始时间',
+  'timeline.filter.to': '结束时间',
+  'timeline.filter.types': '事件类型',
+  'timeline.type.alert': '告警',
+  'timeline.type.audit': '审计',
+  'timeline.type.operation': '操作',
+  'timeline.detail.time': '时间',
+  'timeline.detail.type': '类型',
+  'timeline.detail.description': '详情',
 
   /* Desk */
   'desk': '桌面',

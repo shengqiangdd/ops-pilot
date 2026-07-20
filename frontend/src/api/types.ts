@@ -488,3 +488,15 @@ export interface DiagnoseResponse {
   recommended_actions: string[];
   related_knowledge: Array<Record<string, unknown>>;
 }
+
+// ── Timeline types ─────────────────────────────────────────────────────
+
+export interface TimelineEvent {
+  id: string;
+  timestamp: string;
+  type: string;
+  severity: string;
+  title: string;
+  description: string;
+  source: string;
+}

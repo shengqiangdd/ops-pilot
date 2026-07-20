@@ -55,6 +55,7 @@ use ops_pilot_gateway::routes::vault::vault_routes;
 use ops_pilot_gateway::routes::users::user_routes;
 use ops_pilot_gateway::routes::alert::alert_routes;
 use ops_pilot_gateway::routes::cmdb::cmdb_routes;
+use ops_pilot_gateway::routes::timeline::timeline_routes;
 use ops_pilot_gateway::routes::ws_events_handler;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
 use ops_pilot_mod_core::ModCore;
@@ -461,6 +462,7 @@ async fn main() {
         .merge(knowledge_routes(module_manager.clone(), ctx.clone()))
         .merge(alert_routes(pool.clone()))
         .merge(cmdb_routes(pool.clone()))
+        .merge(timeline_routes(pool.clone()))
         .fallback_service(static_service)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());

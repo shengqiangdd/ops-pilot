@@ -42,6 +42,7 @@ const en: Record<string, string> = {
   'tab.alert-history': 'History',
   'tab.channels': 'Channels',
   'tab.cmdb': 'CMDB',
+  'tab.timeline': 'Timeline',
 
   'title.dashboard': 'Dashboard',
 
@@ -87,6 +88,7 @@ const en: Record<string, string> = {
   'title.alert_history': 'Alert History',
   'title.channels': 'Notification Channels',
   'title.cmdb': 'Configuration Management',
+  'title.timeline': 'Event Timeline',
 
   /* Terminal page */
   'terminal.title': 'Web Terminal',
@@ -249,6 +251,22 @@ const en: Record<string, string> = {
   'cmdb.config_col.changed_by': 'Changed By',
   'cmdb.config_col.note': 'Note',
   'cmdb.config_col.time': 'Time',
+
+  /* Timeline page */
+  'timeline.title': 'Event Timeline',
+  'timeline.reload': 'Reload',
+  'timeline.loading': 'Loading...',
+  'timeline.empty': 'No events',
+  'timeline.events': 'events',
+  'timeline.filter.from': 'From',
+  'timeline.filter.to': 'To',
+  'timeline.filter.types': 'Event Types',
+  'timeline.type.alert': 'Alert',
+  'timeline.type.audit': 'Audit',
+  'timeline.type.operation': 'Operation',
+  'timeline.detail.time': 'Time',
+  'timeline.detail.type': 'Type',
+  'timeline.detail.description': 'Description',
 
   'modules.title': 'Modules',
   'modules.reload': 'Reload',
