@@ -1,88 +1,55 @@
-# Changelog
+# 变更日志
 
-All notable changes to OpsPilot will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+> 所有 OpsPilot 的显著变更均记录在此。
+> 格式遵守 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
+> 版本遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
 
-### Fixed
+### Fixed 修复
 
-- **[P0]** SSH `reconnect()` was a no-op — new handle was created but immediately dropped without replacing the old one (`SshConnection.handle` not wrapped in `Arc<RwLock<...>>`)
-- **[P1]** Agent `truncate_if_needed()` could orphan tool_call/tool_result message pairs when evicting old messages — now preserves atomicity
-- **[P1]** Typo: `truncuate_if_needed` → `truncate_if_needed`
-
-## [0.1.0] - 2026-07-15
-
-### Added
-
-- Initial release
-- SSH connection management with russh (password + public key auth)
-- Docker container management via bollard (list, start, stop, restart, stats)
-- Host CRUD with SQLite persistence
-- User registration and JWT authentication (Argon2id + jsonwebtoken)
-- Module SDK with `OpsModule` trait, `ModuleLoader`, `EventBus`, `ModuleContext`
-- Gateway HTTP API (Axum 0.8) with route modules for hosts, modules, agent
-- Agent ReAct loop with tool calling and conversation truncation
-- LLM client abstraction (`LlmClient` trait) with text and tool-call support
-- WebSocket-to-SSH terminal proxy
-- Tool registry routing AI function calls to correct module
-- React 19 frontend with Zustand state management
-- Host management UI with CRUD operations
-- AI chat interface with streaming support
-- Workflow editor with ReactFlow
-- User authentication (login/register) UI
-- Modular architecture with 3 built-in modules: mod-core, mod-rca, mod-security
-- CI/CD pipeline with GitHub Actions (frontend lint+test+build, Rust check+clippy+test+build, Docker publish to GHCR)
-- Multi-stage Dockerfile with frontend + Rust dependency caching
-- docker-compose for production deployment with Ollama integration
-- JWT-based authentication with login/register UI
-- Host health monitoring dashboard with auto-refresh
-- Module configuration editor with real-time JSON validation
-- Toast notification system with context provider
-- CI/CD status badges in README
-- CI badge (summary job) via step-summary in Actions
-
-### Security
-
-- **[P0]** SSH `check_server_key()` always returned `true` — vulnerable to man-in-the-middle attacks. Implemented `known_hosts` verification
-- **[P0]** Upgraded `russh` from 0.50.x to 0.62.x — fixes OOM DoS via `channel_open_*` and username state reset bypass (russh 0.58.0 security patches)
-- Host credentials stored in plaintext in SQLite — added AES-256-GCM encryption at rest
-
-### Changed
-
-- **[P0]** `russh` 0.50.x → 0.62.x, `russh-sftp` → 2.3.x, `russh-config` → 0.58.0
-- **[P2]** `sqlx` 0.8.x → 0.9.0 (migration to `sqlx.toml` config, `smol` runtime support)
-- **[P2]** `bollard` 0.14.x → 0.19.x (Docker API 1.46, Podman rootless auto-discovery)
-- **[P3]** `opentelemetry` 0.29.x → 0.32.0 (Metrics SDK stable, Prometheus exporter → OTLP)
-- Unified `EventBus` — removed duplicate definition in `ops-pilot-core::event`, now uses `ops-pilot-sdk::context::EventBus` exclusively
-- `ToolRegistry` now maintains a `HashMap<String, Arc<dyn OpsModule>>` index for O(1) tool→module lookup instead of scanning all modules on every `invoke_tool` call
-- All SQL queries now use `#[derive(sqlx::FromRow)]` structs instead of positional tuple destructuring
-
-### Fixed
-
-- **[P0]** SSH `reconnect()` was a no-op — new handle was created but immediately dropped without replacing the old one (`SshConnection.handle` not wrapped in `Arc<RwLock<...>>`)
-- **[P1]** Agent `truncate_if_needed()` could orphan tool_call/tool_result message pairs when evicting old messages — now preserves atomicity
-- **[P1]** Typo: `truncuate_if_needed` → `truncate_if_needed`
+- **[P0]** SSH `reconnect()` 是空操作 —— 新 handle 创建后立即丢弃，未替换旧 handle（`SshConnection.handle` 未用 `Arc<RwLock<...>>` 包裹）
+- **[P1]** Agent `truncate_if_needed()` 在驱逐旧消息时可能破坏 tool_call/tool_result 成对关系 —— 现已保证原子性
+- **[P1]** 拼写错误：`truncuate_if_needed` → `truncate_if_needed`
 
 ## [0.1.0] - 2026-07-15
 
-### Added
+### Added 新增
 
-- Initial release
-- SSH connection management with russh (password + public key auth)
-- Docker container management via bollard (list, start, stop, restart, stats)
-- Host CRUD with SQLite persistence
-- User registration and JWT authentication (Argon2id + jsonwebtoken)
-- Module SDK with `OpsModule` trait, `ModuleLoader`, `EventBus`, `ModuleContext`
-- Gateway HTTP API (Axum 0.8) with route modules for hosts, modules, agent
-- Agent ReAct loop with tool calling and conversation truncation
-- LLM client abstraction (`LlmClient` trait) with text and tool-call support
-- WebSocket-to-SSH terminal proxy
-- Tool registry routing AI function calls to correct module
-- React 18 frontend with Zustand state management
-- Host management UI with CRUD operations
-- AI chat interface with streaming support
-- Workflow editor with ReactFlow
-- User authentication (login/register) UI
+- SSH 连接管理（基于 russh，支持密码和公钥认证）
+- Docker 容器管理（基于 bollard：列表、启动、停止、重启、统计）
+- 主机 CRUD，SQLite 持久化
+- 用户注册和 JWT 认证（Argon2id + jsonwebtoken）
+- Module SDK：`OpsModule` trait、`ModuleLoader`、`EventBus`、`ModuleContext`
+- Gateway HTTP API（Axum 0.8），含 hosts/modules/agent 路由模块
+- Agent ReAct 循环，支持工具调用和对话截断
+- LLM 客户端抽象（`LlmClient` trait），支持文本和工具调用
+- WebSocket-to-SSH 终端代理
+- 工具注册表（ToolRegistry），将 AI function call 路由到对应模块
+- React 19 前端，Zustand 状态管理
+- 主机管理 UI（CRUD 操作）
+- AI 对话界面（流式输出）
+- ReactFlow 工作流编辑器
+- 用户认证 UI（登录/注册）
+- 3 个内置模块：mod-core、mod-rca、mod-security
+- CI/CD 流水线（GitHub Actions），含前端 lint+test+build、Rust check+clippy+test+build、Docker GHCR 发布
+- 多阶段 Dockerfile，前端 + Rust 依赖缓存
+- docker-compose 生产部署，支持 Ollama 集成
+- 主机健康监控仪表盘（自动刷新）
+- 模块配置编辑器（实时 JSON 校验）
+- Toast 通知系统（Context Provider）
+- CI/CD 状态徽章
+
+### Security 安全
+
+- **[P0]** SSH `check_server_key()` 始终返回 `true` —— 存在中间人攻击风险。已实现 `known_hosts` 主机密钥验证
+- **[P0]** 升级 `russh` 0.50.x → 0.62.x —— 修复了 OOM DoS（`channel_open_*`）和用户名状态重置绕过问题（russh 0.58.0 安全补丁）
+- 主机凭据在 SQLite 中以明文存储 —— 已改为 AES-256-GCM 加密存储
+
+### Changed 变更
+
+- **[P0]** `russh` 0.50.x → 0.62.x，`russh-sftp` → 2.3.x，`russh-config` → 0.58.0
+- **[P1]** `bollard` 0.14.x → 0.19.x（Docker API 1.46，Podman rootless 自动发现）
+- `EventBus` 统一 —— 移除 `ops-pilot-core::event` 中的重复定义，统一使用 `ops-pilot-sdk::context::EventBus`
+- `ToolRegistry` 现在维护 `HashMap<String, Arc<dyn OpsModule>>` 索引，工具→模块查找从 O(n) 降为 O(1)
+- 所有 SQL 查询改用 `#[derive(sqlx::FromRow)]` 结构体代替位置元组解构

@@ -1,114 +1,101 @@
-# Contributing to OpsPilot
+# 参与贡献 OpsPilot
 
-Thank you for your interest in contributing to OpsPilot! This guide will help you get started with the development workflow, coding standards, and PR process.
-
----
-
-## Table of Contents
-
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Project Structure](#project-structure)
-- [Module Development](#module-development)
-- [Code Style](#code-style)
-- [Testing](#testing)
-- [Pull Request Process](#pull-request-process)
-- [Issue Guidelines](#issue-guidelines)
-- [Code of Conduct](#code-of-conduct)
+感谢你对 OpsPilot 的关注！本文档帮助你快速了解开发流程、编码规范和 PR 提交流程。
 
 ---
 
-## Getting Started
+## 目录
 
-### Prerequisites
+- [快速开始](#快速开始)
+- [开发环境配置](#开发环境配置)
+- [项目结构](#项目结构)
+- [模块开发](#模块开发)
+- [代码风格](#代码风格)
+- [测试](#测试)
+- [Pull Request 流程](#pull-request-流程)
+- [Issue 指南](#issue-指南)
+- [行为准则](#行为准则)
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| **Rust** | 1.75+ | Backend language |
-| **Node.js** | 20+ | Frontend build |
-| **Docker** | 24+ | Container testing |
-| **Git** | 2.30+ | Version control |
+---
 
-### Quick Setup
+## 快速开始
+
+### 前置依赖
+
+| 工具 | 版本 | 用途 |
+|------|------|------|
+| **Rust** | 1.75+ | 后端语言 |
+| **Node.js** | 20+ | 前端构建 |
+| **Docker** | 24+ | 容器测试 |
+| **Git** | 2.30+ | 版本控制 |
+
+### 快速安装
 
 ```bash
-# 1. Fork and clone
+# 1. Fork 并克隆
 git clone https://github.com/YOUR_USERNAME/ops-pilot.git
 cd ops-pilot
 
-# 2. Install Rust toolchain
+# 2. 安装 Rust 工具链
 rustup default stable
 rustup component add clippy rustfmt
 
-# 3. Install frontend dependencies
+# 3. 安装前端依赖
 cd frontend && npm install && cd ..
 
-# 4. Copy environment file
+# 4. 复制环境配置
 cp .env.example .env
 
-# 5. Start development services
-docker compose up -d ollama  # Start local LLM (optional)
+# 5. 启动开发服务（可选：本地 LLM）
+docker compose up -d ollama
 
-# 6. Build and run
+# 6. 构建并运行
 cargo build
 cargo run
 
-# 7. Run tests
+# 7. 运行测试
 cargo test
 cd frontend && npm test && cd ..
 ```
 
-### Makefile Shortcuts
+### Makefile 快捷命令
 
 ```bash
-make dev          # Full development setup
-make build        # Build all crates
-make test         # Run all tests
-make lint         # Run clippy + eslint
-make fmt          # Format all code
-make run          # Start the server
-make docker-up    # Start with Docker Compose
-make docker-down  # Stop Docker Compose
+make dev          # 完整开发环境
+make build        # 构建所有 crate
+make test         # 运行全部测试
+make lint         # clippy + eslint
+make fmt          # 格式化代码
+make run          # 启动服务
+make docker-up    # Docker Compose 启动
+make docker-down  # Docker Compose 停止
 ```
 
 ---
 
-## Development Setup
+## 开发环境配置
 
-### Rust Toolchain
+### Rust 工具链
 
 ```bash
-# Install Rust via rustup
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Ensure you have the latest stable
 rustup update stable
-
-# Install useful components
 rustup component add clippy rustfmt rust-analyzer
 ```
 
-### Frontend Toolchain
+### 前端工具链
 
 ```bash
-# Install Node.js (via nvm recommended)
-nvm install 20
-nvm use 20
-
-# Install dependencies
-cd frontend
-npm install
-
-# Start dev server (separate terminal)
-npm run dev
+nvm install 20 && nvm use 20
+cd frontend && npm install
+npm run dev  # Vite 开发服务器，独立终端
 ```
 
-### Database
+### 数据库
 
-OpsPilot uses SQLite by default (no setup required). For development with PostgreSQL:
+OpsPilot 默认使用 SQLite（零配置）。如需 PostgreSQL：
 
 ```bash
-# Start PostgreSQL via Docker
 docker run -d --name ops-pilot-pg \
   -e POSTGRES_DB=ops_pilot \
   -e POSTGRES_USER=ops \
@@ -116,26 +103,20 @@ docker run -d --name ops-pilot-pg \
   -p 5432:5432 \
   postgres:16
 
-# Update .env
+# 更新 .env
 DATABASE_URL=postgres://ops:dev@localhost:5432/ops_pilot
 ```
 
-### LLM Provider (Optional)
+### LLM 提供商（可选）
 
 ```bash
-# Start Ollama for local AI
-docker run -d --name ollama \
-  -p 11434:11434 \
-  -v ollama_data:/root/.ollama \
-  ollama/ollama:latest
-
-# Pull a model
+docker run -d --name ollama -p 11434:11434 -v ollama_data:/root/.ollama ollama/ollama:latest
 docker exec ollama ollama pull qwen2.5:32b
 ```
 
-### IDE Configuration
+### IDE 配置
 
-**VS Code (recommended):**
+**VS Code 推荐：**
 
 ```json
 // .vscode/settings.json
@@ -152,220 +133,97 @@ docker exec ollama ollama pull qwen2.5:32b
 }
 ```
 
-**Recommended Extensions:**
-- rust-analyzer
-- Even Better TOML
-- ESLint
-- Prettier
-- Tailwind CSS IntelliSense
+**推荐插件：** rust-analyzer、Even Better TOML、ESLint、Prettier、Tailwind CSS IntelliSense
 
 ---
 
-## Project Structure
+## 项目结构
 
 ```
 ops-pilot/
-├── Cargo.toml                 # Workspace root
+├── Cargo.toml                 # Workspace 根
 ├── src/
-│   ├── core/                  # Core engine crate
-│   │   ├── src/
-│   │   │   ├── main.rs        # Entry point
-│   │   │   ├── server.rs      # HTTP server (axum)
-│   │   │   ├── db.rs          # Database layer
-│   │   │   ├── auth.rs        # JWT authentication
-│   │   │   ├── config.rs      # Configuration loading
-│   │   │   └── ...
-│   │   └── Cargo.toml
-│   │
+│   ├── core/                  # 核心引擎 crate
 │   ├── gateway/               # AI Gateway crate
-│   │   ├── src/
-│   │   │   ├── lib.rs
-│   │   │   ├── llm.rs         # LLM provider adapters
-│   │   │   ├── agent.rs       # Agent orchestration
-│   │   │   ├── tools.rs       # Tool registry
-│   │   │   └── mcp.rs         # MCP protocol handler
-│   │   └── Cargo.toml
-│   │
 │   ├── sdk/                   # Module SDK crate
-│   │   ├── src/
-│   │   │   ├── lib.rs         # Re-exports
-│   │   │   ├── traits.rs      # OpsModule trait
-│   │   │   ├── context.rs     # ModuleContext
-│   │   │   ├── events.rs      # OpsEvent enum
-│   │   │   ├── tools.rs       # ToolDefinition
-│   │   │   ├── health.rs      # HealthStatus
-│   │   │   └── error.rs       # ModuleError
-│   │   └── Cargo.toml
-│   │
-│   └── modules/               # Pluggable modules
-│       ├── mod-core/          # Host, SSH, Docker management
-│       ├── mod-rca/           # Root cause analysis
-│       ├── mod-finops/        # Cost optimization
-│       ├── mod-security/      # Security scanning
-│       ├── mod-topo/          # Topology visualization
-│       └── mod-chatops/       # Chat platform integration
-│
-├── frontend/                  # React frontend
-│   ├── src/
-│   │   ├── components/        # Reusable UI components
-│   │   ├── pages/             # Route-level components
-│   │   ├── stores/            # Zustand stores
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── api/               # API client functions
-│   │   ├── types/             # TypeScript type definitions
-│   │   └── utils/             # Utility functions
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
-│   └── tailwind.config.js
-│
-├── docs/                      # Documentation
-│   ├── ARCHITECTURE.md
-│   ├── MODULE_SDK.md
-│   ├── API_REFERENCE.md
-│   ├── ROADMAP.md
-│   └── CONTRIBUTING.md
-│
-├── .github/                   # GitHub configuration
-│   ├── ISSUE_TEMPLATE/
-│   ├── workflows/
-│   └── PULL_REQUEST_TEMPLATE.md
-│
-├── docker-compose.yml         # Docker deployment
-├── Dockerfile                 # Container build
-├── Makefile                   # Development shortcuts
-└── .env.example               # Environment template
+│   └── modules/               # 可插拔模块
+│       ├── mod-core/          # 主机/SSH/Docker 管理
+│       ├── mod-rca/           # 根因分析
+│       ├── mod-finops/        # 成本优化
+│       ├── mod-security/      # 安全扫描
+│       ├── mod-topo/          # 拓扑可视化
+│       └── mod-chatops/       # 聊天平台集成
+├── frontend/                  # React 前端
+├── docs/                      # 文档
+└── .github/                   # GitHub 配置
 ```
 
-### Crate Dependencies
+### Crate 依赖关系
 
 ```
 ops-pilot (core)
-├── ops-pilot-sdk     (trait definitions, no core dependency)
-├── ops-pilot-gateway (AI integration, depends on sdk)
-├── mod-core          (depends on sdk)
-├── mod-rca           (depends on sdk, mod-core)
-├── mod-finops        (depends on sdk, mod-core)
-├── mod-security      (depends on sdk, mod-core)
-├── mod-topo          (depends on sdk, mod-core)
-└── mod-chatops       (depends on sdk, mod-core)
+├── ops-pilot-sdk     (trait 定义，不依赖 core)
+├── ops-pilot-gateway (AI 集成，依赖 sdk)
+├── mod-core          (依赖 sdk)
+└── 其他模块           (依赖 sdk, mod-core)
 ```
 
-**Important:** The `sdk` crate must NOT depend on `core`. This prevents circular dependencies and allows modules to be developed independently.
+**关键约束：** `sdk` crate 绝不能依赖 `core`，防止循环依赖，保证模块可独立开发。
 
 ---
 
-## Module Development
+## 模块开发
 
-### Creating a New Module
+### 创建新模块
 
 ```bash
-# 1. Create the crate
 cargo new src/modules/mod-my-feature --lib
-
-# 2. Add to workspace Cargo.toml
-# (already done if using the workspace glob)
-
-# 3. Create module.toml manifest
-cat > src/modules/mod-my-feature/module.toml << 'EOF'
-[package]
-name = "mod-my-feature"
-version = "0.1.0"
-description = "My custom module"
-
-[module]
-id = "mod-my-feature"
-category = "custom"
-crate = "mod_my_feature"
-dependencies = []
-EOF
-
-# 4. Implement the trait
-# See docs/MODULE_SDK.md for the complete specification
 ```
 
-### Module Checklist
+### 模块检查清单
 
-Before submitting a new module:
+提交新模块前：
 
-- [ ] Implements `OpsModule` trait with all required methods
-- [ ] Includes `module.toml` manifest
-- [ ] Has unit tests covering all tools
-- [ ] Has integration tests (at least one end-to-end test)
-- [ ] Documentation comments on all public items
-- [ ] Follows code style (clippy, rustfmt)
-- [ ] No hardcoded configuration values
-- [ ] Handles errors gracefully (no unwrap/expect in production paths)
-- [ ] Health check returns meaningful status
+- [ ] 实现 `OpsModule` trait，包含所有必需方法
+- [ ] 包含 `module.toml` 清单文件
+- [ ] 单元测试覆盖所有工具
+- [ ] 至少一个端到端集成测试
+- [ ] 所有公共项有文档注释
+- [ ] 符合代码风格（clippy, rustfmt）
+- [ ] 无硬编码配置值
+- [ ] 优雅处理错误（生产路径无 unwrap/expect）
+- [ ] 健康检查返回有意义的状态
 
 ---
 
-## Code Style
+## 代码风格
 
 ### Rust
 
-We use default `rustfmt` with `clippy` in strict mode.
+默认使用 `rustfmt` + `clippy` 严格模式。
 
-```toml
-# rustfmt.toml (if customizing)
-edition = "2021"
-max_width = 100
-tab_spaces = 4
-```
+**规则：**
 
-**Rules:**
+- 提交前运行 `cargo fmt`
+- 运行 `cargo clippy -- -D warnings`，零警告
+- 错误类型用 `thiserror`，应用错误用 `anyhow`
+- 优先 `Result<T, E>` 而非 panic
+- 公共项用 `///` 文档注释
+- 优先 `#[derive]` 而非手动实现
 
-- Run `cargo fmt` before committing
-- Run `cargo clippy -- -D warnings` with zero warnings
-- Use `thiserror` for error types, `anyhow` for application errors
-- Prefer `Result<T, E>` over panicking
-- Document public items with `///` doc comments
-- Use `#[derive]` where possible instead of manual implementations
+### TypeScript / 前端
 
-**Naming:**
+**规则：**
 
-```rust
-// Types: PascalCase
-pub struct HostConnection { }
+- 提交前运行 `npm run lint`
+- 使用函数式组件 + hooks
+- TypeScript strict 模式——禁止 `any`
+- Props 接口从组件文件导出
+- 测试文件与组件同目录：`Component.test.tsx`
 
-// Functions/methods: snake_case
-pub async fn connect_host() -> Result<()> { }
+### 提交消息
 
-// Constants: SCREAMING_SNAKE_CASE
-const MAX_CONNECTIONS: usize = 100;
-
-// Modules: snake_case
-mod connection_pool { }
-```
-
-### TypeScript / Frontend
-
-```json
-// .eslintrc.json (simplified)
-{
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"
-  ],
-  "rules": {
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/explicit-function-return-type": "off",
-    "react/react-in-jsx-scope": "off"
-  }
-}
-```
-
-**Rules:**
-
-- Run `npm run lint` before committing
-- Use functional components with hooks
-- TypeScript strict mode — no `any` types
-- Props interfaces exported from the component file
-- Test files co-located with components: `Component.test.tsx`
-
-### Commit Messages
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+遵循 [Conventional Commits](https://www.conventionalcommits.org/)：
 
 ```
 feat(mod-rca): add log correlation for multi-host incidents
@@ -377,206 +235,55 @@ Fixes #123
 - Add unit tests for correlation engine
 ```
 
-**Format:**
+**类型：** `feat` / `fix` / `docs` / `style` / `refactor` / `test` / `chore` / `perf`
 
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-**Types:**
-
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `style` | Code style (formatting, no logic change) |
-| `refactor` | Code refactoring (no feature change) |
-| `test` | Adding or updating tests |
-| `chore` | Build process, dependencies, CI |
-| `perf` | Performance improvement |
-
-**Scopes:**
-
-`core`, `sdk`, `gateway`, `mod-core`, `mod-rca`, `mod-finops`, `mod-security`, `mod-topo`, `mod-chatops`, `ui`, `api`, `docs`, `ci`
+**作用域：** `core`, `sdk`, `gateway`, `mod-core`, `mod-rca`, `ui`, `api`, `docs`, `ci`
 
 ---
 
-## Testing
+## 测试
 
-### Backend Tests
-
-```bash
-# Unit tests
-cargo test
-
-# Unit tests with output
-cargo test -- --nocapture
-
-# Specific test
-cargo test test_ssh_connection
-
-# Integration tests
-cargo test --test integration
-
-# With coverage
-cargo install cargo-tarpaulin
-cargo tarpaulin --out Html
-```
-
-**Test Conventions:**
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ops_pilot_sdk::test::MockModuleContext;
-
-    #[tokio::test]
-    async fn test_tool_executes_successfully() {
-        let module = MyModule::new();
-        let ctx = MockModuleContext::new();
-
-        let result = module
-            .execute(&ctx, "my_tool", serde_json::json!({"key": "value"}))
-            .await
-            .unwrap();
-
-        assert_eq!(result["status"], "ok");
-    }
-
-    #[tokio::test]
-    async fn test_tool_rejects_invalid_input() {
-        let module = MyModule::new();
-        let ctx = MockModuleContext::new();
-
-        let result = module
-            .execute(&ctx, "my_tool", serde_json::json!({}))
-            .await;
-
-        assert!(result.is_err());
-    }
-}
-```
-
-### Frontend Tests
+### 后端测试
 
 ```bash
-# Run all tests
-npm test
-
-# Watch mode
-npm test -- --watch
-
-# Coverage
-npm test -- --coverage
+cargo test                      # 单元测试
+cargo test -- --nocapture       # 带输出
+cargo test test_ssh_connection  # 指定测试
+cargo test --test integration   # 集成测试
 ```
 
-**Test Conventions:**
+**测试规范：** Arrange → Act → Assert，每个测试独立，使用 `MockModuleContext` 模拟依赖。
 
-```tsx
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import { HostCard } from './HostCard';
+### 前端测试
 
-describe('HostCard', () => {
-  it('renders host name and status', () => {
-    render(
-      <HostCard
-        host={{
-          id: 'host_001',
-          name: 'prod-web-01',
-          status: 'online',
-          ip: '192.168.1.100',
-        }}
-      />
-    );
-
-    expect(screen.getByText('prod-web-01')).toBeInTheDocument();
-    expect(screen.getByText('online')).toBeInTheDocument();
-  });
-});
+```bash
+npm test              # 全部测试
+npm test -- --watch   # 监听模式
+npm test -- --coverage  # 覆盖率
 ```
 
-### Test Coverage Goals
+### 覆盖率目标
 
-| Component | Minimum Coverage |
-|-----------|-----------------|
-| Core Engine | 80% |
+| 组件 | 最低覆盖率 |
+|------|-----------|
+| 核心引擎 Core Engine | 80% |
 | Module SDK | 90% |
-| Modules | 85% |
+| 模块 Modules | 85% |
 | AI Gateway | 75% |
-| Frontend Components | 70% |
-| Frontend Hooks/Utils | 85% |
+| 前端组件 | 70% |
+| 前端 Hooks/Utils | 85% |
 
 ---
 
-## Pull Request Process
+## Pull Request 流程
 
-### Before Submitting
+### 提交前检查
 
-1. **Sync with main:**
-   ```bash
-   git fetch origin
-   git rebase origin/main
-   ```
+1. **同步 main 分支：** `git fetch origin && git rebase origin/main`
+2. **运行全部检查：** `cargo fmt --check && cargo clippy -- -D warnings && cargo test && cd frontend && npm run lint && npm test && cd ..`
+3. **更新文档**——如果变更影响公共 API 或用户功能
 
-2. **Run all checks:**
-   ```bash
-   cargo fmt --check
-   cargo clippy -- -D warnings
-   cargo test
-   cd frontend && npm run lint && npm test && cd ..
-   ```
-
-3. **Update documentation** if your change affects public APIs or user-facing features.
-
-### PR Template
-
-```markdown
-## Description
-
-Brief description of what this PR does.
-
-## Type of Change
-
-- [ ] Bug fix (non-breaking change)
-- [ ] New feature (non-breaking change)
-- [ ] Breaking change (fix or feature causing existing functionality to change)
-- [ ] Documentation update
-- [ ] Refactoring (no functional changes)
-
-## Testing
-
-Describe the tests you ran and how to reproduce them.
-
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-- [ ] Manual testing performed (describe below)
-
-## Checklist
-
-- [ ] Code follows project style guidelines
-- [ ] Self-reviewed the code
-- [ ] Comments added for complex logic
-- [ ] Documentation updated
-- [ ] No new warnings from `cargo clippy`
-- [ ] Tests added that prove the fix/feature works
-- [ ] All existing tests pass
-```
-
-### Review Process
-
-1. **Automated checks** must pass (CI: clippy, tests, build)
-2. **At least one review** from a maintainer
-3. **No unresolved conversations**
-4. **Squash and merge** for clean history
-
-### Branch Naming
+### 分支命名
 
 ```
 feature/mod-rca-log-correlation
@@ -585,67 +292,41 @@ docs/api-reference-update
 chore/upgrade-axum-0.8
 ```
 
----
+### 审查流程
 
-## Issue Guidelines
-
-### Bug Reports
-
-Use the bug report template. Include:
-
-- **Environment:** OS, Rust version, Node version
-- **Steps to reproduce:** Minimal, clear steps
-- **Expected behavior:** What should happen
-- **Actual behavior:** What actually happens
-- **Logs:** Relevant error output (use code blocks)
-- **Screenshots:** If applicable
-
-### Feature Requests
-
-Use the feature request template. Include:
-
-- **Problem:** What problem does this solve?
-- **Solution:** Proposed solution
-- **Alternatives:** Other approaches considered
-- **Use case:** Real-world scenario
-
-### Labels
-
-| Label | Description |
-|-------|-------------|
-| `bug` | Something isn't working |
-| `enhancement` | New feature or improvement |
-| `documentation` | Documentation needed |
-| `good first issue` | Good for newcomers |
-| `help wanted` | Community contribution welcome |
-| `priority: high` | Critical issue |
-| `module: *` | Module-specific issue |
-| `roadmap` | Discussed for future roadmap |
+1. **自动化检查**必须通过（CI: clippy, tests, build）
+2. **至少一位维护者**审查
+3. **无未解决的对话**
+4. **Squash and merge** 保持历史清洁
 
 ---
 
-## Code of Conduct
+## Issue 指南
 
-We follow the [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+### Bug 报告
 
-### Summary
+使用 bug 报告模板，包含：环境信息、复现步骤、期望行为、实际行为、日志、截图。
 
-- **Be respectful** — Treat everyone with respect. No harassment, discrimination, or personal attacks.
-- **Be constructive** — Provide helpful feedback. Focus on the issue, not the person.
-- **Be inclusive** — Welcome newcomers. Help them learn and contribute.
-- **Be professional** — Keep discussions focused on the project.
+### 功能请求
 
-### Enforcement
-
-Reports of unacceptable behavior can be made to the project maintainers. All reports will be reviewed and investigated promptly.
+使用功能请求模板，包含：解决的问题、建议方案、备选方案、真实场景。
 
 ---
 
-## Getting Help
+## 行为准则
 
-- **GitHub Discussions** — For questions and general discussion
-- **GitHub Issues** — For bug reports and feature requests
-- **Discord** — Real-time chat with the community (link in README)
-- **Module SDK Docs** — [docs/MODULE_SDK.md](MODULE_SDK.md)
+我们遵循 [Contributor Covenant](https://www.contributor-covenant.org/version/2/1/code_of_conduct/) 行为准则。
 
-Thank you for contributing to OpsPilot! 🚀
+**核心：** 尊重他人、建设性反馈、包容新人、保持专业。
+
+违规行为可向项目维护者报告。
+
+---
+
+## 获取帮助
+
+- **GitHub Discussions** —— 问答和讨论
+- **GitHub Issues** —— Bug 报告和功能请求
+- **Module SDK 文档** —— [docs/MODULE_SDK.md](MODULE_SDK.md)
+
+感谢你为 OpsPilot 做贡献！🚀
