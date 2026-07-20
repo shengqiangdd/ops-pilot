@@ -143,6 +143,19 @@ impl OpsModule for SshModule {
                     "required": ["host_id"]
                 }),
             },
+            ToolDefinition {
+                name: "batch_ssh_exec".into(),
+                description: "Execute a command on multiple hosts in parallel".into(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "host_ids": { "type": "array", "items": { "type": "string" }, "description": "List of host UUIDs" },
+                        "command": { "type": "string", "description": "Command to execute" },
+                        "timeout_secs": { "type": "integer", "description": "Per-host timeout in seconds", "default": 30 }
+                    },
+                    "required": ["host_ids", "command"]
+                }),
+            },
         ]
     }
 
@@ -194,6 +207,58 @@ impl OpsModule for SshModule {
                     "status": "disconnected",
                     "host_id": host_id
                 }))
+            }
+            "batch_ssh_exec" => {
+                let host_ids: Vec<String> =
+                    serde_json::from_value(params["host_ids"].clone())?;
+                let command = params["command"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("missing command"))?;
+                let timeout_secs = params
+                    .get("timeout_secs")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(30);
+                let timeout = std::time::Duration::from_secs(timeout_secs);
+
+                let mut handles = Vec::new();
+                for host_id in &host_ids {
+                    let pool = self.pool.clone();
+                    let cmd = command.to_string();
+                    let hid = host_id.clone();
+                    handles.push(tokio::spawn(async move {
+                        match tokio::time::timeout(
+                            timeout,
+                            async {
+                                let conn = pool.get(&hid).await?;
+                                conn.exec(&cmd).await
+                            },
+                        )
+                        .await
+                        {
+                            Ok(Ok(output)) => {
+                                (
+                                    hid.clone(),
+                                    serde_json::json!({"success": true, "output": output}),
+                                )
+                            }
+                            Ok(Err(e)) => (
+                                hid.clone(),
+                                serde_json::json!({"success": false, "error": e.to_string()}),
+                            ),
+                            Err(_) => (
+                                hid.clone(),
+                                serde_json::json!({"success": false, "error": "timeout"}),
+                            ),
+                        }
+                    }));
+                }
+
+                let mut results = serde_json::Map::new();
+                for handle in handles {
+                    let (host_id, result) = handle.await?;
+                    results.insert(host_id, result);
+                }
+                Ok(serde_json::Value::Object(results))
             }
             _ => anyhow::bail!("unknown tool: {}", tool),
         }

@@ -39,11 +39,13 @@ use ops_pilot_core::auth::AuthService;
 use ops_pilot_core::db::Database;
 use ops_pilot_core::ssh::SshConnectionPool;
 use ops_pilot_gateway::agent::{AgentConfig, AgentOrchestrator};
+use ops_pilot_gateway::routes::audit::audit_routes;
 use ops_pilot_gateway::routes::agent::agent_routes;
 use ops_pilot_gateway::routes::hosts::host_routes;
 use ops_pilot_gateway::routes::modules::{module_routes, ModuleManager};
 use ops_pilot_gateway::routes::security::security_routes;
 use ops_pilot_gateway::routes::vault::vault_routes;
+use ops_pilot_gateway::routes::ws_events_handler;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
 use ops_pilot_mod_core::ModCore;
 use ops_pilot_mod_rca::ModRca;
@@ -319,12 +321,14 @@ async fn main() {
 
     let app = Router::new()
         .route("/api/v1/health", get(health_handler))
+        .route("/api/ws/events", get(ws_events_handler))
         .merge(auth_routes(auth_service.clone(), login_limiter))
         .merge(protected_hosts)
         .merge(protected_vault)
         .merge(module_routes(module_manager.clone(), ctx.clone()))
         .merge(security_routes(module_manager, ctx.clone()))
-        .merge(agent_routes(tool_registry, llm_client, ctx, pool))
+        .merge(agent_routes(tool_registry, llm_client, ctx, pool.clone()))
+        .merge(audit_routes(pool))
         .merge(ops_pilot_gateway::terminal::terminal_routes(
             ssh_pool,
             auth_service,

@@ -9,6 +9,9 @@ members = [
     # "src/modules/mod-finops",
     "src/modules/mod-security",
     "src/modules/mod-webhook",
+    "src/modules/mod-scheduler",
+    "src/modules/mod-filesync",
+    "src/modules/mod-advisor",
     # "src/modules/mod-topo",
     # "src/modules/mod-chatops",
 ]
@@ -107,6 +110,10 @@ portable-pty = "0.8"
 # OpenTelemetry
 opentelemetry = "0.32"
 opentelemetry-otlp = "0.32"
+
+# Async streams
+futures = "0.3"
+tokio-stream = { version = "0.1", features = ["sync"] }
 
 [workspace.lints.rust]
 unused_imports = "warn"
