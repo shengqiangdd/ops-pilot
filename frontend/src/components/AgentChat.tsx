@@ -15,11 +15,11 @@ interface ChatMessage {
 }
 
 const QUICK_ACTIONS = [
-  { id: 'diagnose', icon: '🔍', labelKey: 'chat.quick.diagnose', prompt: '请帮我诊断主机问题：' },
-  { id: 'knowledge', icon: '📚', labelKey: 'chat.quick.knowledge', prompt: '搜索知识库：' },
-  { id: 'metrics', icon: '📊', labelKey: 'chat.quick.metrics', prompt: '查询主机指标：' },
-  { id: 'hosts', icon: '🖥️', labelKey: 'chat.quick.hosts', prompt: '列出所有主机状态' },
-  { id: 'alerts', icon: '🔔', labelKey: 'chat.quick.alerts', prompt: '查看最近告警' },
+  { id: 'diagnose', icon: '🔍', labelKey: 'chat.quick.diagnose', promptKey: 'chat.prompt.diagnose' },
+  { id: 'knowledge', icon: '📚', labelKey: 'chat.quick.knowledge', promptKey: 'chat.prompt.knowledge' },
+  { id: 'metrics', icon: '📊', labelKey: 'chat.quick.metrics', promptKey: 'chat.prompt.metrics' },
+  { id: 'hosts', icon: '🖥️', labelKey: 'chat.quick.hosts', promptKey: 'chat.prompt.hosts' },
+  { id: 'alerts', icon: '🔔', labelKey: 'chat.quick.alerts', promptKey: 'chat.prompt.alerts' },
 ];
 
 export function AgentChat() {
@@ -67,37 +67,37 @@ export function AgentChat() {
     setSending(true);
     try {
       const resp: NlQueryResponse = await api.nlQuery(token, query);
-      const content = `**查询**: ${resp.query}\n\n**意图**: ${resp.parsed_intent}\n\n**结果**: ${resp.summary}`;
+      const content = `**${t('chat.nl_query_prefix')}**: ${resp.query}\n\n**${t('chat.nl_query_intent')}**: ${resp.parsed_intent}\n\n**${t('chat.nl_query_result')}**: ${resp.summary}`;
       const assistantMsg: ChatMessage = { id: `assistant-${Date.now()}`, role: 'assistant', content, type: 'nl-query' };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Query failed');
     } finally { setSending(false); }
-  }, [token]);
+  }, [token, t]);
 
   const handleDiagnose = useCallback(async (description: string) => {
     if (!token) return;
-    const userMsg: ChatMessage = { id: `user-${Date.now()}`, role: 'user', content: `诊断: ${description}`, type: 'diagnose' };
+    const userMsg: ChatMessage = { id: `user-${Date.now()}`, role: 'user', content: `${t('chat.diagnose_prefix')}: ${description}`, type: 'diagnose' };
     setMessages((prev) => [...prev, userMsg]);
     setSending(true);
     try {
       const resp: DiagnoseResponse = await api.diagnose(token, { issue_description: description });
-      let content = `## 诊断报告\n\n**问题**: ${resp.issue}\n\n**严重级别**: ${resp.severity}\n\n`;
-      content += `### 可能原因\n`;
+      let content = `## ${t('chat.diagnose_report')}\n\n**${t('chat.diagnose_issue')}**: ${resp.issue}\n\n**${t('chat.diagnose_severity')}**: ${resp.severity}\n\n`;
+      content += `### ${t('chat.diagnose_causes')}\n`;
       resp.possible_causes.forEach((c, i) => { content += `${i + 1}. ${c}\n`; });
-      content += `\n### 建议操作\n`;
+      content += `\n### ${t('chat.diagnose_actions')}\n`;
       resp.recommended_actions.forEach((a, i) => { content += `${i + 1}. ${a}\n`; });
       const assistantMsg: ChatMessage = { id: `assistant-${Date.now()}`, role: 'assistant', content, type: 'diagnose' };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Diagnosis failed');
     } finally { setSending(false); }
-  }, [token]);
+  }, [token, t]);
 
   const handleQuickAction = (actionId: string) => {
     const action = QUICK_ACTIONS.find(a => a.id === actionId);
     if (action) {
-      setInput(action.prompt);
+      setInput(t(action.promptKey));
     }
   };
 
