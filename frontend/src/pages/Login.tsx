@@ -24,11 +24,11 @@ export function LoginPage() {
     try {
       if (mode === 'login') {
         const resp = await api.login(username, password);
-        setAuth(resp.token, username);
+        setAuth(resp.token, username, resp.role);
       } else {
         await api.register(username, email, password);
         const resp = await api.login(username, password);
-        setAuth(resp.token, username);
+        setAuth(resp.token, username, resp.role);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Operation failed');

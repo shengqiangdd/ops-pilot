@@ -40,6 +40,7 @@ const zh: Record<string, string> = {
   'tab.advisor': '建议',
   'tab.terminal': '终端',
   'tab.audit': '审计',
+  'tab.users': '用户',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -63,6 +64,7 @@ const zh: Record<string, string> = {
   'title.advisor': '智能建议',
   'title.terminal': 'Web 终端',
   'title.audit': '操作审计',
+  'title.users': '用户管理',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -99,6 +101,32 @@ const zh: Record<string, string> = {
   'audit.pagination.total': '共 {total} 条记录',
   'audit.pagination.prev': '上一页',
   'audit.pagination.next': '下一页',
+
+  /* Users page */
+  'users.title': '用户管理',
+  'users.reload': '刷新',
+  'users.loading': '加载中...',
+  'users.add': '添加用户',
+  'users.cancel': '取消',
+  'users.empty': '暂无用户',
+  'users.admin_required': '需要管理员权限才能管理用户',
+  'users.username': '用户名',
+  'users.email': '邮箱',
+  'users.password': '密码',
+  'users.role': '角色',
+  'users.role_admin': '管理员',
+  'users.role_operator': '操作员',
+  'users.role_viewer': '只读',
+  'users.create_btn': '创建用户',
+  'users.creating': '创建中...',
+  'users.delete': '删除',
+  'users.deleting': '删除中...',
+  'users.delete_confirm': '确定要删除此用户吗？',
+  'users.col.username': '用户名',
+  'users.col.email': '邮箱',
+  'users.col.role': '角色',
+  'users.col.created': '创建时间',
+  'users.col.actions': '操作',
 
   /* Desk */
   'desk': '桌面',

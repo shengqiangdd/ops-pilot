@@ -22,6 +22,7 @@ import { FileSyncPage } from './pages/FileSync';
 import { AdvisorPage } from './pages/Advisor';
 import { TerminalPage } from './pages/Terminal';
 import { AuditLogPage } from './pages/AuditLog';
+import { UsersPage } from './pages/Users';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -34,12 +35,12 @@ import { cn } from './lib/cn';
 type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
-  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor' | 'terminal' | 'audit';
+  | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor' | 'terminal' | 'audit' | 'users';
 
 const ALL_TABS: Tab[] = [
   'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
-  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor', 'terminal', 'audit',
+  'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor', 'terminal', 'audit', 'users',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -68,12 +69,13 @@ const ICONS: Record<Tab, string> = {
   advisor: '💡',
   terminal: '⌨️',
   audit: '📋',
+  users: '👥',
 };
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
-  { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault', 'audit'] },
+  { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault', 'audit', 'users'] },
   { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'monitor'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['scheduler', 'runbook', 'filesync'] },
@@ -156,6 +158,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'advisor': return <AdvisorPage />;
       case 'terminal': return <TerminalPage />;
       case 'audit': return <AuditLogPage />;
+      case 'users': return <UsersPage />;
       default: return <Dashboard />;
     }
   };

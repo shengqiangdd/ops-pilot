@@ -37,6 +37,7 @@ const en: Record<string, string> = {
   'tab.advisor': 'Adv',
   'tab.terminal': 'Term',
   'tab.audit': 'Audit',
+  'tab.users': 'Users',
 
   'title.dashboard': 'Dashboard',
   'title.chat': 'Agent Chat',
@@ -59,6 +60,7 @@ const en: Record<string, string> = {
   'title.advisor': 'Advisor',
   'title.terminal': 'Web Terminal',
   'title.audit': 'Audit Log',
+  'title.users': 'User Management',
 
   /* Terminal page */
   'terminal.title': 'Web Terminal',
@@ -95,6 +97,32 @@ const en: Record<string, string> = {
   'audit.pagination.total': 'Total {total} records',
   'audit.pagination.prev': 'Previous',
   'audit.pagination.next': 'Next',
+
+  /* Users page */
+  'users.title': 'User Management',
+  'users.reload': 'Reload',
+  'users.loading': 'Loading...',
+  'users.add': 'Add User',
+  'users.cancel': 'Cancel',
+  'users.empty': 'No users',
+  'users.admin_required': 'Admin privileges required to manage users',
+  'users.username': 'Username',
+  'users.email': 'Email',
+  'users.password': 'Password',
+  'users.role': 'Role',
+  'users.role_admin': 'Admin',
+  'users.role_operator': 'Operator',
+  'users.role_viewer': 'Viewer',
+  'users.create_btn': 'Create User',
+  'users.creating': 'Creating...',
+  'users.delete': 'Delete',
+  'users.deleting': 'Deleting...',
+  'users.delete_confirm': 'Are you sure you want to delete this user?',
+  'users.col.username': 'Username',
+  'users.col.email': 'Email',
+  'users.col.role': 'Role',
+  'users.col.created': 'Created',
+  'users.col.actions': 'Actions',
 
   'modules.title': 'Modules',
   'modules.reload': 'Reload',

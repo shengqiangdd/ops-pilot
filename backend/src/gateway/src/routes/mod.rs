@@ -10,6 +10,7 @@ pub mod monitor;
 pub mod runbook;
 pub mod security;
 pub mod topo;
+pub mod users;
 pub mod vault;
 
 pub use crate::terminal::terminal_routes;
@@ -26,4 +27,5 @@ pub use monitor::monitor_routes;
 pub use runbook::runbook_routes;
 pub use security::security_routes;
 pub use topo::topo_routes;
+pub use users::user_routes;
 pub use vault::vault_routes;

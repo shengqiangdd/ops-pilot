@@ -74,13 +74,66 @@ pub struct User {
     pub vault_key_encrypted: Option<String>,
     #[serde(skip_serializing)]
     pub vault_password_hash: Option<String>,
+    pub role: String,
     pub created_at: String,
+}
+
+/// User role for RBAC.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum Role {
+    Admin,
+    Operator,
+    Viewer,
+}
+
+impl Role {
+    /// Parse a role from string.
+    pub fn from_str(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "admin" => Role::Admin,
+            "viewer" => Role::Viewer,
+            _ => Role::Operator,
+        }
+    }
+
+    /// Convert role to string.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Role::Admin => "admin",
+            Role::Operator => "operator",
+            Role::Viewer => "viewer",
+        }
+    }
+
+    /// Check if this role has the given permission.
+    pub fn has_permission(&self, permission: &str) -> bool {
+        match self {
+            Role::Admin => true, // Admin has all permissions
+            Role::Operator => matches!(
+                permission,
+                "hosts:read"
+                    | "hosts:write"
+                    | "vault:read"
+                    | "vault:write"
+                    | "modules:read"
+                    | "audit:read"
+            ),
+            Role::Viewer => matches!(permission, "hosts:read" | "modules:read" | "audit:read"),
+        }
+    }
+}
+
+impl std::fmt::Display for Role {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
 }
 
 /// JWT claims extracted from a verified token.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserIdClaims {
     pub sub: String,
+    pub role: String,
     pub exp: u64,
     pub iat: u64,
 }
@@ -171,8 +224,10 @@ impl AuthService {
             .map_err(|_| AuthError::InvalidCredentials)?;
 
         let now = chrono::Utc::now().timestamp() as u64;
+        let role = Role::from_str(&user.role);
         let claims = UserIdClaims {
             sub: user.id,
+            role: role.as_str().to_string(),
             iat: now,
             exp: now + 86400, // 24 hours
         };
@@ -376,6 +431,169 @@ impl AuthService {
             None => Ok(false),
         }
     }
+
+    /// Get a user by ID (without sensitive fields).
+    pub async fn get_user(&self, user_id: &str) -> Result<Option<UserInfo>, AuthError> {
+        #[derive(sqlx::FromRow)]
+        struct UserRow {
+            id: String,
+            username: String,
+            email: String,
+            role: String,
+            created_at: String,
+        }
+
+        let row: Option<UserRow> = sqlx::query_as(
+            "SELECT id, username, email, role, created_at FROM users WHERE id = ?",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(|r| UserInfo {
+            id: r.id,
+            username: r.username,
+            email: r.email,
+            role: r.role,
+            created_at: r.created_at,
+        }))
+    }
+
+    /// List all users (admin only).
+    pub async fn list_users(&self) -> Result<Vec<UserInfo>, AuthError> {
+        #[derive(sqlx::FromRow)]
+        struct UserRow {
+            id: String,
+            username: String,
+            email: String,
+            role: String,
+            created_at: String,
+        }
+
+        let rows: Vec<UserRow> = sqlx::query_as(
+            "SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| UserInfo {
+                id: r.id,
+                username: r.username,
+                email: r.email,
+                role: r.role,
+                created_at: r.created_at,
+            })
+            .collect())
+    }
+
+    /// Create a new user with a specific role (admin only).
+    pub async fn create_user(
+        &self,
+        username: &str,
+        email: &str,
+        password: &str,
+        role: &str,
+    ) -> Result<UserInfo, AuthError> {
+        if password.len() < 8 {
+            return Err(AuthError::PasswordTooShort);
+        }
+
+        let salt = SaltString::generate(&mut rand::thread_rng());
+        let hash = Argon2::default()
+            .hash_password(password.as_bytes(), &salt)
+            .map_err(|e| AuthError::PasswordHash(e.to_string()))?
+            .to_string();
+
+        let id = Uuid::new_v4().to_string();
+        let role_str = Role::from_str(role).as_str();
+
+        let result = sqlx::query(
+            "INSERT INTO users (id, username, email, password_hash, role) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(&id)
+        .bind(username)
+        .bind(email)
+        .bind(&hash)
+        .bind(role_str)
+        .execute(&self.pool)
+        .await;
+
+        match result {
+            Ok(_) => Ok(UserInfo {
+                id,
+                username: username.to_string(),
+                email: email.to_string(),
+                role: role_str.to_string(),
+                created_at: chrono::Utc::now().to_rfc3339(),
+            }),
+            Err(sqlx::Error::Database(db_err)) => {
+                if db_err.message().contains("UNIQUE") {
+                    Err(AuthError::UserExists)
+                } else {
+                    Err(AuthError::Database(sqlx::Error::Database(db_err)))
+                }
+            }
+            Err(e) => Err(AuthError::Database(e)),
+        }
+    }
+
+    /// Update a user's role (admin only).
+    pub async fn update_user_role(
+        &self,
+        user_id: &str,
+        role: &str,
+    ) -> Result<(), AuthError> {
+        let role_str = Role::from_str(role).as_str();
+        sqlx::query("UPDATE users SET role = ? WHERE id = ?")
+            .bind(role_str)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Delete a user (admin only).
+    pub async fn delete_user(&self, user_id: &str) -> Result<(), AuthError> {
+        sqlx::query("DELETE FROM users WHERE id = ?")
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Log a user action (login, logout, etc).
+    pub async fn log_user_action(
+        &self,
+        user_id: &str,
+        action: &str,
+        ip_address: Option<&str>,
+        user_agent: Option<&str>,
+    ) -> Result<(), AuthError> {
+        let id = Uuid::new_v4().to_string();
+        sqlx::query(
+            "INSERT INTO user_sessions (id, user_id, action, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(&id)
+        .bind(user_id)
+        .bind(action)
+        .bind(ip_address)
+        .bind(user_agent)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+}
+
+/// Public user info (without sensitive fields).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserInfo {
+    pub id: String,
+    pub username: String,
+    pub email: String,
+    pub role: String,
+    pub created_at: String,
 }
 
 #[cfg(test)]

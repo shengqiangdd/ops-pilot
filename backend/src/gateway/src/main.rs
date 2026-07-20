@@ -52,6 +52,7 @@ use ops_pilot_gateway::routes::runbook::runbook_routes;
 use ops_pilot_gateway::routes::security::security_routes;
 use ops_pilot_gateway::routes::topo::topo_routes;
 use ops_pilot_gateway::routes::vault::vault_routes;
+use ops_pilot_gateway::routes::users::user_routes;
 use ops_pilot_gateway::routes::ws_events_handler;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
 use ops_pilot_mod_core::ModCore;
@@ -81,6 +82,7 @@ struct LoginRequest {
 #[derive(serde::Serialize)]
 struct AuthResponse {
     token: String,
+    role: String,
 }
 
 #[derive(serde::Serialize)]
@@ -88,6 +90,7 @@ struct UserResponse {
     id: String,
     username: String,
     email: String,
+    role: String,
 }
 
 #[derive(Clone)]
@@ -108,6 +111,7 @@ async fn register_handler(
         id: user.id,
         username: user.username,
         email: user.email,
+        role: "operator".to_string(),
     }))
 }
 
@@ -120,7 +124,15 @@ async fn login_handler(
         .login(&req.username, &req.password)
         .await
         .map_err(|e| (StatusCode::UNAUTHORIZED, e.to_string()))?;
-    Ok(Json(AuthResponse { token }))
+
+    // Extract role from token claims
+    let claims = state.service.verify_token(&token)
+        .map_err(|e| (StatusCode::UNAUTHORIZED, e.to_string()))?;
+
+    Ok(Json(AuthResponse {
+        token,
+        role: claims.role,
+    }))
 }
 
 fn auth_routes(
@@ -413,12 +425,21 @@ async fn main() {
         ),
     );
 
+    // User management routes require JWT authentication
+    let protected_users = user_routes(auth_service.clone()).layer(
+        axum::middleware::from_fn_with_state(
+            auth_middleware_state.clone(),
+            ops_pilot_gateway::middleware::auth_middleware,
+        ),
+    );
+
     let app = Router::new()
         .route("/api/v1/health", get(health_handler))
         .route("/api/ws/events", get(ws_events_handler))
         .merge(auth_routes(auth_service.clone(), login_limiter))
         .merge(protected_hosts)
         .merge(protected_vault)
+        .merge(protected_users)
         .merge(module_routes(module_manager.clone(), ctx.clone()))
         .merge(security_routes(module_manager.clone(), ctx.clone()))
         .merge(agent_routes(tool_registry, llm_client, ctx.clone(), pool.clone()))

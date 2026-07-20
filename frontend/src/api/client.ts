@@ -22,6 +22,8 @@ import type {
   FileSyncResult,
   AdvisorSuggestion,
   AuditLogEntry,
+  UserInfo,
+  CreateUserInput,
 } from './types';
 
 const BASE = '/api';
@@ -109,13 +111,13 @@ export const api = {
   // ── Auth ───────────────────────────────────────────────────────────────
 
   login: (username: string, password: string) =>
-    request<{ token: string }>('/auth/login', {
+    request<{ token: string; role: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     }),
 
   register: (username: string, email: string, password: string) =>
-    request<{ id: string; username: string; email: string }>('/auth/register', {
+    request<{ id: string; username: string; email: string; role: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, email, password }),
     }),
@@ -331,4 +333,29 @@ export const api = {
       by_action: Array<{ action: string; count: number }>;
       by_outcome: Array<{ outcome: string; count: number }>;
     }>('/audit/stats', token),
+
+  // ── Users ───────────────────────────────────────────────────────────
+
+  listUsers: (token: string) =>
+    requestWithAuth<UserInfo[]>('/users', token),
+
+  getCurrentUser: (token: string) =>
+    requestWithAuth<UserInfo>('/users/me', token),
+
+  createUser: (token: string, input: CreateUserInput) =>
+    requestWithAuth<UserInfo>('/users', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateUserRole: (token: string, userId: string, role: string) =>
+    requestWithAuth<{ status: string }>(`/users/${userId}/role`, token, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    }),
+
+  deleteUser: (token: string, userId: string) =>
+    requestWithAuth<void>(`/users/${userId}`, token, {
+      method: 'DELETE',
+    }),
 };

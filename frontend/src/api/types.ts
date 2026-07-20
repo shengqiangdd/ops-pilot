@@ -308,3 +308,20 @@ export interface AuditLogResponse {
   page: number;
   per_page: number;
 }
+
+// ── User management types ─────────────────────────────────────────────
+
+export interface UserInfo {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  created_at: string;
+}
+
+export interface CreateUserInput {
+  username: string;
+  email: string;
+  password: string;
+  role?: string;
+}
