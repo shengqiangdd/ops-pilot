@@ -8,9 +8,13 @@
 
 ### Fixed 修复
 
+- **[P0]** 项目结构：`src/` 移到 `backend/` 下，对齐 Cargo.toml workspace 成员路径 —— 修复所有 CI 构建失败
+- **[P0]** CI 配置：Rust job 添加 `working-directory: backend`，Docker build context 使用项目根目录
 - **[P0]** SSH `reconnect()` 是空操作 —— 新 handle 创建后立即丢弃，未替换旧 handle（`SshConnection.handle` 未用 `Arc<RwLock<...>>` 包裹）
 - **[P1]** Agent `truncate_if_needed()` 在驱逐旧消息时可能破坏 tool_call/tool_result 成对关系 —— 现已保证原子性
 - **[P1]** 拼写错误：`truncuate_if_needed` → `truncate_if_needed`
+- **[P1]** `.gitignore` 中裸 `core` 模式误匹配 `backend/src/core/`，改为 `/core`
+- **[P1]** Dockerfile COPY 路径对齐，docker-compose.yml context/dockerfile 引用修正
 
 ## [0.1.0] - 2026-07-15
 
