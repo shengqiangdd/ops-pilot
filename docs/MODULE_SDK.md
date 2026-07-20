@@ -1,6 +1,6 @@
-# Module SDK Reference
+# Module SDK 参考 Module SDK Reference
 
-This document specifies the complete Module SDK for OpsPilot, including trait definitions, lifecycle management, configuration, and example implementations.
+本文档定义 OpsPilot 的完整 Module SDK，包括 trait 定义、生命周期管理、配置和示例实现。保留英文原文作为对照参考。
 
 ---
 
@@ -19,7 +19,7 @@ This document specifies the complete Module SDK for OpsPilot, including trait de
 
 ---
 
-## Overview
+## 概览 Overview
 
 Every OpsPilot module is a Rust crate that implements the `OpsModule` trait from the `ops-pilot-sdk` crate. Modules are loaded at runtime by the core engine and communicate through a well-defined interface.
 
@@ -130,7 +130,7 @@ pub trait OpsModule: Send + Sync + 'static {
 
 ---
 
-## ToolDefinition
+## ToolDefinition 工具定义
 
 Describes a single tool that a module provides. Used for API documentation, AI Gateway function calling, and CLI help text.
 
@@ -221,7 +221,7 @@ pub struct ToolExample {
 
 ---
 
-## ModuleContext
+## ModuleContext 模块上下文
 
 Provided to every module method. Grants controlled access to core services without tight coupling.
 
@@ -329,7 +329,7 @@ impl ModuleContext {
 
 ---
 
-## Event System
+## Event System 事件系统
 
 Events are the primary communication mechanism between modules and the core engine.
 
@@ -517,7 +517,7 @@ pub enum ModuleAction {
 
 ---
 
-## Lifecycle Hooks
+## Lifecycle Hooks 生命周期钩子
 
 Modules go through a defined lifecycle managed by the core engine.
 
@@ -606,7 +606,7 @@ pub trait ModuleLifecycle: OpsModule {
 
 ---
 
-## Configuration Schema
+## Configuration Schema 配置 Schema
 
 Each module declares its configuration schema in TOML format. The core engine validates configuration at startup and provides it to the module via `ModuleContext::config`.
 
@@ -696,7 +696,7 @@ impl OpsModule for MyModule {
 
 ---
 
-## Module Manifest
+## Module Manifest 模块清单
 
 Every module crate must include a `module.toml` manifest in its root directory. The core engine reads this at load time.
 
@@ -755,7 +755,7 @@ requires = ["host.read", "ssh.exec", "audit.write"]
 
 ---
 
-## Example Module
+## Example Module 示例模块
 
 A complete minimal "Hello World" module that demonstrates all SDK features.
 
@@ -1045,7 +1045,7 @@ mod tests {
 
 ---
 
-## Packaging & Distribution
+## Packaging & Distribution 打包与分发
 
 ### Building a Module
 

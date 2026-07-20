@@ -1,29 +1,29 @@
-# API Reference
+# API 参考 API Reference
 
-Complete REST API reference for OpsPilot v1.
+OpsPilot v1 完整 REST API 参考文档。保留英文原文作为对照参考。
 
 ---
 
 ## Table of Contents
 
-- [Base URL](#base-url)
-- [Authentication](#authentication)
-- [Endpoints](#endpoints)
-  - [Auth](#auth)
-  - [Hosts](#hosts)
+- [Base URL 基础地址](#base-url)
+- [Authentication 认证](#authentication)
+- [Endpoints 端点](#endpoints)
+  - [Auth 认证](#auth)
+  - [Hosts 主机](#hosts)
   - [SSH](#ssh)
   - [WebSocket](#websocket)
   - [Docker](#docker)
-  - [Modules](#modules)
+  - [Modules 模块](#modules)
   - [AI](#ai)
-  - [Audit & Alerts](#audit--alerts)
-  - [Dashboard](#dashboard)
-- [Error Codes](#error-codes)
-- [Rate Limiting](#rate-limiting)
+  - [Audit & Alerts 审计与告警](#audit--alerts)
+  - [Dashboard 仪表盘](#dashboard)
+- [Error Codes 错误码](#error-codes)
+- [Rate Limiting 速率限制](#rate-limiting)
 
 ---
 
-## Base URL
+## Base URL 基础地址
 
 ```
 http://localhost:3000/api/v1
@@ -33,7 +33,7 @@ All endpoints are prefixed with `/api/v1`. HTTPS is recommended in production.
 
 ---
 
-## Authentication
+## Authentication 认证
 
 Most endpoints require a valid JWT token. Include it in the `Authorization` header:
 
@@ -45,9 +45,11 @@ Obtain a token via `POST /auth/login`.
 
 ---
 
-## Endpoints
+## Endpoints 端点
 
-### Auth
+### Auth 认证
+
+认证相关端点。注册新用户、登录获取 JWT 令牌。
 
 #### `POST /auth/login`
 
@@ -116,7 +118,9 @@ Refresh an expired access token.
 
 ---
 
-### Hosts
+### Hosts 主机
+
+管理基础设施主机，支持 SSH 连接信息和健康状态追踪。
 
 #### `GET /hosts`
 
@@ -578,7 +582,7 @@ Perform a Docker action on a container.
 
 ---
 
-### Modules
+### Modules 模块
 
 #### `GET /modules`
 
@@ -850,7 +854,7 @@ Execute a natural language command as an AI agent. Unlike chat, this performs ac
 
 ---
 
-### Audit & Alerts
+### Audit & Alerts 审计与告警
 
 #### `GET /audit-logs`
 
@@ -1018,7 +1022,7 @@ Resolve an alert.
 
 ---
 
-### Dashboard
+### Dashboard 仪表盘
 
 #### `GET /dashboard/overview`
 
@@ -1072,7 +1076,7 @@ Get dashboard overview data.
 
 ---
 
-## Error Codes
+## Error Codes 错误码
 
 | Code | HTTP Status | Description |
 |------|-------------|-------------|
@@ -1116,7 +1120,7 @@ Get dashboard overview data.
 
 ---
 
-## Rate Limiting
+## Rate Limiting 速率限制
 
 | Endpoint Group | Limit | Window |
 |---------------|-------|--------|
