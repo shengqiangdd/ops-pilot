@@ -9,8 +9,8 @@ x-logging: &default-logging
 services:
   ops-pilot:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: backend/Dockerfile
     container_name: ops-pilot
     ports:
       - "3001:3001"

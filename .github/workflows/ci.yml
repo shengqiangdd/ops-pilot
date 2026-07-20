@@ -59,10 +59,13 @@ jobs:
   rust:
     name: Rust (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: backend
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]  # add macos-latest / windows-latest for cross-platform
+        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -84,13 +87,12 @@ jobs:
 
       - name: cargo build --release
         run: cargo build --release --bin ops-pilot
-        # Only build release for ubuntu; skip for others to save CI time
         if: matrix.os == 'ubuntu-latest'
 
       - uses: actions/upload-artifact@v4
         with:
           name: ops-pilot-bin-${{ matrix.os }}
-          path: target/release/ops-pilot
+          path: backend/target/release/ops-pilot
           retention-days: 1
         if: matrix.os == 'ubuntu-latest'
 
@@ -114,7 +116,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ops-pilot-bin-ubuntu-latest
-          path: target/release/
+          path: backend/target/release/
 
       - name: Set Docker metadata
         id: meta
@@ -145,7 +147,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -168,6 +168,7 @@ docker run -d \
 #### 后端
 
 ```bash
+cd backend
 cargo build --workspace
 cargo test --workspace
 cargo run -p ops-pilot-gateway

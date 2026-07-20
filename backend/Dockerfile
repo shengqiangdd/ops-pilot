@@ -1,13 +1,13 @@
 # ── OpsPilot Docker Image ──────────────────────────────────────────────
 # In CI, this expects the pre-built binary and frontend dist to be
 # mounted/downloaded into the build context as:
-#   target/release/ops-pilot   (from the "rust" CI job)
-#   frontend/dist/             (from the "frontend" CI job)
+#   backend/target/release/ops-pilot   (from the "rust" CI job)
+#   frontend/dist/                     (from the "frontend" CI job)
 #
 # For local builds, run:
-#   cargo build --release --bin ops-pilot
-#   npm run build  (in frontend/)
-#   docker build .
+#   cd backend && cargo build --release --bin ops-pilot
+#   cd frontend && npm run build
+#   docker build -f backend/Dockerfile .
 
 FROM debian:bookworm-slim
 
@@ -19,9 +19,9 @@ RUN useradd -r -s /bin/false ops-pilot
 
 WORKDIR /app
 
-COPY target/release/ops-pilot /app/ops-pilot
+COPY backend/target/release/ops-pilot /app/ops-pilot
 COPY frontend/dist /app/static
-COPY src/core/migrations /app/migrations
+COPY backend/src/core/migrations /app/migrations
 
 RUN mkdir -p /app/data && chown -R ops-pilot:ops-pilot /app
 

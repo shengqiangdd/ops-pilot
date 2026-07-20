@@ -13,8 +13,8 @@
 JWT_SECRET=$(openssl rand -hex 32)
 OPSPILOT_MASTER_KEY=$(openssl rand -base64 32)
 
-# 2. 启动
-JWT_SECRET=$JWT_SECRET OPSPILOT_MASTER_KEY=$OPSPILOT_MASTER_KEY docker compose up -d
+# 2. 启动（在 backend/ 目录下执行）
+cd backend && JWT_SECRET=$JWT_SECRET OPSPILOT_MASTER_KEY=$OPSPILOT_MASTER_KEY docker compose up -d
 
 # 3. 访问
 # 浏览器打开 http://localhost:3001
