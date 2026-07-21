@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useI18n } from '../i18n';
 import { cn } from '../lib/cn';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 
 // Generate mock metrics data
 function generateMetrics(points: number = 24): { time: string; cpu: number; memory: number; disk: number }[] {
@@ -130,7 +131,13 @@ export function OpsDashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-gray-400 text-sm mb-1">{stat.label}</p>
-                <p className={cn('text-3xl font-bold', stat.textColor)}>{stat.value}</p>
+                <p className={cn('text-3xl font-bold', stat.textColor)}>
+                  {typeof stat.value === 'string' && stat.value.endsWith('%')
+                    ? <><AnimatedNumber value={parseFloat(stat.value)} suffix="%" /></>
+                    : typeof stat.value === 'number'
+                      ? <AnimatedNumber value={stat.value} />
+                      : stat.value}
+                </p>
               </div>
               <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-gradient-to-br', stat.color)}>
                 {stat.icon}

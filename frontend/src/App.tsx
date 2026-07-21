@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Dashboard } from './components/Dashboard';
 import { ModuleBrowser } from './components/ModuleBrowser';
 import { HealthDashboard } from './components/HealthDashboard';
@@ -12,6 +13,7 @@ import { useTheme } from './components/ThemeProvider';
 import { ThemePicker } from './components/ThemePicker';
 import { useI18n } from './i18n';
 import { cn } from './lib/cn';
+import { ChartPageSkeleton } from './components/PageSkeleton';
 
 // Lazy-loaded page components for code splitting
 const HostsPage = lazy(() => import('./pages/Hosts').then(m => ({ default: m.HostsPage })));
@@ -66,14 +68,7 @@ const ContainerSecPage = lazy(() => import('./pages/ContainerSec').then(m => ({ 
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 border-2 border-md-primary border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-md-on-surface-variant">Loading...</span>
-      </div>
-    </div>
-  );
+  return <div className="p-6"><ChartPageSkeleton /></div>;
 }
 
 /* ── tab 类型 ── */
@@ -393,7 +388,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {!isCollapsed && (
+                <div className={cn('overflow-hidden transition-all duration-300 ease-in-out', isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100')}>
                   <div className="pb-0.5 space-y-0.5">
                     {item.tabs
                       .filter(key => hasRequiredRole(role, TAB_ROLES[key] || ['viewer']))
@@ -402,10 +397,10 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
                           key={key}
                           onClick={() => navigateTo(key)}
                           className={cn(
-                            'flex items-center gap-3 w-full pl-9 pr-3 py-2 text-sm font-medium transition-all duration-150 rounded-md-lg',
+                            'flex items-center gap-3 w-full pl-9 pr-3 py-2 text-sm font-medium transition-all duration-200 rounded-md-lg border-l-[3px]',
                             tab === key
-                              ? 'glass-card text-md-on-surface shadow-sm'
-                              : 'text-md-on-surface-variant hover:glass-card hover:text-md-on-surface',
+                              ? 'glass-card text-md-on-surface shadow-sm border-l-md-primary bg-md-primary/5'
+                              : 'text-md-on-surface-variant hover:glass-card hover:text-md-on-surface hover:border-l-md-primary/50 border-l-transparent',
                           )}
                         >
                           <span className="text-lg">{key === 'vault' ? vaultIcon : ICONS[key]}</span>
@@ -413,7 +408,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
                         </button>
                       ))}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -486,7 +481,17 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
         <main className="flex-1 overflow-auto p-4 sm:p-6 pb-20 md:pb-6">
           <ErrorBoundary key={tab}>
             <Suspense fallback={<LoadingFallback />}>
-              {renderContent()}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={tab}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {renderContent()}
+                </motion.div>
+              </AnimatePresence>
             </Suspense>
           </ErrorBoundary>
         </main>

@@ -546,6 +546,8 @@ function applyTheme(theme: ThemeName, isDark: boolean) {
   Object.entries(colors).forEach(([key, value]) => {
     root.style.setProperty(key, value);
   });
+  // Toggle .dark class for CSS selectors
+  root.classList.toggle('dark', isDark);
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

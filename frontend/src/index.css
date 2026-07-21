@@ -698,3 +698,51 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* ── Dark mode enhancements ── */
+.dark .glass-card {
+  background: rgba(30, 30, 40, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .glass-card:hover {
+  border-color: rgba(208, 188, 255, 0.25);
+  box-shadow: 0 0 24px rgba(208, 188, 255, 0.1);
+}
+
+/* Dark mode elevation levels */
+:root {
+  --md-elevation-1: 0 1px 3px 1px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.3);
+  --md-elevation-2: 0 2px 6px 2px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.3);
+  --md-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.3);
+  --md-elevation-4: 0 6px 10px 4px rgba(0,0,0,0.15), 0 2px 3px rgba(0,0,0,0.3);
+  --md-elevation-5: 0 8px 12px 6px rgba(0,0,0,0.15), 0 4px 4px rgba(0,0,0,0.3);
+}
+
+.dark {
+  --md-elevation-1: 0 1px 3px 1px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.5);
+  --md-elevation-2: 0 2px 6px 2px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.5);
+  --md-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.5);
+  --md-elevation-4: 0 6px 10px 4px rgba(0,0,0,0.3), 0 2px 3px rgba(0,0,0,0.5);
+  --md-elevation-5: 0 8px 12px 6px rgba(0,0,0,0.3), 0 4px 4px rgba(0,0,0,0.5);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
