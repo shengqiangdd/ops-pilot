@@ -41,6 +41,7 @@ const CICDPage = lazy(() => import('./pages/CICD').then(m => ({ default: m.CICDP
 const MetricsVizPage = lazy(() => import('./pages/MetricsViz').then(m => ({ default: m.MetricsVizPage })));
 const JobsPage = lazy(() => import('./pages/Jobs').then(m => ({ default: m.JobsPage })));
 const DiagnosticsPage = lazy(() => import('./pages/Diagnostics').then(m => ({ default: m.DiagnosticsPage })));
+const ReportsPage = lazy(() => import('./pages/Reports').then(m => ({ default: m.ReportsPage })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -59,13 +60,13 @@ type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
-  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics';
+  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports';
 
 const ALL_TABS: Tab[] = [
   'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
-  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics',
+  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -104,6 +105,7 @@ const ICONS: Record<Tab, string> = {
   metrics: '📈',
   jobs: '📋',
   diagnostics: '🩺',
+  reports: '📄',
 };
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
@@ -114,7 +116,7 @@ const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['cicd', 'jobs', 'scheduler', 'runbook', 'filesync'] },
   { icon: '🔔', catKey: 'cat.monitor', tabs: ['escalation', 'health', 'alert-rules', 'alert-history', 'channels', 'metrics'] },
-  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'advisor', 'timeline'] },
+  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline'] },
   { icon: '🔗', catKey: 'cat.integration', tabs: ['webhook', 'config', 'knowledge'] },
 ];
 
@@ -202,6 +204,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'metrics': return <MetricsVizPage />;
       case 'jobs': return <JobsPage />;
       case 'diagnostics': return <DiagnosticsPage />;
+      case 'reports': return <ReportsPage />;
       default: return <Dashboard />;
     }
   };

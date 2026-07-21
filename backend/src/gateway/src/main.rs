@@ -58,6 +58,7 @@ use ops_pilot_gateway::routes::cmdb::cmdb_routes;
 use ops_pilot_gateway::routes::cicd::cicd_routes;
 use ops_pilot_gateway::routes::diagnostics::diagnostics_routes;
 use ops_pilot_gateway::routes::jobs::jobs_routes;
+use ops_pilot_gateway::routes::reports::reports_routes;
 use ops_pilot_gateway::routes::timeline::timeline_routes;
 use ops_pilot_gateway::routes::ws_events_handler;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
@@ -469,6 +470,7 @@ async fn main() {
         .merge(cicd_routes(pool.clone()))
         .merge(jobs_routes(pool.clone()))
         .merge(diagnostics_routes(pool.clone()))
+        .merge(reports_routes(pool.clone()))
         .fallback_service(static_service)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());

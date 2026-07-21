@@ -55,6 +55,10 @@ import type {
   RunDiagnosticsInput,
   DiagnosticReport,
   SystemStatus,
+  Report,
+  GenerateReportInput,
+  ReportSchedule,
+  CreateReportScheduleInput,
 } from './types';
 
 const BASE = '/api';
@@ -620,4 +624,32 @@ export const api = {
 
   getDiagnosticsStatus: (token: string) =>
     requestWithAuth<SystemStatus>('/diagnostics/status', token),
+
+  // ── Reports ────────────────────────────────────────────────────────
+
+  generateReport: (token: string, input: GenerateReportInput) =>
+    requestWithAuth<Report>('/reports', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  listReports: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<Report[]>(`/reports${qs ? '?' + qs : ''}`, token);
+  },
+
+  getReport: (token: string, reportId: string) =>
+    requestWithAuth<Report>(`/reports/${reportId}`, token),
+
+  exportReport: (token: string, reportId: string) =>
+    requestWithAuth<string>(`/reports/${reportId}/export`, token),
+
+  listReportSchedules: (token: string) =>
+    requestWithAuth<ReportSchedule[]>('/reports/schedule', token),
+
+  createReportSchedule: (token: string, input: CreateReportScheduleInput) =>
+    requestWithAuth<ReportSchedule>('/reports/schedule', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 };

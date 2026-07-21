@@ -669,3 +669,41 @@ export interface SystemStatus {
   recent_alerts: number;
   overall_health_score: number;
 }
+
+// ── Reports types ──────────────────────────────────────────────────────
+
+export interface Report {
+  id: string;
+  report_type: string;
+  title: string;
+  summary: string;
+  content_html: string;
+  host_ids: string;
+  sections: string;
+  created_at: string;
+}
+
+export interface GenerateReportInput {
+  report_type: string;
+  host_ids?: string[];
+  include_sections?: string[];
+}
+
+export interface ReportSchedule {
+  id: string;
+  enabled: boolean;
+  report_type: string;
+  recipients: string;
+  day_of_week: number | null;
+  day_of_month: number | null;
+  last_generated_at: string | null;
+  created_at: string;
+}
+
+export interface CreateReportScheduleInput {
+  enabled: boolean;
+  report_type: string;
+  recipients: string[];
+  day_of_week?: number;
+  day_of_month?: number;
+}

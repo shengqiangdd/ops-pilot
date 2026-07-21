@@ -47,6 +47,7 @@ const en: Record<string, string> = {
   'tab.metrics': 'Metrics',
   'tab.jobs': 'Jobs',
   'tab.diagnostics': 'Diagnostics',
+  'tab.reports': 'Reports',
 
   'title.dashboard': 'Dashboard',
 
@@ -97,6 +98,7 @@ const en: Record<string, string> = {
   'title.metrics_viz': 'Metrics Dashboard',
   'title.jobs': 'Job Orchestration',
   'title.diagnostics': 'Health Diagnostics',
+  'title.reports': 'Operations Reports',
 
   /* Terminal page */
   'terminal.title': 'Web Terminal',
@@ -376,6 +378,37 @@ const en: Record<string, string> = {
   'diagnostics.history.host': 'Host',
   'diagnostics.history.status': 'Status',
   'diagnostics.history.score': 'Score',
+
+  /* Reports page */
+  'reports.title': 'Operations Reports',
+  'reports.reload': 'Reload',
+  'reports.loading': 'Loading...',
+  'reports.generate': 'Generate Report',
+  'reports.cancel': 'Cancel',
+  'reports.generating': 'Generating...',
+  'reports.generate_new': 'Generate New Report',
+  'reports.generate_btn': 'Generate Report',
+  'reports.schedule': 'Schedule Report',
+  'reports.back_to_list': 'Back to List',
+  'reports.export': 'Export',
+  'reports.download_html': 'Download HTML',
+  'reports.dismiss': 'Dismiss',
+  'reports.no_reports': 'No reports',
+  'reports.no_schedule': 'No scheduled reports',
+  'reports.type': 'Report Type',
+  'reports.type.daily': 'Daily',
+  'reports.type.weekly': 'Weekly',
+  'reports.type.monthly': 'Monthly',
+  'reports.sections': 'Sections',
+  'reports.section.summary': 'Summary',
+  'reports.section.resources': 'Resources',
+  'reports.section.alerts': 'Alerts',
+  'reports.section.changes': 'Changes',
+  'reports.section.diagnostics': 'Diagnostics',
+  'reports.section.health': 'Health',
+  'reports.schedules': 'Scheduled Reports',
+  'reports.enabled': 'Enabled',
+  'reports.disabled': 'Disabled',
 
   'modules.title': 'Modules',
   'modules.reload': 'Reload',

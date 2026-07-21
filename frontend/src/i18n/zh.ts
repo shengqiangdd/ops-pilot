@@ -50,6 +50,7 @@ const zh: Record<string, string> = {
   'tab.metrics': '指标',
   'tab.jobs': '作业',
   'tab.diagnostics': '诊断',
+  'tab.reports': '报告',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -101,6 +102,7 @@ const zh: Record<string, string> = {
   'title.metrics_viz': '指标仪表盘',
   'title.jobs': '作业编排',
   'title.diagnostics': '健康诊断',
+  'title.reports': '运维报告',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -380,6 +382,37 @@ const zh: Record<string, string> = {
   'diagnostics.history.host': '主机',
   'diagnostics.history.status': '状态',
   'diagnostics.history.score': '评分',
+
+  /* Reports page */
+  'reports.title': '运维报告',
+  'reports.reload': '刷新',
+  'reports.loading': '加载中...',
+  'reports.generate': '生成报告',
+  'reports.cancel': '取消',
+  'reports.generating': '生成中...',
+  'reports.generate_new': '生成新报告',
+  'reports.generate_btn': '生成报告',
+  'reports.schedule': '定时生成',
+  'reports.back_to_list': '返回列表',
+  'reports.export': '导出',
+  'reports.download_html': '下载 HTML',
+  'reports.dismiss': '关闭',
+  'reports.no_reports': '暂无报告',
+  'reports.no_schedule': '暂无定时任务',
+  'reports.type': '报告类型',
+  'reports.type.daily': '日报',
+  'reports.type.weekly': '周报',
+  'reports.type.monthly': '月报',
+  'reports.sections': '包含章节',
+  'reports.section.summary': '概要',
+  'reports.section.resources': '资源',
+  'reports.section.alerts': '告警',
+  'reports.section.changes': '变更',
+  'reports.section.diagnostics': '诊断',
+  'reports.section.health': '健康',
+  'reports.schedules': '定时报告',
+  'reports.enabled': '已启用',
+  'reports.disabled': '已禁用',
 
   /* Desk */
   'desk': '桌面',
