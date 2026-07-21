@@ -17,6 +17,7 @@ pub mod agent;
 pub mod llm;
 pub mod middleware;
 pub mod routes;
+pub mod seed;
 pub mod terminal;
 pub mod tools;
 pub mod ws_events;

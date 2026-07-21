@@ -3,7 +3,7 @@ name = "ops-pilot-mod-webhook"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Webhook notification module — dispatch events to Slack, DingTalk, Feishu, etc."
+description = "Webhook notification module — DingTalk, WeCom, Email, custom webhooks"
 
 [dependencies]
 ops-pilot-sdk = { path = "../../sdk" }
@@ -17,6 +17,10 @@ anyhow.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
 futures-util = "0.3"
+lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
 
 [dev-dependencies]
 sqlx.workspace = true

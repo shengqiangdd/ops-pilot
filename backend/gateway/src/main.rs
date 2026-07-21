@@ -228,6 +228,14 @@ impl ops_pilot_gateway::llm::LlmClient for PlaceholderLlm {
 
 #[tokio::main]
 async fn main() {
+    // Seed command: ops-pilot seed
+    if std::env::args().any(|a| a == "seed") {
+        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:ops-pilot.db".into());
+        let db = ops_pilot_core::db::Database::new(&database_url).await.expect("failed to connect DB");
+        ops_pilot_gateway::seed::run_seed(&db.pool).await.expect("seed failed");
+        return;
+    }
+
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
