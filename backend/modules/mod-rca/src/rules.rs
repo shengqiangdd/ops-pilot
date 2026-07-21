@@ -50,6 +50,13 @@ pub struct Condition {
     pub metric: String,
     pub comparison: Comparison,
     pub threshold: f64,
+    /// Weight for this condition (default 1.0). Higher weight = more important.
+    #[serde(default = "default_weight")]
+    pub weight: f64,
+}
+
+fn default_weight() -> f64 {
+    1.0
 }
 
 /// A root-cause analysis rule.
@@ -63,29 +70,33 @@ pub struct RcaRule {
 }
 
 impl RcaRule {
-    /// Evaluate all conditions against the given symptoms.
-    /// Returns the fraction of conditions met (0.0–1.0).
-    /// A missing metric counts as a failed condition.
+    /// Total weight of all conditions.
+    pub fn total_weight(&self) -> f64 {
+        self.conditions.iter().map(|c| c.weight).sum()
+    }
+
+    /// Evaluate all conditions against the given symptoms using weighted scoring.
+    /// Returns a weighted score (0.0–1.0) where each condition contributes proportionally.
     pub fn evaluate(&self, symptoms: &std::collections::HashMap<String, f64>) -> f64 {
-        if self.conditions.is_empty() {
+        if self.conditions.is_empty() || self.total_weight() == 0.0 {
             return 0.0;
         }
 
-        let matched = self
-            .conditions
+        let matched_weight: f64 = self.conditions
             .iter()
             .filter(|cond| {
                 symptoms
                     .get(&cond.metric)
                     .is_some_and(|&v| cond.comparison.evaluate(v, cond.threshold))
             })
-            .count();
+            .map(|c| c.weight)
+            .sum();
 
-        matched as f64 / self.conditions.len() as f64
+        matched_weight / self.total_weight()
     }
 }
 
-/// Build the built-in rule set.
+/// Build the built-in rule set with weighted conditions.
 pub fn builtin_rules() -> Vec<RcaRule> {
     vec![
         RcaRule {
@@ -96,11 +107,13 @@ pub fn builtin_rules() -> Vec<RcaRule> {
                     metric: "cpu_percent".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 80.0,
+                    weight: 0.6,  // CPU high is a strong signal
                 },
                 Condition {
                     metric: "memory_percent".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 85.0,
+                    weight: 0.4,
                 },
             ],
             severity: Severity::Critical,
@@ -114,6 +127,7 @@ pub fn builtin_rules() -> Vec<RcaRule> {
                     metric: "disk_percent".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 90.0,
+                    weight: 1.0,
                 },
             ],
             severity: Severity::Critical,
@@ -127,11 +141,13 @@ pub fn builtin_rules() -> Vec<RcaRule> {
                     metric: "network_errors".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 10.0,
+                    weight: 0.5,
                 },
                 Condition {
                     metric: "latency_ms".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 200.0,
+                    weight: 0.5,
                 },
             ],
             severity: Severity::Warning,
@@ -145,6 +161,7 @@ pub fn builtin_rules() -> Vec<RcaRule> {
                     metric: "container_restarts".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 3.0,
+                    weight: 1.0,
                 },
             ],
             severity: Severity::Warning,
@@ -158,6 +175,7 @@ pub fn builtin_rules() -> Vec<RcaRule> {
                     metric: "auth_failures".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 5.0,
+                    weight: 1.0,
                 },
             ],
             severity: Severity::Critical,
@@ -171,11 +189,13 @@ pub fn builtin_rules() -> Vec<RcaRule> {
                     metric: "memory_percent".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 90.0,
+                    weight: 0.7,  // Memory is the primary signal
                 },
                 Condition {
                     metric: "swap_percent".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 50.0,
+                    weight: 0.3,
                 },
             ],
             severity: Severity::Warning,
@@ -189,11 +209,13 @@ pub fn builtin_rules() -> Vec<RcaRule> {
                     metric: "load_average".into(),
                     comparison: Comparison::GreaterThan,
                     threshold: 4.0,
+                    weight: 0.4,
                 },
                 Condition {
                     metric: "cpu_percent".into(),
                     comparison: Comparison::LessThan,
                     threshold: 30.0,
+                    weight: 0.6,  // Low CPU with high load is the key indicator
                 },
             ],
             severity: Severity::Warning,

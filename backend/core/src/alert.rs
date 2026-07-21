@@ -3,14 +3,23 @@
 //! Subscribes to `EventBus::AuditLog` events and maintains sliding windows
 //! for detection. Rules include night-batch operations, high failure rates,
 //! and first-time host connections.
+//!
+//! ## Optimizations
+//! - Sliding window TTL: entries older than max_window_minutes are pruned on each insert
+//! - Window size cap: each user's deque is capped at MAX_WINDOW_SIZE entries
+//! - Alert deduplication: identical alert messages within merge_window_secs are suppressed
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque, HashMap};
+use std::hash::{Hash, Hasher, DefaultHasher};
 
 use dashmap::DashMap;
 use ops_pilot_sdk::events::{global_event_bus, OpsEvent};
 use serde::{Deserialize, Serialize};
 
 use crate::audit::AuditEntry;
+
+/// Maximum number of entries kept per user in a sliding window.
+const MAX_WINDOW_SIZE: usize = 1000;
 
 /// Severity of an alert.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,13 +66,74 @@ impl AlertRule {
             Self::FirstConnect => "first_connect",
         }
     }
+
+    /// Maximum window minutes for this rule (used for TTL pruning).
+    pub fn window_minutes(&self) -> i64 {
+        match self {
+            Self::NightBatch { window_minutes, .. } => *window_minutes,
+            Self::HighFailure { window_minutes, .. } => *window_minutes,
+            Self::FirstConnect => 0, // No sliding window needed
+        }
+    }
 }
 
 /// Sliding window entry for a user.
+#[derive(Clone)]
 struct WindowEntry {
     timestamp: i64,
     outcome: String,
     resource: String,
+}
+
+/// Alert deduplicator — suppresses identical alert messages within a time window.
+pub struct AlertDeduplicator {
+    /// message_fingerprint → (count, first_seen_timestamp)
+    recent: HashMap<u64, (usize, i64)>,
+    /// Merge window in seconds: same fingerprint within this window is suppressed
+    merge_window_secs: i64,
+}
+
+impl AlertDeduplicator {
+    pub fn new(merge_window_secs: i64) -> Self {
+        Self {
+            recent: HashMap::new(),
+            merge_window_secs,
+        }
+    }
+
+    /// Create a simple fingerprint from an alert message.
+    /// Strips numeric noise (timestamps, IPs) and hashes the result.
+    fn fingerprint(message: &str) -> u64 {
+        let normalized: String = message
+            .chars()
+            .filter(|c| c.is_alphabetic() || c.is_whitespace())
+            .collect();
+        let mut hasher = DefaultHasher::new();
+        normalized.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    /// Returns true if this alert message is a duplicate within the merge window.
+    pub fn is_duplicate(&mut self, message: &str, now: i64) -> bool {
+        let fp = Self::fingerprint(message);
+        let entry = self.recent.entry(fp).or_insert((0, now));
+        entry.0 += 1;
+
+        // If first occurrence or outside merge window, not a duplicate
+        if entry.0 == 1 || (now - entry.1) > self.merge_window_secs {
+            entry.1 = now;
+            entry.0 = 1;
+            return false;
+        }
+        // Second or more occurrence within merge window = duplicate
+        true
+    }
+
+    /// Prune entries older than 2x the merge window.
+    pub fn prune(&mut self, now: i64) {
+        let cutoff = now - self.merge_window_secs * 2;
+        self.recent.retain(|_, (_, ts)| *ts > cutoff);
+    }
 }
 
 /// Alert engine with in-memory sliding windows.
@@ -73,6 +143,8 @@ pub struct AlertEngine {
     windows: DashMap<String, VecDeque<WindowEntry>>,
     /// user_id → set of known host resources (for FirstConnect)
     known_hosts: DashMap<String, HashSet<String>>,
+    /// Alert deduplication fingerprints (message_hash → count)
+    dedup_fingerprints: DashMap<u64, (usize, i64)>,
 }
 
 impl AlertEngine {
@@ -92,6 +164,7 @@ impl AlertEngine {
             ],
             windows: DashMap::new(),
             known_hosts: DashMap::new(),
+            dedup_fingerprints: DashMap::new(),
         }
     }
 
@@ -101,7 +174,38 @@ impl AlertEngine {
             rules,
             windows: DashMap::new(),
             known_hosts: DashMap::new(),
+            dedup_fingerprints: DashMap::new(),
         }
+    }
+
+    /// Add an entry to the sliding window with TTL and size cap.
+    fn add_to_window(&self, user: &str, entry: WindowEntry) {
+        // Determine the maximum age we need to keep
+        let max_window = self.rules.iter()
+            .map(|r| r.window_minutes())
+            .max()
+            .unwrap_or(60);
+        let cutoff = entry.timestamp - max_window * 60;
+
+        self.windows.entry(user.to_string()).and_modify(|deque| {
+            // Prune expired entries
+            while let Some(front) = deque.front() {
+                if front.timestamp < cutoff {
+                    deque.pop_front();
+                } else {
+                    break;
+                }
+            }
+            // Enforce size cap
+            while deque.len() >= MAX_WINDOW_SIZE {
+                deque.pop_front();
+            }
+            deque.push_back(entry.clone());
+        }).or_insert_with(|| {
+            let mut d = VecDeque::new();
+            d.push_back(entry.clone());
+            d
+        });
     }
 
     /// Process an audit entry and return any triggered alerts.
@@ -109,21 +213,34 @@ impl AlertEngine {
         let ts = parse_timestamp(&entry.created_at);
         let mut alerts = Vec::new();
 
-        // Add to sliding window
-        self.windows
-            .entry(entry.user.clone())
-            .or_default()
-            .push_back(WindowEntry {
-                timestamp: ts,
-                outcome: entry.outcome.clone(),
-                resource: entry.resource.clone(),
-            });
+        // Add to sliding window (with TTL and size cap)
+        self.add_to_window(&entry.user, WindowEntry {
+            timestamp: ts,
+            outcome: entry.outcome.clone(),
+            resource: entry.resource.clone(),
+        });
 
         for rule in &self.rules {
             if let Some(alert) = self.evaluate_rule(rule, entry, ts) {
                 alerts.push(alert);
             }
         }
+
+        // Apply deduplication: filter out alerts with identical message fingerprints
+        let now = chrono::Utc::now().timestamp();
+        alerts.retain(|alert| {
+            let fp = AlertDeduplicator::fingerprint(&alert.message);
+            let mut entry = self.dedup_fingerprints.entry(fp).or_insert((0, now));
+            entry.0 += 1;
+            // First occurrence or outside merge window
+            if entry.0 == 1 || (now - entry.1) > 300 {
+                entry.1 = now;
+                entry.0 = 1;
+                true
+            } else {
+                false // Duplicate
+            }
+        });
 
         // Publish events for triggered alerts via the global event bus
         for alert in &alerts {
@@ -233,6 +350,13 @@ impl AlertEngine {
         for mut entry in self.windows.iter_mut() {
             entry.retain(|e| e.timestamp > cutoff);
         }
+    }
+
+    /// Prune deduplication cache.
+    pub fn prune_dedup(&self) {
+        let now = chrono::Utc::now().timestamp();
+        let cutoff = now - 600; // 10 minutes
+        self.dedup_fingerprints.retain(|_, (_, ts)| *ts > cutoff);
     }
 }
 
