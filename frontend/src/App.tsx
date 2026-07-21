@@ -46,7 +46,8 @@ const CICDPage = lazy(() => import('./pages/CICD').then(m => ({ default: m.CICDP
 const MetricsVizPage = lazy(() => import('./pages/MetricsViz').then(m => ({ default: m.MetricsVizPage })));
 const JobsPage = lazy(() => import('./pages/Jobs').then(m => ({ default: m.JobsPage })));
 const DiagnosticsPage = lazy(() => import('./pages/Diagnostics').then(m => ({ default: m.DiagnosticsPage })));
-const ReportsPage = lazy(() => import('./pages/Reports').then(m => ({ default: m.ReportsPage })));
+const ReportsPage = lazy(() => import('./pages/ReportsView').then(m => ({ default: m.ReportsViewPage })));
+const BackupRestorePage = lazy(() => import('./pages/BackupRestore').then(m => ({ default: m.BackupRestorePage })));
 const IncidentsPage = lazy(() => import('./pages/Incidents').then(m => ({ default: m.IncidentsPage })));
 const VulnerabilitiesPage = lazy(() => import('./pages/Vulnerabilities').then(m => ({ default: m.VulnerabilitiesPage })));
 const PredictionsPage = lazy(() => import('./pages/Predictions').then(m => ({ default: m.PredictionsPage })));
@@ -78,12 +79,12 @@ function LoadingFallback() {
 /* ── tab 类型 ── */
 type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
-  | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
+  | 'backup' | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
   | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm' | 'ops-dashboard' | 'change-risk' | 'inspection' | 'ids' | 'container-sec';
 
 const ALL_TABS: Tab[] = [
-  'ops-dashboard', 'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
+  'ops-dashboard', 'dashboard', 'chat', 'modules', 'backup', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
   'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos', 'finops', 'apm', 'change-risk', 'inspection', 'ids', 'container-sec',
@@ -96,6 +97,7 @@ const MOBILE_TABS: Tab[] = [
 const ICONS: Record<Tab, string> = {
   dashboard: '📊',
   'ops-dashboard': '📡',
+  backup: '🔄',
   chat: '💬',
   modules: '🧩',
   hosts: '🖥️',
@@ -152,6 +154,7 @@ const ICONS: Record<Tab, string> = {
 type Role = 'admin' | 'operator' | 'viewer';
 const TAB_ROLES: Record<Tab, Role[]> = {
   'ops-dashboard': ['viewer', 'operator', 'admin'],
+  backup: ['admin'],
   dashboard: ['viewer', 'operator', 'admin'],
   chat: ['operator', 'admin'],
   modules: ['operator', 'admin'],
@@ -226,6 +229,7 @@ const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '🤖', catKey: 'cat.automation', tabs: ['change-risk', 'inspection', 'cicd', 'jobs'] },
   { icon: '🔔', catKey: 'cat.monitor', tabs: ['health', 'metrics', 'incidents', 'slos'] },
   { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline'] },
+  { icon: '🔧', catKey: 'cat.integration', tabs: ['backup', 'audit', 'users'] },
 ];
 
 /* ── 侧边栏分类名称翻译 ── */
@@ -315,6 +319,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'jobs': return <JobsPage />;
       case 'diagnostics': return <DiagnosticsPage />;
       case 'reports': return <ReportsPage />;
+      case 'backup': return <BackupRestorePage />;
       case 'incidents': return <IncidentsPage />;
       case 'vulnerabilities': return <VulnerabilitiesPage />;
       case 'predictions': return <PredictionsPage />;
