@@ -41,6 +41,7 @@ use ops_pilot_core::ssh::SshConnectionPool;
 use ops_pilot_gateway::agent::{AgentConfig, AgentOrchestrator};
 use ops_pilot_gateway::routes::audit::audit_routes;
 use ops_pilot_gateway::routes::agent::agent_routes;
+use ops_pilot_gateway::routes::backup::backup_routes;
 use ops_pilot_gateway::routes::baseline::baseline_routes;
 use ops_pilot_gateway::routes::escalation::escalation_routes;
 use ops_pilot_gateway::routes::fim::fim_routes;
@@ -507,6 +508,7 @@ async fn main() {
         .merge(escalation_routes(module_manager.clone(), ctx.clone()))
         .merge(fim_routes(module_manager.clone(), ctx.clone()))
         .merge(baseline_routes(module_manager.clone(), ctx.clone()))
+        .merge(backup_routes(pool.clone()))
         .merge(runbook_routes(module_manager.clone(), ctx.clone()))
         .merge(knowledge_routes(module_manager.clone(), ctx.clone()))
         .merge(alert_routes(pool.clone()))

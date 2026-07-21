@@ -152,6 +152,24 @@ pub async fn run_seed(db: &SqlitePool) -> anyhow::Result<()> {
     }
     info!("  Seeded {} knowledge entries", knowledge.len());
 
+    // 7. Ensure delivery_queue table exists (for retry/dead-letter)
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS delivery_queue (
+            id TEXT PRIMARY KEY,
+            channel_id TEXT NOT NULL,
+            channel_type TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            retries INTEGER NOT NULL DEFAULT 0,
+            last_error TEXT,
+            next_retry_at TEXT,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT NOT NULL
+        )"#
+    )
+    .execute(db)
+    .await?;
+    info!("  Ensured delivery_queue table");
+
     info!("Seed complete!");
     Ok(())
 }

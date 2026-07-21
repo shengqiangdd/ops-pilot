@@ -404,6 +404,23 @@ pub async fn test_notification_channel(
     }))).into_response()
 }
 
+/// POST /api/alert/test-notify — test the notification dispatch pipeline
+pub async fn test_notify(
+    State(state): State<AlertState>,
+) -> impl IntoResponse {
+    match crate::notify::dispatch_notification(
+        &state.pool,
+        "测试通知",
+        "这是一条来自 OpsPilot 的测试消息",
+        "info",
+    )
+    .await
+    {
+        Ok(results) => Json(serde_json::json!({ "status": "ok", "delivered": results })),
+        Err(e) => Json(serde_json::json!({ "status": "error", "message": e.to_string() })),
+    }
+}
+
 /// Build the alert routes sub-router.
 pub fn alert_routes(pool: SqlitePool) -> Router {
     use axum::routing::{delete, get, post, put};
@@ -416,6 +433,7 @@ pub fn alert_routes(pool: SqlitePool) -> Router {
         .route("/api/alert/history", get(list_alert_history))
         .route("/api/alert/channels", get(list_notification_channels).post(create_notification_channel))
         .route("/api/alert/channels/{id}/test", post(test_notification_channel))
+        .route("/api/alert/test-notify", post(test_notify))
         .with_state(state)
 }
 
