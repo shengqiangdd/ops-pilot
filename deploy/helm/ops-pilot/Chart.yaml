@@ -1,0 +1,29 @@
+apiVersion: v2
+name: ops-pilot
+description: AI-Powered Infrastructure Operations Platform
+type: application
+
+# Chart version — bump on significant changes.
+version: 0.1.0
+
+# App version — matches the OpsPilot release tag.
+appVersion: "2.0.0"
+
+icon: https://raw.githubusercontent.com/shengqiangdd/ops-pilot/main/docs/logo.svg
+
+keywords:
+  - ops
+  - devops
+  - ai
+  - infrastructure
+  - monitoring
+
+home: https://github.com/shengqiangdd/ops-pilot
+sources:
+  - https://github.com/shengqiangdd/ops-pilot
+
+maintainers:
+  - name: OpsPilot Contributors
+    url: https://github.com/shengqiangdd/ops-pilot
+
+dependencies: []

@@ -96,3 +96,44 @@ impl OpsModule for ModCore {
         HealthStatus::Healthy
     }
 }
+
+// ── Tests ────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::SqlitePool;
+
+    #[test]
+    fn test_mod_core_metadata() {
+        let m = ModCore::new();
+        assert_eq!(m.name(), "mod-core");
+        assert!(m.version().len() > 0);
+        assert!(m.description().contains("infrastructure"));
+        assert!(m.dependencies().is_empty());
+    }
+
+    #[test]
+    fn test_mod_core_has_submodules() {
+        let m = ModCore::new();
+        let tools = m.tools();
+        assert!(tools.len() >= 8, "expected at least 8 tools, got {}", tools.len());
+        let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+        assert!(names.contains(&"ssh_exec"), "should have ssh_exec tool");
+        assert!(names.contains(&"docker_list_containers"), "should have docker_list_containers tool");
+    }
+
+    #[tokio::test]
+    async fn test_mod_core_health() {
+        let m = ModCore::new();
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let ctx = ModuleContext::new(
+            std::sync::Arc::new(pool),
+            ops_pilot_sdk::context::EventBus::new(16),
+            std::path::PathBuf::from("/tmp"),
+            "mod-core".into(),
+        );
+        let status = m.health_check(&ctx).await;
+        assert!(matches!(status, HealthStatus::Healthy));
+    }
+}

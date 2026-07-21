@@ -1,0 +1,29 @@
+﻿🛸 OpsPilot {{ .Chart.AppVersion }} deployed successfully!
+
+Release name: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+📋 Access the web UI:
+
+{{- if .Values.ingress.enabled }}
+  🌐 https://{{ (index .Values.ingress.hosts 0).host }}
+{{- else }}
+  kubectl port-forward service/{{ include "ops-pilot.fullname" . }} 8080:{{ .Values.service.port }}
+  🌐 http://localhost:8080
+{{- end }}
+
+📊 Metrics (if ServiceMonitor enabled):
+  Prometheus Operator will auto-discover /api/metrics
+
+🔐 Admin setup:
+  1. Open the web UI and register an admin account
+  2. Set Vault Passphrase for credential encryption
+
+📘 Documentation:
+  https://github.com/shengqiangdd/ops-pilot
+
+{{- if not .Values.env.JWT_SECRET }}
+⚠️  WARNING: JWT_SECRET is not set! Generate one with:
+     openssl rand -hex 32
+  And set via helm upgrade --set env.JWT_SECRET=<value>
+{{- end }}

@@ -20,6 +20,7 @@ pub mod metrics;
 pub mod middleware;
 pub mod oauth2;
 pub mod routes;
+pub mod security_headers;
 pub mod seed;
 pub mod terminal;
 pub mod tools;

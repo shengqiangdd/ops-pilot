@@ -1,0 +1,22 @@
+# Minimal values for CI lint/testing
+replicaCount: 1
+image:
+  repository: ghcr.io/shengqiangdd/ops-pilot
+  tag: "latest"
+  pullPolicy: IfNotPresent
+env:
+  JWT_SECRET: "ci-test-secret-key-change-in-production"
+  OPSPILOT_MASTER_KEY: "ci-test-master-key-change-in-production"
+  DATABASE_URL: "sqlite:///app/data/ops-pilot.db"
+ingress:
+  enabled: false
+persistence:
+  enabled: false
+serviceMonitor:
+  enabled: false
+autoscaling:
+  enabled: false
+networkPolicy:
+  enabled: false
+podDisruptionBudget:
+  enabled: false

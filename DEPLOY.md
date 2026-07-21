@@ -109,3 +109,106 @@ docker-compose 已配置日志轮转（`max-size: 10m`, `max-file: 3`）。
           memory: 512M
           cpus: "1.0"
 ```
+
+## Kubernetes 部署（Helm）
+
+### 前置条件
+
+- Kubernetes 1.24+
+- Helm 3.8+
+- （可选）cert-manager 用于自动 HTTPS 证书
+- （可选）Prometheus Operator 用于 ServiceMonitor
+
+### 安装
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/shengqiangdd/ops-pilot.git
+
+# 2. 生成密钥
+JWT_SECRET=$(openssl rand -hex 32)
+OPSPILOT_MASTER_KEY=$(openssl rand -base64 32)
+
+# 3. 安装 Chart
+helm upgrade --install ops-pilot deploy/helm/ops-pilot \
+  --set env.JWT_SECRET="$JWT_SECRET" \
+  --set env.OPSPILOT_MASTER_KEY="$OPSPILOT_MASTER_KEY" \
+  --set ingress.enabled=true \
+  --set ingress.hosts[0].host=ops-pilot.example.com \
+  --namespace ops-pilot --create-namespace
+
+# 4. 验证
+kubectl get pods -n ops-pilot
+kubectl get svc -n ops-pilot
+```
+
+### 使用 Secret 传递密钥（更安全）
+
+创建 `values-prod.yaml`：
+
+```yaml
+ingress:
+  enabled: true
+  hosts:
+    - host: ops-pilot.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    - secretName: ops-pilot-tls
+      hosts:
+        - ops-pilot.example.com
+
+secrets:
+  JWT_SECRET: "<base64-encoded-value>"
+  OPSPILOT_MASTER_KEY: "<base64-encoded-value>"
+
+persistence:
+  storageClass: "ssd"
+  size: 5Gi
+
+resources:
+  limits:
+    cpu: 2
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+serviceMonitor:
+  enabled: true
+```
+
+```bash
+helm upgrade --install ops-pilot deploy/helm/ops-pilot \
+  -f values-prod.yaml \
+  --namespace ops-pilot --create-namespace
+```
+
+### 卸载
+
+```bash
+helm uninstall ops-pilot -n ops-pilot
+kubectl delete pvc -l app.kubernetes.io/instance=ops-pilot -n ops-pilot
+```
+
+### Chart 结构
+
+```
+deploy/helm/ops-pilot/
+├── Chart.yaml              # Chart 元数据
+├── values.yaml             # 默认配置
+├── ci/
+│   └── ci-values.yaml      # CI 测试配置
+└── templates/
+    ├── _helpers.tpl        # 模板辅助函数
+    ├── deployment.yaml     # Deployment + Pod
+    ├── service.yaml        # Service
+    ├── ingress.yaml        # Ingress（可选）
+    ├── pvc.yaml            # PersistentVolumeClaim
+    ├── secrets.yaml        # Secrets（可选）
+    ├── serviceaccount.yaml # ServiceAccount
+    ├── hpa.yaml            # HPA（可选）
+    ├── pdb.yaml            # PDB（可选）
+    ├── networkpolicy.yaml  # NetworkPolicy（可选）
+    └── servicemonitor.yaml # ServiceMonitor（可选）
+```

@@ -113,3 +113,51 @@ impl OpsModule for ModInspection {
     async fn on_event(&self, _ctx: &ModuleContext, _event: &OpsEvent) -> Option<ModuleAction> { None }
     async fn health_check(&self, _ctx: &ModuleContext) -> HealthStatus { HealthStatus::Healthy }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+    use ops_pilot_sdk::context::EventBus;
+
+    #[tokio::test]
+    async fn test_module_metadata() {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let module = ModInspection::new(pool).await;
+        assert_eq!(module.name(), "mod-inspection");
+        assert_eq!(module.version(), "0.1.0");
+        assert!(!module.description().is_empty());
+        assert_eq!(module.dependencies(), vec!["mod-core"]);
+    }
+
+    #[tokio::test]
+    async fn test_tools_registered() {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let module = ModInspection::new(pool).await;
+        let tools = module.tools();
+        assert_eq!(tools.len(), 4);
+        assert!(tools.iter().any(|t| t.name == "inspection_create"));
+        assert!(tools.iter().any(|t| t.name == "inspection_run"));
+        assert!(tools.iter().any(|t| t.name == "inspection_results"));
+        assert!(tools.iter().any(|t| t.name == "inspection_report"));
+        for t in &tools {
+            assert!(!t.description.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_health_check() {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let ctx = ModuleContext::new(
+            Arc::new(pool),
+            EventBus::new(16),
+            PathBuf::from("/tmp"),
+            "mod-inspection".into(),
+        );
+        let pool2 = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let module = ModInspection::new(pool2).await;
+        let status = module.health_check(&ctx).await;
+        assert!(matches!(status, HealthStatus::Healthy));
+    }
+}

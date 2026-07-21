@@ -538,11 +538,16 @@ async fn main() {
         ));
 
     // ── Combine public + protected + static ─────────────────────────────
-    let app = public_routes
+    let mut app = public_routes
         .merge(protected_routes)
         .fallback_service(static_service)
         .layer(cors)
         .layer(TraceLayer::new_for_http());
+
+    // Apply security headers
+    for layer in ops_pilot_gateway::security_headers::security_header_layers() {
+        app = app.layer(layer);
+    }
 
     let addr = std::env::var("LISTEN_ADDR").unwrap_or_else(|_| "0.0.0.0:3001".into());
     let listener = tokio::net::TcpListener::bind(&addr)
