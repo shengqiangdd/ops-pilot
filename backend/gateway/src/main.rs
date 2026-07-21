@@ -83,7 +83,7 @@ use ops_pilot_mod_security::ModSecurity;
 use ops_pilot_sdk::context::{EventBus, ModuleContext};
 use serde::Deserialize;
 use tokio::sync::RwLock;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{CorsLayer, Any};
 use tower_http::trace::TraceLayer;
 
 // ── Auth routes ─────────────────────────────────────────────────────────────
@@ -430,38 +430,43 @@ async fn main() {
     // Rate limiter for login endpoint: 5 requests/minute/IP
     let login_limiter = ops_pilot_gateway::middleware::rate_limit::login_limiter();
 
-    // Host + Vault routes require JWT authentication
+    // Auth middleware state (used by protected_routes)
     let auth_middleware_state = ops_pilot_gateway::middleware::AuthState {
         service: auth_service.clone(),
     };
-    let protected_hosts = host_routes(host_service).layer(axum::middleware::from_fn_with_state(
-        auth_middleware_state.clone(),
-        ops_pilot_gateway::middleware::auth_middleware,
-    ));
 
-    // Vault routes require JWT authentication
-    let protected_vault = vault_routes(auth_service.clone(), vault_keys.clone()).layer(
-        axum::middleware::from_fn_with_state(
-            auth_middleware_state.clone(),
-            ops_pilot_gateway::middleware::auth_middleware,
-        ),
-    );
+    // ── CORS configuration ──────────────────────────────────────────────
+    let cors = {
+        let origins_str = std::env::var("CORS_ORIGINS")
+            .unwrap_or_else(|_| "http://localhost:5173,http://localhost:3001,http://localhost:3000".into());
+        let origins: Vec<_> = origins_str
+            .split(',')
+            .filter_map(|s| s.trim().parse().ok())
+            .collect();
+        if origins.is_empty() {
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any)
+        } else {
+            CorsLayer::new()
+                .allow_origin(origins)
+                .allow_methods(Any)
+                .allow_headers(Any)
+        }
+    };
 
-    // User management routes require JWT authentication
-    let protected_users = user_routes(auth_service.clone()).layer(
-        axum::middleware::from_fn_with_state(
-            auth_middleware_state.clone(),
-            ops_pilot_gateway::middleware::auth_middleware,
-        ),
-    );
-
-    let app = Router::new()
+    // ── Public routes (no auth required) ────────────────────────────────
+    let public_routes = Router::new()
         .route("/api/v1/health", get(health_handler))
         .route("/api/ws/events", get(ws_events_handler))
-        .merge(auth_routes(auth_service.clone(), login_limiter))
-        .merge(protected_hosts)
-        .merge(protected_vault)
-        .merge(protected_users)
+        .merge(auth_routes(auth_service.clone(), login_limiter));
+
+    // ── Protected routes (JWT auth required) ────────────────────────────
+    let protected_routes = Router::new()
+        .merge(host_routes(host_service))
+        .merge(vault_routes(auth_service.clone(), vault_keys.clone()))
+        .merge(user_routes(auth_service.clone()))
         .merge(module_routes(module_manager.clone(), ctx.clone()))
         .merge(security_routes(module_manager.clone(), ctx.clone()))
         .merge(agent_routes(tool_registry, llm_client, ctx.clone(), pool.clone()))
@@ -471,7 +476,6 @@ async fn main() {
             auth_service,
             audit,
         ))
-        // New module routes
         .merge(topo_routes(module_manager.clone(), ctx.clone()))
         .merge(monitor_routes(module_manager.clone(), ctx.clone()))
         .merge(escalation_routes(module_manager.clone(), ctx.clone()))
@@ -501,8 +505,16 @@ async fn main() {
         .merge(chaos_routes(pool.clone()))
         .merge(finops_routes(pool.clone()))
         .merge(apm_routes(pool.clone()))
+        .layer(axum::middleware::from_fn_with_state(
+            auth_middleware_state.clone(),
+            ops_pilot_gateway::middleware::auth_middleware,
+        ));
+
+    // ── Combine public + protected + static ─────────────────────────────
+    let app = public_routes
+        .merge(protected_routes)
         .fallback_service(static_service)
-        .layer(CorsLayer::permissive())
+        .layer(cors)
         .layer(TraceLayer::new_for_http());
 
     let addr = std::env::var("LISTEN_ADDR").unwrap_or_else(|_| "0.0.0.0:3001".into());
