@@ -939,3 +939,99 @@ export interface RemediationExecution {
   started_at: string | null;
   finished_at: string | null;
 }
+
+// ── Secrets Scan types ─────────────────────────────────────────────────
+
+export interface ScanResult {
+  id: string;
+  host_id: string;
+  file_path: string;
+  scan_type: string;
+  severity: string;
+  line_number: number;
+  snippet: string;
+  finding: string;
+  suggestion: string;
+  status: string;
+  discovered_at: string;
+}
+
+export interface ScanStats {
+  total: number;
+  by_type: Array<{ scan_type: string; count: number }>;
+  by_severity: Array<{ severity: string; count: number }>;
+}
+
+export interface ScanSecretsInput {
+  host_ids?: string[];
+  scan_types?: string[];
+}
+
+export interface UpdateSecretsResultInput {
+  status: string;
+}
+
+// ── Compliance types ───────────────────────────────────────────────────
+
+export interface ComplianceFramework {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+}
+
+export interface ComplianceOverview {
+  total_controls: number;
+  passed: number;
+  failed: number;
+  not_applicable: number;
+  pass_rate: number;
+  by_category: Array<{ category: string; total: number; passed: number; failed: number }>;
+}
+
+export interface ComplianceReport {
+  framework: ComplianceFramework;
+  overview: ComplianceOverview;
+  controls: Array<{ id: string; control_id: string; title: string; description: string; category: string; severity: string }>;
+}
+
+export interface ScanComplianceInput {
+  framework_id?: string;
+  host_id?: string;
+}
+
+// ── Threats types ──────────────────────────────────────────────────────
+
+export interface ThreatOverview {
+  total_indicators: number;
+  affected_assets: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  today_new: number;
+}
+
+export interface ThreatIndicator {
+  id: string;
+  feed_id: string;
+  indicator_type: string;
+  indicator_value: string;
+  severity: string;
+  title: string;
+  description: string;
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface AffectedAsset {
+  id: string;
+  host_id: string;
+  host_name: string;
+  indicator_type: string;
+  indicator_value: string;
+  severity: string;
+  threat_title: string;
+  risk_level: string;
+  suggestion: string;
+}

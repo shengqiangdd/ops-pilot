@@ -48,6 +48,9 @@ const PredictionsPage = lazy(() => import('./pages/Predictions').then(m => ({ de
 const SLOsPage = lazy(() => import('./pages/SLOs').then(m => ({ default: m.SLOsPage })));
 const SOARPage = lazy(() => import('./pages/SOAR').then(m => ({ default: m.SOARPage })));
 const RemediationPage = lazy(() => import('./pages/Remediation').then(m => ({ default: m.RemediationPage })));
+const SecretsScanPage = lazy(() => import('./pages/SecretsScan').then(m => ({ default: m.SecretsScanPage })));
+const CompliancePage = lazy(() => import('./pages/Compliance').then(m => ({ default: m.CompliancePage })));
+const ThreatsPage = lazy(() => import('./pages/Threats').then(m => ({ default: m.ThreatsPage })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -66,13 +69,13 @@ type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
-  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation';
+  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats';
 
 const ALL_TABS: Tab[] = [
   'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
-  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation',
+  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -118,6 +121,9 @@ const ICONS: Record<Tab, string> = {
   slos: '📊',
   soar: '🎯',
   remediation: '🔧',
+  'secrets-scan': '🔐',
+  compliance: '✅',
+  threats: '⚠️',
 };
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
@@ -125,7 +131,7 @@ const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
   { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault', 'audit', 'users'] },
   { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'cmdb', 'monitor'] },
-  { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'vulnerabilities', 'soar', 'fim', 'baseline'] },
+  { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'vulnerabilities', 'soar', 'secrets-scan', 'compliance', 'threats', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['cicd', 'jobs', 'remediation', 'scheduler', 'runbook', 'filesync'] },
   { icon: '🔔', catKey: 'cat.monitor', tabs: ['escalation', 'health', 'alert-rules', 'alert-history', 'channels', 'metrics', 'incidents', 'predictions', 'slos'] },
   { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline'] },
@@ -223,6 +229,9 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'slos': return <SLOsPage />;
       case 'soar': return <SOARPage />;
       case 'remediation': return <RemediationPage />;
+      case 'secrets-scan': return <SecretsScanPage />;
+      case 'compliance': return <CompliancePage />;
+      case 'threats': return <ThreatsPage />;
       default: return <Dashboard />;
     }
   };

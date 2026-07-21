@@ -78,6 +78,17 @@ import type {
   RemediationRule,
   CreateRemediationRuleInput,
   RemediationExecution,
+  ScanResult,
+  ScanStats,
+  ScanSecretsInput,
+  UpdateSecretsResultInput,
+  ComplianceFramework,
+  ComplianceOverview,
+  ComplianceReport,
+  ScanComplianceInput,
+  ThreatOverview,
+  ThreatIndicator,
+  AffectedAsset,
 } from './types';
 
 const BASE = '/api';
@@ -840,4 +851,58 @@ export const api = {
     const qs = params ? new URLSearchParams(params).toString() : '';
     return requestWithAuth<RemediationExecution[]>(`/remediation/executions${qs ? '?' + qs : ''}`, token);
   },
+
+  // ── Secrets Scan ───────────────────────────────────────────────────
+
+  runSecretsScan: (token: string, input?: ScanSecretsInput) =>
+    requestWithAuth<{ status: string; new_findings: number }>('/secrets/scan', token, {
+      method: 'POST',
+      body: JSON.stringify(input || {}),
+    }),
+
+  listSecretsResults: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<ScanResult[]>(`/secrets/results${qs ? '?' + qs : ''}`, token);
+  },
+
+  updateSecretsResult: (token: string, resultId: string, input: UpdateSecretsResultInput) =>
+    requestWithAuth<{ status: string }>(`/secrets/results/${resultId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  getSecretsStats: (token: string) =>
+    requestWithAuth<ScanStats>('/secrets/stats', token),
+
+  // ── Compliance ─────────────────────────────────────────────────────
+
+  listComplianceFrameworks: (token: string) =>
+    requestWithAuth<ComplianceFramework[]>('/compliance/frameworks', token),
+
+  getComplianceOverview: (token: string) =>
+    requestWithAuth<ComplianceOverview>('/compliance/overview', token),
+
+  getComplianceReport: (token: string, frameworkId?: string) => {
+    const qs = frameworkId ? `?framework_id=${frameworkId}` : '';
+    return requestWithAuth<ComplianceReport>(`/compliance/report${qs}`, token);
+  },
+
+  runComplianceScan: (token: string, input: ScanComplianceInput) =>
+    requestWithAuth<{ status: string; total_controls: number }>('/compliance/scan', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  // ── Threats ────────────────────────────────────────────────────────
+
+  getThreatOverview: (token: string) =>
+    requestWithAuth<ThreatOverview>('/threats/overview', token),
+
+  listThreatIndicators: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<ThreatIndicator[]>(`/threats/indicators${qs ? '?' + qs : ''}`, token);
+  },
+
+  getAffectedAssets: (token: string) =>
+    requestWithAuth<AffectedAsset[]>('/threats/affected-assets', token),
 };
