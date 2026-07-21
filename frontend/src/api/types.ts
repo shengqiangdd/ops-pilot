@@ -707,3 +707,81 @@ export interface CreateReportScheduleInput {
   day_of_week?: number;
   day_of_month?: number;
 }
+
+// ── Incidents types ────────────────────────────────────────────────────
+
+export interface Incident {
+  id: string;
+  name: string;
+  status: string;
+  severity: string;
+  host_id: string;
+  first_seen: string;
+  last_seen: string;
+  alert_count: number;
+  summary: string;
+  assigned_to: string;
+  created_at: string;
+}
+
+export interface IncidentAlert {
+  id: string;
+  incident_id: string;
+  alert_id: string;
+  alert_message: string;
+  alert_severity: string;
+  triggered_at: string;
+}
+
+export interface IncidentDetail {
+  incident: Incident;
+  alerts: IncidentAlert[];
+}
+
+export interface IncidentStats {
+  total: number;
+  open: number;
+  acknowledged: number;
+  resolved: number;
+}
+
+// ── Vulnerabilities types ──────────────────────────────────────────────
+
+export interface Vulnerability {
+  id: string;
+  cve_id: string;
+  title: string;
+  description: string;
+  severity: string;
+  cvss_score: number;
+  affected_host: string;
+  affected_service: string;
+  status: string;
+  discovered_at: string;
+  assigned_to: string;
+  fixed_at: string | null;
+  notes: string;
+  created_at: string;
+}
+
+export interface CreateVulnerabilityInput {
+  cve_id: string;
+  title: string;
+  description?: string;
+  severity: string;
+  cvss_score?: number;
+  affected_host?: string;
+  affected_service?: string;
+  notes?: string;
+}
+
+export interface VulnerabilityStats {
+  total: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  open: number;
+  in_progress: number;
+  fixed: number;
+}

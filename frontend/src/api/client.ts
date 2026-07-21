@@ -59,6 +59,12 @@ import type {
   GenerateReportInput,
   ReportSchedule,
   CreateReportScheduleInput,
+  Incident,
+  IncidentDetail,
+  IncidentStats,
+  Vulnerability,
+  CreateVulnerabilityInput,
+  VulnerabilityStats,
 } from './types';
 
 const BASE = '/api';
@@ -651,5 +657,70 @@ export const api = {
     requestWithAuth<ReportSchedule>('/reports/schedule', token, {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+
+  // ── Incidents ──────────────────────────────────────────────────────
+
+  listIncidents: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<Incident[]>(`/incidents${qs ? '?' + qs : ''}`, token);
+  },
+
+  getIncident: (token: string, incidentId: string) =>
+    requestWithAuth<IncidentDetail>(`/incidents/${incidentId}`, token),
+
+  updateIncident: (token: string, incidentId: string, updates: { status?: string; assigned_to?: string }) =>
+    requestWithAuth<Incident>(`/incidents/${incidentId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  assignIncident: (token: string, incidentId: string, input: { assigned_to: string }) =>
+    requestWithAuth<{ status: string }>(`/incidents/${incidentId}/assign`, token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getIncidentStats: (token: string) =>
+    requestWithAuth<IncidentStats>('/incidents/stats', token),
+
+  // ── Vulnerabilities ────────────────────────────────────────────────
+
+  listVulnerabilities: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<Vulnerability[]>(`/vulnerabilities${qs ? '?' + qs : ''}`, token);
+  },
+
+  createVulnerability: (token: string, input: CreateVulnerabilityInput) =>
+    requestWithAuth<Vulnerability>('/vulnerabilities', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getVulnerability: (token: string, vulnId: string) =>
+    requestWithAuth<Vulnerability>(`/vulnerabilities/${vulnId}`, token),
+
+  updateVulnerability: (token: string, vulnId: string, updates: { status?: string; assigned_to?: string; notes?: string }) =>
+    requestWithAuth<Vulnerability>(`/vulnerabilities/${vulnId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  deleteVulnerability: (token: string, vulnId: string) =>
+    requestWithAuth<void>(`/vulnerabilities/${vulnId}`, token, {
+      method: 'DELETE',
+    }),
+
+  verifyVulnerability: (token: string, vulnId: string) =>
+    requestWithAuth<{ status: string }>(`/vulnerabilities/${vulnId}/verify`, token, {
+      method: 'POST',
+    }),
+
+  getVulnerabilityStats: (token: string) =>
+    requestWithAuth<VulnerabilityStats>('/vulnerabilities/stats', token),
+
+  scanVulnerabilities: (token: string) =>
+    requestWithAuth<{ status: string; new_vulnerabilities: number }>('/vulnerabilities/scan', token, {
+      method: 'POST',
     }),
 };
