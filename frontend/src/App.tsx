@@ -58,6 +58,7 @@ const ChaosPage = lazy(() => import('./pages/Chaos').then(m => ({ default: m.Cha
 const FinOpsPage = lazy(() => import('./pages/FinOps').then(m => ({ default: m.FinOpsPage })));
 const APMPage = lazy(() => import('./pages/APM').then(m => ({ default: m.APMPage })));
 const AdvisorChatPage = lazy(() => import('./pages/AdvisorChat').then(m => ({ default: m.AdvisorChat })));
+const OpsDashboardPage = lazy(() => import('./pages/OpsDashboard').then(m => ({ default: m.OpsDashboard })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -76,10 +77,10 @@ type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
-  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm';
+  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm' | 'ops-dashboard';
 
 const ALL_TABS: Tab[] = [
-  'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
+  'ops-dashboard', 'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
   'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos', 'finops', 'apm',
@@ -91,6 +92,7 @@ const MOBILE_TABS: Tab[] = [
 
 const ICONS: Record<Tab, string> = {
   dashboard: '📊',
+  'ops-dashboard': '📡',
   chat: '💬',
   modules: '🧩',
   hosts: '🖥️',
@@ -142,6 +144,7 @@ const ICONS: Record<Tab, string> = {
 /* ── Tab role requirements ── */
 type Role = 'admin' | 'operator' | 'viewer';
 const TAB_ROLES: Record<Tab, Role[]> = {
+  'ops-dashboard': ['viewer', 'operator', 'admin'],
   dashboard: ['viewer', 'operator', 'admin'],
   chat: ['operator', 'admin'],
   modules: ['operator', 'admin'],
@@ -205,6 +208,7 @@ function hasRequiredRole(userRole: Role | null, required: Role[]): boolean {
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
+  { icon: '📡', catKey: 'cat.overview', tabs: ['ops-dashboard'] },
   { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
   { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault', 'audit', 'users'] },
   { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'cmdb', 'monitor', 'apm'] },
@@ -217,7 +221,8 @@ const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
 
 /* ── 侧边栏分类名称翻译 ── */
 const CAT_KEY_LABELS: Record<string, string> = {
-  'cat.dashboard': '',
+  'cat.overview': '总览大屏',
+  'cat.dashboard': '可配置面板',
   'cat.system': '系统管理',
   'cat.infrastructure': '基础设施',
   'cat.security': '安全合规',
@@ -268,6 +273,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
 
   const renderContent = () => {
     switch (tab) {
+      case 'ops-dashboard': return <OpsDashboardPage />;
       case 'dashboard': return <Dashboard />;
       case 'chat': return <AgentChat />;
       case 'modules': return <ModuleBrowser />;
@@ -516,6 +522,7 @@ export function App() {
             </div>
           </div>
         ) : <Navigate to="/login" replace />} />
+        <Route path="/ops-dashboard" element={token ? <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="h-8 w-8 border-2 border-md-primary border-t-transparent rounded-full animate-spin" /></div>}><OpsDashboardPage /></Suspense> : <Navigate to="/login" replace />} />
         <Route path="/*" element={token ? <AppShell /> : <Navigate to="/login" replace />} />
       </Routes>
     </ErrorBoundary>
