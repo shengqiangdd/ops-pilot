@@ -437,7 +437,7 @@ components:
 
 tags:
   - name: Auth
-    description: Authentication and registration
+    description: Authentication, registration, and OAuth2 login
   - name: Hosts
     description: Host management
   - name: Users
@@ -480,8 +480,99 @@ tags:
     description: System configuration
   - name: Terminal
     description: WebSSH terminal
+  - name: Docs
+    description: API documentation (Swagger UI, OpenAPI spec)
 
 paths:
+  # ── OAuth2 ────────────────────────────────────────────────────────
+  /api/auth/oauth2/providers:
+    get:
+      tags: [Auth]
+      summary: List available OAuth2 providers
+      security: []
+      responses:
+        '200':
+          description: List of configured OAuth2 providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    icon:
+                      type: string
+
+  /api/auth/oauth2/{provider}:
+    get:
+      tags: [Auth]
+      summary: Redirect to OAuth2 provider authorization page
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [github, gitlab, google]
+      responses:
+        '302':
+          description: Redirect to OAuth2 authorization URL
+        '400':
+          description: Unsupported provider
+
+  /api/auth/oauth2/{provider}/callback:
+    get:
+      tags: [Auth]
+      summary: OAuth2 callback handler
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: JWT token and user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: OAuth2 authentication failed
+
+  # ── API Docs ─────────────────────────────────────────────────────
+  /api/docs/openapi.json:
+    get:
+      tags: [Docs]
+      summary: Get OpenAPI specification as JSON
+      security: []
+      responses:
+        '200':
+          description: OpenAPI 3.0 specification
+
+  /api/docs/swagger-ui:
+    get:
+      tags: [Docs]
+      summary: Swagger UI interactive documentation
+      security: []
+      responses:
+        '200':
+          description: Swagger UI HTML page
+
   # ── Auth ──────────────────────────────────────────────────────────
   /api/auth/login:
     post:

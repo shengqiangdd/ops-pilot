@@ -14,8 +14,10 @@
 //! 网关本身不包含业务逻辑 —— 所有计算委托给 `ops-pilot-core` 和 `ops-pilot-mod-*` 模块。
 
 pub mod agent;
+pub mod docs;
 pub mod llm;
 pub mod middleware;
+pub mod oauth2;
 pub mod routes;
 pub mod seed;
 pub mod terminal;

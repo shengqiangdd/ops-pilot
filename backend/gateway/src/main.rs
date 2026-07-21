@@ -268,7 +268,7 @@ async fn main() {
     .await
     .expect("failed to create agent_sessions table");
 
-    let auth_service = Arc::new(AuthService::new(pool.clone(), jwt_secret));
+    let auth_service = Arc::new(AuthService::new(pool.clone(), jwt_secret.clone()));
     let vault_keys = Arc::new(ops_pilot_core::vault::VaultKeyManager::new());
     let host_service = Arc::new(ops_pilot_core::host::HostService::new(
         pool.clone(),
@@ -466,10 +466,24 @@ async fn main() {
     };
 
     // ── Public routes (no auth required) ────────────────────────────────
+    // ── OAuth2 state ───────────────────────────────────────────────────
+    let oauth2_state = ops_pilot_gateway::oauth2::OAuth2State {
+        service: Arc::new(AuthService::new(pool.clone(), jwt_secret.clone())),
+        states: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+    };
+
     let public_routes = Router::new()
         .route("/api/v1/health", get(health_handler))
         .route("/api/ws/events", get(ws_events_handler))
-        .merge(auth_routes(auth_service.clone(), login_limiter));
+        // OAuth2 login routes
+        .route("/api/auth/oauth2/providers", get(ops_pilot_gateway::oauth2::list_providers))
+        .route("/api/auth/oauth2/:provider", get(ops_pilot_gateway::oauth2::oauth2_redirect))
+        .route("/api/auth/oauth2/:provider/callback", get(ops_pilot_gateway::oauth2::oauth2_callback))
+        // API docs
+        .route("/api/docs/openapi.json", get(ops_pilot_gateway::docs::openapi_json))
+        .route("/api/docs/swagger-ui", get(ops_pilot_gateway::docs::swagger_ui))
+        .merge(auth_routes(auth_service.clone(), login_limiter))
+        .layer(axum::extract::Extension(oauth2_state));
 
     // ── Protected routes (JWT auth required) ────────────────────────────
     let protected_routes = Router::new()

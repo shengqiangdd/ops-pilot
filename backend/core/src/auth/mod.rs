@@ -585,6 +585,47 @@ impl AuthService {
         .await?;
         Ok(())
     }
+
+    /// Find existing user by username, or create a new one for OAuth login.
+    pub async fn find_or_create_oauth_user(
+        &self,
+        username: &str,
+        email: &str,
+        default_role: &str,
+    ) -> Result<UserInfo, AuthError> {
+        // Try to find existing user via raw query
+        let existing: Option<(String, String, String, String, String)> = sqlx::query_as(
+            "SELECT id, username, email, role, created_at FROM users WHERE username = ?",
+        )
+        .bind(username)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if let Some((id, uname, em, role, created_at)) = existing {
+            return Ok(UserInfo { id, username: uname, email: em, role, created_at });
+        }
+
+        // Create new user with a random password (OAuth users don't need local password)
+        let random_pw = format!("oauth-{}", uuid::Uuid::new_v4());
+        self.create_user(username, email, &random_pw, default_role).await
+    }
+
+    /// Generate a JWT token for the given username and role.
+    pub fn generate_token(&self, username: &str, role: &str) -> Result<String, AuthError> {
+        let now = chrono::Utc::now().timestamp() as u64;
+        let claims = UserIdClaims {
+            sub: username.to_string(),
+            role: role.to_string(),
+            iat: now,
+            exp: now + 86400,
+        };
+        let token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(&self.jwt_secret),
+        )?;
+        Ok(token)
+    }
 }
 
 /// Public user info (without sensitive fields).
