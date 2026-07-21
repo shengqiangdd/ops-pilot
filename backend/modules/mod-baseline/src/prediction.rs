@@ -220,8 +220,46 @@ mod tests {
         let predicted = vec![11.0, 19.0, 32.0, 38.0];
         let stats = residual_analysis(&actual, &predicted);
 
-        assert!((stats.mean - (-0.25)).abs() < 0.01);
+        // residuals = [-1, 1, -2, 2], mean = 0
+        assert!(stats.mean.abs() < 0.01, "mean should be ~0, got {}", stats.mean);
         assert!(stats.std_dev > 0.0);
-        assert_eq!(stats.outlier_count, 0); // All residuals within 2σ
+        assert_eq!(stats.outlier_count, 0);
+    }
+
+    #[test]
+    fn test_holt_winters_constant() {
+        // Constant series: all values = 42
+        let data: Vec<f64> = vec![42.0; 24];
+        let model = HoltWinters::fit(&data, 4);
+        let predictions = model.predict(4);
+        for p in &predictions {
+            assert!((*p - 42.0).abs() < 5.0, "constant prediction should be near 42, got {}", p);
+        }
+    }
+
+    #[test]
+    fn test_holt_winters_linear_trend() {
+        // Linear trend: 10, 12, 14, 16, 18, 20, 22, 24 (period=4, so 2 full periods)
+        let data: Vec<f64> = vec![10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0];
+        let model = HoltWinters::fit(&data, 4);
+        let predictions = model.predict(2);
+        // Predictions should continue upward trend
+        assert!(predictions[0] > 20.0, "first prediction should be > 20, got {}", predictions[0]);
+    }
+
+    #[test]
+    fn test_residual_analysis_empty() {
+        let stats = residual_analysis(&[], &[]);
+        assert_eq!(stats.mean, 0.0);
+        assert_eq!(stats.outlier_count, 0);
+    }
+
+    #[test]
+    fn test_residual_analysis_outliers() {
+        let actual = vec![10.0, 10.0, 10.0, 10.0, 100.0];
+        let predicted = vec![10.0, 10.0, 10.0, 10.0, 10.0];
+        let stats = residual_analysis(&actual, &predicted);
+        assert!(stats.outlier_count >= 1, "should detect at least one outlier");
+        assert!(stats.max_residual > 80.0);
     }
 }

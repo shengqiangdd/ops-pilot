@@ -944,4 +944,63 @@ mod tests {
         let result = m.execute(&ctx, "nonexistent", serde_json::json!({})).await;
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_priority_order() {
+        let mut sched = PriorityScheduler::new();
+        sched.enqueue(PrioritizedJob {
+            name: "low-job".into(), priority: 10, weight: 1.0, max_retries: 0,
+            retry_delay_secs: 0, retries_done: 0, cron_expr: "1m".into(), action_json: "{}".into(),
+        });
+        sched.enqueue(PrioritizedJob {
+            name: "high-job".into(), priority: 200, weight: 1.0, max_retries: 0,
+            retry_delay_secs: 0, retries_done: 0, cron_expr: "1m".into(), action_json: "{}".into(),
+        });
+        sched.enqueue(PrioritizedJob {
+            name: "mid-job".into(), priority: 100, weight: 1.0, max_retries: 0,
+            retry_delay_secs: 0, retries_done: 0, cron_expr: "1m".into(), action_json: "{}".into(),
+        });
+
+        assert_eq!(sched.dequeue().unwrap().name, "high-job");
+        assert_eq!(sched.dequeue().unwrap().name, "mid-job");
+        assert_eq!(sched.dequeue().unwrap().name, "low-job");
+        assert!(sched.is_empty());
+    }
+
+    #[test]
+    fn test_weighted_fairness() {
+        let mut sched = PriorityScheduler::new();
+        // Three jobs at same priority, different groups
+        sched.enqueue(PrioritizedJob {
+            name: "group-a-job1".into(), priority: 50, weight: 1.0, max_retries: 0,
+            retry_delay_secs: 0, retries_done: 0, cron_expr: "1m".into(), action_json: "{}".into(),
+        });
+        sched.enqueue(PrioritizedJob {
+            name: "group-b-job1".into(), priority: 50, weight: 1.0, max_retries: 0,
+            retry_delay_secs: 0, retries_done: 0, cron_expr: "1m".into(), action_json: "{}".into(),
+        });
+        sched.enqueue(PrioritizedJob {
+            name: "group-a-job2".into(), priority: 50, weight: 1.0, max_retries: 0,
+            retry_delay_secs: 0, retries_done: 0, cron_expr: "1m".into(), action_json: "{}".into(),
+        });
+
+        // First pick: both groups have 0 weight, pick first found with min weight
+        let first = sched.weighted_next().unwrap();
+        let second = sched.weighted_next().unwrap();
+        let third = sched.weighted_next().unwrap();
+
+        // Should get at least one from each group in first 3 picks
+        let names: Vec<&str> = vec![&first.name, &second.name, &third.name];
+        assert!(names.iter().any(|n| n.starts_with("group-a")), "should pick from group-a");
+        assert!(names.iter().any(|n| n.starts_with("group-b")), "should pick from group-b");
+    }
+
+    #[test]
+    fn test_priority_scheduler_empty() {
+        let mut sched = PriorityScheduler::new();
+        assert!(sched.is_empty());
+        assert_eq!(sched.len(), 0);
+        assert!(sched.dequeue().is_none());
+        assert!(sched.weighted_next().is_none());
+    }
 }

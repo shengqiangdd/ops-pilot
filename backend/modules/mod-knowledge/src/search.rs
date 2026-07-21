@@ -301,4 +301,83 @@ mod tests {
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "SSH connection timeout");
     }
+
+    #[tokio::test]
+    async fn test_tfidf_add_and_search() {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let store = KnowledgeStore::new(pool).await;
+
+        let e1 = KnowledgeEntry {
+            id: "k1".into(), incident_id: "i1".into(),
+            title: "Database connection pool exhausted".into(),
+            root_cause: "Too many concurrent connections".into(),
+            resolution: "Increase pool size and add connection timeout".into(),
+            tags: vec!["database".into()],
+            created_at: Utc::now().to_rfc3339(),
+        };
+        let e2 = KnowledgeEntry {
+            id: "k2".into(), incident_id: "i2".into(),
+            title: "SSH key rotation failed".into(),
+            root_cause: "Expired certificate".into(),
+            resolution: "Regenerate SSH keys".into(),
+            tags: vec!["ssh".into()],
+            created_at: Utc::now().to_rfc3339(),
+        };
+
+        store.insert_entry(&e1).await.unwrap();
+        store.insert_entry(&e2).await.unwrap();
+
+        let results = store.search("database connection").await.unwrap();
+        assert!(!results.is_empty());
+        // e1 should rank higher because "database" and "connection" appear in it
+        assert_eq!(results[0].id, "k1");
+    }
+
+    #[tokio::test]
+    async fn test_tfidf_ranking() {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let store = KnowledgeStore::new(pool).await;
+
+        // Document with "network" appearing many times vs once
+        let e1 = KnowledgeEntry {
+            id: "k1".into(), incident_id: "i1".into(),
+            title: "Network network network failure".into(),
+            root_cause: "network congestion".into(),
+            resolution: "restart network interface".into(),
+            tags: vec![],
+            created_at: Utc::now().to_rfc3339(),
+        };
+        let e2 = KnowledgeEntry {
+            id: "k2".into(), incident_id: "i2".into(),
+            title: "Single network issue".into(),
+            root_cause: "unknown".into(),
+            resolution: "check logs".into(),
+            tags: vec![],
+            created_at: Utc::now().to_rfc3339(),
+        };
+
+        store.insert_entry(&e1).await.unwrap();
+        store.insert_entry(&e2).await.unwrap();
+
+        let results = store.search("network").await.unwrap();
+        assert_eq!(results.len(), 2);
+        // e1 has higher TF for "network"
+        assert_eq!(results[0].id, "k1");
+    }
+
+    #[tokio::test]
+    async fn test_empty_query() {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let store = KnowledgeStore::new(pool).await;
+        let results = store.search("").await.unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_tfidf_empty_index() {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let store = KnowledgeStore::new(pool).await;
+        let results = store.search("anything").await.unwrap();
+        assert!(results.is_empty());
+    }
 }

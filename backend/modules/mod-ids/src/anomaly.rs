@@ -208,3 +208,110 @@ impl Default for AnomalyDetector {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_baseline(mean: f64, std_dev: f64) -> Baseline {
+        Baseline { mean, std_dev, min: mean - std_dev, max: mean + std_dev }
+    }
+
+    #[test]
+    fn test_zscore_normal() {
+        let det = AnomalyDetector::new();
+        let baseline = make_baseline(100.0, 10.0);
+        let score = det.check_deviation(102.0, &baseline);
+        assert!(score.z_score < 1.0, "z_score={}", score.z_score);
+        assert!(!score.is_anomaly);
+        assert_eq!(score.severity, "low");
+    }
+
+    #[test]
+    fn test_zscore_outlier() {
+        let det = AnomalyDetector::new();
+        let baseline = make_baseline(100.0, 10.0);
+        let score = det.check_deviation(150.0, &baseline);
+        assert!(score.z_score > 3.5, "z_score={}", score.z_score);
+        assert!(score.is_anomaly);
+        assert_eq!(score.severity, "critical");
+    }
+
+    #[test]
+    fn test_ewma_smoothing() {
+        let result = AnomalyDetector::ewma(100.0, 120.0, 0.3);
+        // 0.3 * 120 + 0.7 * 100 = 36 + 70 = 106
+        assert!((result - 106.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_double_threshold_warning() {
+        let det = AnomalyDetector::new();
+        let baseline = make_baseline(100.0, 10.0);
+        // Z = |122 - 100| / 10 = 2.2 → warning
+        let score = det.check_deviation(122.0, &baseline);
+        assert!(score.is_anomaly);
+        assert_eq!(score.severity, "warning");
+    }
+
+    #[test]
+    fn test_double_threshold_critical() {
+        let det = AnomalyDetector::new();
+        let baseline = make_baseline(100.0, 10.0);
+        // Z = |140 - 100| / 10 = 4.0 → critical
+        let score = det.check_deviation(140.0, &baseline);
+        assert!(score.is_anomaly);
+        assert_eq!(score.severity, "critical");
+    }
+
+    #[test]
+    fn test_seasonality_decompose_dimensions() {
+        let data: Vec<f64> = (0..24).map(|i| 50.0 + (i % 6) as f64 * 5.0 + i as f64 * 0.5).collect();
+        let decomp = AnomalyDetector::seasonality_decompose(&data, 6);
+        assert_eq!(decomp.trend.len(), 24);
+        assert_eq!(decomp.seasonal.len(), 6);
+        assert_eq!(decomp.residual.len(), 24);
+    }
+
+    #[test]
+    fn test_seasonality_decompose_short_data() {
+        let data = vec![1.0, 2.0, 3.0];
+        let decomp = AnomalyDetector::seasonality_decompose(&data, 4);
+        // n < period: early return with n-length vectors
+        assert_eq!(decomp.trend.len(), 3);
+        assert_eq!(decomp.seasonal.len(), 3);
+        assert_eq!(decomp.residual.len(), 3);
+    }
+
+    #[test]
+    fn test_trend_detection_up() {
+        let data = vec![10.0, 20.0, 30.0, 40.0, 50.0];
+        let trend = AnomalyDetector::detect_trend(&data);
+        assert_eq!(trend.direction, "up");
+        assert!(trend.slope > 0.0);
+        assert!(trend.r_squared > 0.9);
+    }
+
+    #[test]
+    fn test_trend_detection_down() {
+        let data = vec![50.0, 40.0, 30.0, 20.0, 10.0];
+        let trend = AnomalyDetector::detect_trend(&data);
+        assert_eq!(trend.direction, "down");
+        assert!(trend.slope < 0.0);
+    }
+
+    #[test]
+    fn test_trend_detection_stable() {
+        let data = vec![100.0, 100.0, 100.0, 100.0];
+        let trend = AnomalyDetector::detect_trend(&data);
+        assert_eq!(trend.direction, "stable");
+        assert!((trend.slope).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_trend_single_point() {
+        let data = vec![42.0];
+        let trend = AnomalyDetector::detect_trend(&data);
+        assert_eq!(trend.direction, "stable");
+    }
+}

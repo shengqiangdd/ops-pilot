@@ -625,10 +625,61 @@ mod tests {
     fn test_dedup_simhash_near_duplicate() {
         let mut dedup = AlertDeduplicator::new(300);
         let now = chrono::Utc::now().timestamp();
-        // Same core message, slightly different
         assert!(!dedup.is_duplicate("CPU usage high on prod-1", now));
-        // This is near-duplicate; may or may not be caught depending on hash
-        // The key test is that exact duplicates are caught
         assert!(dedup.is_duplicate("CPU usage high on prod-1", now));
+    }
+
+    #[test]
+    fn test_fingerprint_consistency() {
+        let msg = "Disk usage critical on db-primary";
+        let fp1 = AlertDeduplicator::fingerprint(msg);
+        let fp2 = AlertDeduplicator::fingerprint(msg);
+        assert_eq!(fp1, fp2);
+    }
+
+    #[test]
+    fn test_fingerprint_different_messages() {
+        let fp1 = AlertDeduplicator::fingerprint("CPU high on server-1");
+        let fp2 = AlertDeduplicator::fingerprint("Memory low on server-2");
+        assert_ne!(fp1, fp2);
+    }
+
+    #[test]
+    fn test_simhash_different_unrelated() {
+        let sh1 = AlertDeduplicator::simhash("CPU usage is critically high");
+        let sh2 = AlertDeduplicator::simhash("database connection pool exhausted");
+        let dist = AlertDeduplicator::hamming_distance(sh1, sh2);
+        assert!(dist > 10, "unrelated messages should differ significantly, got dist={}", dist);
+    }
+
+    #[test]
+    fn test_dedup_basic() {
+        let mut dedup = AlertDeduplicator::new(300);
+        let now = chrono::Utc::now().timestamp();
+        assert!(!dedup.is_duplicate("alert A", now));
+        assert!(dedup.is_duplicate("alert A", now));
+        assert!(!dedup.is_duplicate("alert B", now));
+    }
+
+    #[test]
+    fn test_dedup_window_expiry() {
+        let mut dedup = AlertDeduplicator::new(60);
+        let now = chrono::Utc::now().timestamp();
+        assert!(!dedup.is_duplicate("alert X", now));
+        // Simulate time passing beyond merge window
+        assert!(!dedup.is_duplicate("alert X", now + 61));
+    }
+
+    #[test]
+    fn test_simhash_empty_message() {
+        let sh = AlertDeduplicator::simhash("");
+        assert_eq!(sh, 0);
+    }
+
+    #[test]
+    fn test_hamming_distance_symmetric() {
+        let a = 0xDEAD_BEEF_CAFE_BABE;
+        let b = 0xCAFE_BABE_DEAD_BEEF;
+        assert_eq!(AlertDeduplicator::hamming_distance(a, b), AlertDeduplicator::hamming_distance(b, a));
     }
 }

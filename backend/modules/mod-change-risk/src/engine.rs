@@ -128,3 +128,81 @@ impl ChangeRiskEngine {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_assess_low_risk() {
+        let engine = ChangeRiskEngine::new(sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap());
+        let assessment = engine.assess("host/test-1", "read_only", "view config", &[]).await;
+        // read_only is the lowest risk type; actual level depends on time-of-day
+        assert!(assessment.score <= 0.5, "read_only score should be moderate, got {}", assessment.score);
+        assert!(!assessment.factors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_assess_high_risk_config_change() {
+        let engine = ChangeRiskEngine::new(sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap());
+        let assessment = engine.assess(
+            "host/prod-1",
+            "config_change",
+            "Emergency database config update",
+            &["svc-api".into(), "svc-web".into(), "svc-worker".into()],
+        ).await;
+        assert!(assessment.score > 0.4, "score={}", assessment.score);
+        assert!(assessment.level == "high" || assessment.level == "critical");
+        assert!(!assessment.factors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_check_conflicts() {
+        let engine = ChangeRiskEngine::new(sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap());
+        let changes = vec![
+            ChangeRequest { resource: "host/prod-1".into(), change_type: "config_change".into(), description: "A".into(), affected_services: vec![] },
+            ChangeRequest { resource: "host/prod-1".into(), change_type: "restart".into(), description: "B".into(), affected_services: vec![] },
+            ChangeRequest { resource: "host/prod-2".into(), change_type: "config_change".into(), description: "C".into(), affected_services: vec![] },
+        ];
+        let conflicts = engine.check_conflicts(&changes).await;
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].resource, "host/prod-1");
+        assert_eq!(conflicts[0].conflict_type, "concurrent_changes");
+    }
+
+    #[tokio::test]
+    async fn test_check_conflicts_none() {
+        let engine = ChangeRiskEngine::new(sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap());
+        let changes = vec![
+            ChangeRequest { resource: "host/a".into(), change_type: "restart".into(), description: "".into(), affected_services: vec![] },
+            ChangeRequest { resource: "host/b".into(), change_type: "restart".into(), description: "".into(), affected_services: vec![] },
+        ];
+        let conflicts = engine.check_conflicts(&changes).await;
+        assert!(conflicts.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_auto_approve_low_risk() {
+        let engine = ChangeRiskEngine::new(sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap());
+        let decision = engine.auto_approve(0.2, "low");
+        assert!(decision.approved);
+        assert!(decision.required_approvers.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_auto_approve_high_risk() {
+        let engine = ChangeRiskEngine::new(sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap());
+        let decision = engine.auto_approve(0.8, "critical");
+        assert!(!decision.approved);
+        assert!(!decision.required_approvers.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_auto_approve_medium_boundary() {
+        let engine = ChangeRiskEngine::new(sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap());
+        let low = engine.auto_approve(0.25, "medium");
+        assert!(low.approved, "medium score 0.25 should be auto-approved");
+        let high = engine.auto_approve(0.5, "medium");
+        assert!(!high.approved, "medium score 0.5 should require manual review");
+    }
+}
