@@ -356,7 +356,7 @@ pub async fn evaluate_trigger(
 
 /// Build the remediation routes sub-router.
 pub fn remediation_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post};
+    use axum::routing::{get, post};
 
     let state = RemediationState { pool };
 

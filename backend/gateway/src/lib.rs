@@ -43,7 +43,7 @@ pub struct AppState {
 /// full module-heavy server.
 pub async fn create_router(_state: Arc<AppState>) -> Router {
     use axum::routing::get;
-    use axum::response::{Json, IntoResponse};
+    use axum::response::Json;
     use axum::http::StatusCode;
     use tower_http::cors::CorsLayer;
     use tower_http::trace::TraceLayer;

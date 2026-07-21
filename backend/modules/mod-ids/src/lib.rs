@@ -8,14 +8,12 @@ pub mod anomaly;
 pub mod geo;
 pub mod blocklist;
 
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use ops_pilot_sdk::context::ModuleContext;
 use ops_pilot_sdk::events::OpsEvent;
 use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinition};
 use sqlx::SqlitePool;
-use tracing::info;
 
 pub struct ModIds {
     analyzer: analyzer::LogAnalyzer,

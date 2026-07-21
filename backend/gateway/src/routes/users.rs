@@ -138,7 +138,7 @@ pub async fn delete_user(
 
 /// Build the user routes sub-router.
 pub fn user_routes(service: Arc<AuthService>) -> axum::Router {
-    use axum::routing::{delete, get, post, put};
+    use axum::routing::{delete, get, put};
 
     let state = UserState { service };
 

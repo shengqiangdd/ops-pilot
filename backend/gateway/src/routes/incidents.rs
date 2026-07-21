@@ -273,7 +273,7 @@ pub async fn incident_stats(
 
 /// Build the incidents routes sub-router.
 pub fn incidents_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{get, put, post};
+    use axum::routing::{get, post};
 
     let state = IncidentsState { pool };
 

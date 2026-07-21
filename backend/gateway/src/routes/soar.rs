@@ -385,7 +385,7 @@ pub async fn get_execution(
 
 /// Build the SOAR routes sub-router.
 pub fn soar_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post, put};
+    use axum::routing::{get, post};
 
     let state = SoarState { pool };
 

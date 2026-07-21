@@ -156,7 +156,7 @@ impl PriorityScheduler {
 
     /// Extract a group name from job name (text before first dash or underscore).
     fn extract_group(name: &str) -> String {
-        name.split(|c: char| c == '-' || c == '_')
+        name.split(['-', '_'])
             .next()
             .unwrap_or(name)
             .to_string()

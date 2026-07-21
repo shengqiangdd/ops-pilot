@@ -42,6 +42,12 @@ pub struct TopologyGraph {
     pub edges: Vec<TopoEdge>,
 }
 
+impl Default for TopologyGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TopologyGraph {
     pub fn new() -> Self {
         Self {

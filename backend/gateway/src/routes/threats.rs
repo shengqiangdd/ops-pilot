@@ -141,14 +141,12 @@ pub async fn list_indicators(
 
 /// GET /api/threats/affected-assets — list affected assets
 pub async fn affected_assets(
-    State(state): State<ThreatsState>,
+    State(_state): State<ThreatsState>,
 ) -> impl IntoResponse {
     // Simulate affected assets data
-    let assets = vec![
-        ("host-001", "web-server-01", "ip", "192.168.1.10", "high", "C2 Server IP detected", "high", "Block IP at firewall"),
+    let assets = [("host-001", "web-server-01", "ip", "192.168.1.10", "high", "C2 Server IP detected", "high", "Block IP at firewall"),
         ("host-002", "db-master", "domain", "malware-c2.evil.com", "critical", "Malicious domain contacted", "critical", "Isolate host and investigate"),
-        ("host-003", "cache-redis", "hash", "d41d8cd98f00b204", "medium", "Known malware hash", "medium", "Run full AV scan"),
-    ];
+        ("host-003", "cache-redis", "hash", "d41d8cd98f00b204", "medium", "Known malware hash", "medium", "Run full AV scan")];
 
     let result: Vec<serde_json::Value> = assets.iter().map(|(id, name, itype, value, severity, title, risk, suggestion)| {
         serde_json::json!({

@@ -2,7 +2,7 @@
 //!
 //! Exposes `/api/metrics` endpoint in Prometheus text format.
 
-use axum::{extract::Request, response::Response, routing::get, Json, Router};
+use axum::{extract::Request, response::Response, Json};
 use prometheus::{
     register_counter, register_gauge, register_histogram_vec,
     Counter, Encoder, Gauge, HistogramVec, TextEncoder,

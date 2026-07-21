@@ -304,7 +304,7 @@ pub async fn related_incidents(
 }
 
 pub fn change_analysis_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{get, post, put};
+    use axum::routing::{get, post};
 
     let state = ChangeAnalysisState { pool };
 

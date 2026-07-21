@@ -246,7 +246,7 @@ pub async fn list_users(
 
 /// Build the roles routes sub-router.
 pub fn roles_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post, put};
+    use axum::routing::{get, put};
 
     let state = RolesState { pool };
 

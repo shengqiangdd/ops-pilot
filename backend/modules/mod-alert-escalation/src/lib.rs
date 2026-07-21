@@ -33,14 +33,14 @@ pub struct ModAlertEscalation {
 
 impl ModAlertEscalation {
     pub async fn new(db: SqlitePool) -> Self {
-        let store = Self {
+        
+        Self {
             db,
             policies: Arc::new(RwLock::new(policy::default_policies())),
             schedules: Arc::new(RwLock::new(Vec::new())),
             classifier: Arc::new(RwLock::new(classifier::AlertClassifier::new())),
             correlator: Arc::new(RwLock::new(correlation::AlertCorrelator::new(300))),
-        };
-        store
+        }
     }
 }
 
@@ -169,7 +169,7 @@ impl OpsModule for ModAlertEscalation {
                     .as_str()
                     .ok_or_else(|| anyhow::anyhow!("missing severity"))?
                     .to_string();
-                let message = params["message"]
+                let _message = params["message"]
                     .as_str()
                     .unwrap_or("alert triggered")
                     .to_string();
