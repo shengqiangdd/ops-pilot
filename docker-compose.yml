@@ -1,40 +1,97 @@
 version: '3.8'
 
+x-healthcheck: &healthcheck
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 15s
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "80:80"
-      - "443:443"
+      - "${PORT:-80}:80"
+      - "${PORT_SSL:-443}:443"
     environment:
-      - DATABASE_URL=sqlite:/app/data/ops-pilot.db
-      - JWT_SECRET=${JWT_SECRET:-change-me-to-a-random-string}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/ops-pilot.db}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - OPSPILOT_MASTER_KEY=${OPSPILOT_MASTER_KEY:-}
       - LLM_PROVIDER=${LLM_PROVIDER:-}
       - LLM_BASE_URL=${LLM_BASE_URL:-}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o}
       - LISTEN_ADDR=0.0.0.0:3001
+      - RUST_LOG=${RUST_LOG:-ops_pilot=info,tower_http=info}
+      - TZ=${TZ:-Asia/Shanghai}
     volumes:
       - app_data:/app/data
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    <<: *healthcheck
+    depends_on:
+      redis:
+        condition: service_started
+        required: false
 
-  # Optional: Redis for future caching
-  # redis:
-  #   image: redis:7-alpine
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
-  #   restart: unless-stopped
+  # ── Redis (optional: caching / rate limiting / session store) ──────────
+  redis:
+    image: redis:7-alpine
+    profiles:
+      - full
+      - redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── PostgreSQL (optional: replaces SQLite for production HA) ──────────
+  postgres:
+    image: postgres:16-alpine
+    profiles:
+      - full
+      - postgres
+    environment:
+      POSTGRES_USER: ${PG_USER:-opspilot}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?PG_PASSWORD required for postgres profile}
+      POSTGRES_DB: ${PG_DB:-opspilot}
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-opspilot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Prometheus (optional: metrics collection) ──────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    profiles:
+      - full
+      - monitoring
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
 
 volumes:
   app_data:
-  # redis_data:
+  redis_data:
+  postgres_data:
+  prometheus_data:

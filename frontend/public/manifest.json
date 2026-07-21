@@ -1,27 +1,32 @@
 {
-  "name": "OpsPilot - AI Infrastructure Operations",
+  "name": "OpsPilot",
   "short_name": "OpsPilot",
   "description": "AI-Powered Infrastructure Operations Platform",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1C1B1F",
-  "theme_color": "#6750A4",
-  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "utilities"],
-  "lang": "en",
-  "dir": "ltr"
+  "categories": ["developer-tools", "productivity", "utilities"],
+  "lang": "zh-CN",
+  "orientation": "any"
 }

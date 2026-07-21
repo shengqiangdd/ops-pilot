@@ -67,6 +67,7 @@ const ChangeRiskPage = lazy(() => import('./pages/ChangeRisk').then(m => ({ defa
 const InspectionPage = lazy(() => import('./pages/Inspection').then(m => ({ default: m.InspectionPage })));
 const IdsPage = lazy(() => import('./pages/Ids').then(m => ({ default: m.IdsPage })));
 const ContainerSecPage = lazy(() => import('./pages/ContainerSec').then(m => ({ default: m.ContainerSecPage })));
+const ApiDocsPage = lazy(() => import('./pages/ApiDocs').then(m => ({ default: m.default })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -552,6 +553,7 @@ export function App() {
           </div>
         ) : <Navigate to="/login" replace />} />
         <Route path="/ops-dashboard" element={token ? <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="h-8 w-8 border-2 border-md-primary border-t-transparent rounded-full animate-spin" /></div>}><OpsDashboardPage /></Suspense> : <Navigate to="/login" replace />} />
+        <Route path="/api-docs" element={token ? <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="h-8 w-8 border-2 border-md-primary border-t-transparent rounded-full animate-spin" /></div>}><ApiDocsPage /></Suspense> : <Navigate to="/login" replace />} />
         <Route path="/*" element={token ? <AppShell /> : <Navigate to="/login" replace />} />
       </Routes>
     </ErrorBoundary>

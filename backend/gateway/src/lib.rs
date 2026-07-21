@@ -25,3 +25,46 @@ pub mod seed;
 pub mod terminal;
 pub mod tools;
 pub mod ws_events;
+
+use std::sync::Arc;
+use axum::Router;
+use sqlx::SqlitePool;
+
+/// Shared application state — used by route handlers and test helpers.
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: SqlitePool,
+}
+
+/// Create a minimum test router with health, docs, CORS, and security headers.
+///
+/// This is the same pattern used by E2E integration tests so they exercise
+/// real middleware (CORS, security headers, tracing) without starting the
+/// full module-heavy server.
+pub async fn create_router(_state: Arc<AppState>) -> Router {
+    use axum::routing::get;
+    use axum::response::{Json, IntoResponse};
+    use axum::http::StatusCode;
+    use tower_http::cors::CorsLayer;
+    use tower_http::trace::TraceLayer;
+
+    let app = Router::new()
+        .route("/api/v1/health", get(|| async {
+            Json(serde_json::json!({"status": "ok"}))
+        }))
+        // API docs routes
+        .route("/api/docs/openapi.json", get(crate::docs::openapi_json))
+        .route("/api/docs/swagger-ui", get(crate::docs::swagger_ui))
+        .layer(CorsLayer::permissive())
+        .layer(TraceLayer::new_for_http());
+
+    // Apply security headers (CSP, HSTS, X-Frame-Options, etc.)
+    let app = crate::security_headers::security_header_layers()
+        .into_iter()
+        .fold(app, |router, layer| router.layer(layer));
+
+    // Return JSON for 404s (instead of the default HTML fallback)
+    app.fallback(|| async {
+        (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "not found"})))
+    })
+}

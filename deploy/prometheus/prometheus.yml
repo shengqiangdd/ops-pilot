@@ -1,0 +1,14 @@
+# Prometheus config for OpsPilot
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'ops-pilot'
+    static_configs:
+      - targets: ['app:3001']
+    metrics_path: /api/metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'ops-pilot'
