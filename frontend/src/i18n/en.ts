@@ -46,6 +46,7 @@ const en: Record<string, string> = {
   'tab.cicd': 'CI/CD',
   'tab.metrics': 'Metrics',
   'tab.jobs': 'Jobs',
+  'tab.diagnostics': 'Diagnostics',
 
   'title.dashboard': 'Dashboard',
 
@@ -95,6 +96,7 @@ const en: Record<string, string> = {
   'title.cicd': 'CI/CD Pipelines',
   'title.metrics_viz': 'Metrics Dashboard',
   'title.jobs': 'Job Orchestration',
+  'title.diagnostics': 'Health Diagnostics',
 
   /* Terminal page */
   'terminal.title': 'Web Terminal',
@@ -349,6 +351,31 @@ const en: Record<string, string> = {
   'jobs.run_col.time': 'Time',
   'jobs.run_col.duration': 'Duration',
   'jobs.run_col.actions': 'Actions',
+
+  /* Diagnostics page */
+  'diagnostics.title': 'Health Diagnostics',
+  'diagnostics.tab.overview': 'Overview',
+  'diagnostics.tab.history': 'History',
+  'diagnostics.score': 'Health Score',
+  'diagnostics.system_health': 'System Health Status',
+  'diagnostics.status_healthy': 'System is running normally. All components are healthy.',
+  'diagnostics.status_warning': 'System has some warnings. Consider checking affected components.',
+  'diagnostics.status_critical': 'System has critical issues. Immediate attention required.',
+  'diagnostics.hosts': 'Hosts',
+  'diagnostics.services': 'Services',
+  'diagnostics.alert_rules': 'Alert Rules',
+  'diagnostics.recent_alerts': 'Recent Alerts',
+  'diagnostics.all_hosts': 'All Hosts',
+  'diagnostics.running': 'Running...',
+  'diagnostics.run': 'Run Diagnostics',
+  'diagnostics.results': 'Diagnostic Results',
+  'diagnostics.no_report': 'Click the button above to run full diagnostics',
+  'diagnostics.no_history': 'No diagnostic history',
+  'diagnostics.dismiss': 'Dismiss',
+  'diagnostics.history.time': 'Time',
+  'diagnostics.history.host': 'Host',
+  'diagnostics.history.status': 'Status',
+  'diagnostics.history.score': 'Score',
 
   'modules.title': 'Modules',
   'modules.reload': 'Reload',

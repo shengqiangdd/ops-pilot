@@ -625,3 +625,47 @@ export interface JobRunDetail {
   run: JobRun;
   steps: JobStepRun[];
 }
+
+// ── Diagnostics types ──────────────────────────────────────────────────
+
+export interface RunDiagnosticsInput {
+  host_id?: string;
+  checks?: string[];
+}
+
+export interface DiagnosticItem {
+  check_name: string;
+  status: string;
+  value: string;
+  threshold: string | null;
+  message: string;
+  suggestion: string;
+}
+
+export interface DiagnosticCategory {
+  name: string;
+  status: string;
+  score: number;
+  items: DiagnosticItem[];
+}
+
+export interface DiagnosticReport {
+  id: string;
+  host_id: string;
+  timestamp: string;
+  overall_status: string;
+  overall_score: number;
+  categories: DiagnosticCategory[];
+}
+
+export interface SystemStatus {
+  total_hosts: number;
+  online_hosts: number;
+  offline_hosts: number;
+  total_services: number;
+  active_services: number;
+  total_alert_rules: number;
+  active_alert_rules: number;
+  recent_alerts: number;
+  overall_health_score: number;
+}

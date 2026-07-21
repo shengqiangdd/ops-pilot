@@ -52,6 +52,9 @@ import type {
   CreateJobInput,
   JobRun,
   JobRunDetail,
+  RunDiagnosticsInput,
+  DiagnosticReport,
+  SystemStatus,
 } from './types';
 
 const BASE = '/api';
@@ -598,4 +601,23 @@ export const api = {
 
   getJobRunDetail: (token: string, runId: string) =>
     requestWithAuth<JobRunDetail>(`/jobs/runs/${runId}`, token),
+
+  // ── Diagnostics ────────────────────────────────────────────────────
+
+  runDiagnostics: (token: string, input: RunDiagnosticsInput) =>
+    requestWithAuth<DiagnosticReport>('/diagnostics/run', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getDiagnosticsHistory: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<DiagnosticReport[]>(`/diagnostics/history${qs ? '?' + qs : ''}`, token);
+  },
+
+  getDiagnosticsDetail: (token: string, diagId: string) =>
+    requestWithAuth<DiagnosticReport>(`/diagnostics/${diagId}`, token),
+
+  getDiagnosticsStatus: (token: string) =>
+    requestWithAuth<SystemStatus>('/diagnostics/status', token),
 };

@@ -49,6 +49,7 @@ const zh: Record<string, string> = {
   'tab.cicd': 'CI/CD',
   'tab.metrics': '指标',
   'tab.jobs': '作业',
+  'tab.diagnostics': '诊断',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -99,6 +100,7 @@ const zh: Record<string, string> = {
   'title.cicd': 'CI/CD 流水线',
   'title.metrics_viz': '指标仪表盘',
   'title.jobs': '作业编排',
+  'title.diagnostics': '健康诊断',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -353,6 +355,31 @@ const zh: Record<string, string> = {
   'jobs.run_col.time': '时间',
   'jobs.run_col.duration': '耗时',
   'jobs.run_col.actions': '操作',
+
+  /* Diagnostics page */
+  'diagnostics.title': '健康诊断',
+  'diagnostics.tab.overview': '概览',
+  'diagnostics.tab.history': '历史',
+  'diagnostics.score': '健康评分',
+  'diagnostics.system_health': '系统健康状态',
+  'diagnostics.status_healthy': '系统运行正常，所有组件健康。',
+  'diagnostics.status_warning': '系统存在一些警告，建议检查相关组件。',
+  'diagnostics.status_critical': '系统存在严重问题，需要立即处理。',
+  'diagnostics.hosts': '主机',
+  'diagnostics.services': '服务',
+  'diagnostics.alert_rules': '告警规则',
+  'diagnostics.recent_alerts': '最近告警',
+  'diagnostics.all_hosts': '所有主机',
+  'diagnostics.running': '诊断中...',
+  'diagnostics.run': '执行诊断',
+  'diagnostics.results': '诊断结果',
+  'diagnostics.no_report': '点击上方按钮执行全链路诊断',
+  'diagnostics.no_history': '暂无诊断历史',
+  'diagnostics.dismiss': '关闭',
+  'diagnostics.history.time': '时间',
+  'diagnostics.history.host': '主机',
+  'diagnostics.history.status': '状态',
+  'diagnostics.history.score': '评分',
 
   /* Desk */
   'desk': '桌面',
