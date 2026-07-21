@@ -105,6 +105,10 @@ jobs:
         run: cargo build --release --bin ops-pilot-gateway
         if: matrix.os == 'ubuntu-latest'
 
+      - name: Lint Helm Chart
+        run: helm lint deploy/helm/ops-pilot
+        if: matrix.os == 'ubuntu-latest'
+
       - uses: actions/upload-artifact@v4
         with:
           name: ops-pilot-bin-${{ matrix.os }}
