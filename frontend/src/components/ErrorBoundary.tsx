@@ -3,6 +3,7 @@ import React from 'react';
 interface Props {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  onError?: (error: Error, info: React.ErrorInfo) => void;
 }
 
 interface State {
@@ -22,6 +23,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('[ErrorBoundary]', error, info.componentStack);
+    this.props.onError?.(error, info);
   }
 
   reset = () => {
@@ -69,6 +71,20 @@ export function withErrorBoundary<P extends object>(
       <Component {...props} />
     </ErrorBoundary>
   );
-  Wrapped.displayName = `withErrorBoundary(${displayName})`;
+  Wrapped.displayName = `withErrorBoundary(${displayName}`;
   return Wrapped;
+}
+
+// Global error listener — call once at app root
+export function installGlobalErrorListener(onError?: (msg: string, url: string, line: number) => void) {
+  if (typeof window === 'undefined') return;
+
+  window.onerror = (message, source, lineno) => {
+    console.error('[GlobalError]', message, source, lineno);
+    onError?.(String(message), String(source || ''), lineno || 0);
+  };
+
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[UnhandledRejection]', event.reason);
+  });
 }

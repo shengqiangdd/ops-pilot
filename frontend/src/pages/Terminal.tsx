@@ -47,6 +47,9 @@ export function TerminalPage() {
   const fitAddonRefs = useRef<Map<string, FitAddon>>(new Map());
   const wsRefs = useRef<Map<string, WebSocket>>(new Map());
   const reconnectTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const reconnectAttempts = useRef<Map<string, number>>(new Map());
+  const MAX_RECONNECT_DELAY = 30000;
+  const MAX_RECONNECT_ATTEMPTS = 10;
 
   // Load hosts list
   useEffect(() => {
@@ -79,6 +82,7 @@ export function TerminalPage() {
     setTabs(prev => prev.map(t => t.id === tab.id ? { ...t, status: 'connecting' } : t));
 
     ws.onopen = () => {
+      reconnectAttempts.current.set(tab.id, 0);
       setTabs(prev => prev.map(t => t.id === tab.id ? { ...t, status: 'connected' } : t));
     };
 
@@ -99,13 +103,23 @@ export function TerminalPage() {
     ws.onclose = () => {
       wsRefs.current.delete(tab.id);
       setTabs(prev => prev.map(t => t.id === tab.id ? { ...t, status: 'disconnected' } : t));
-      // Auto-reconnect after 3s
+
+      const attempts = (reconnectAttempts.current.get(tab.id) || 0) + 1;
+      reconnectAttempts.current.set(tab.id, attempts);
+
+      if (attempts > MAX_RECONNECT_ATTEMPTS) {
+        setTabs(prev => prev.map(t => t.id === tab.id ? { ...t, status: 'error' } : t));
+        return;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s, 8s, ... capped at MAX_RECONNECT_DELAY
+      const delay = Math.min(1000 * Math.pow(2, attempts - 1), MAX_RECONNECT_DELAY);
       reconnectTimers.current.set(tab.id, setTimeout(() => {
         const currentTab = tabs.find(t => t.id === tab.id);
         if (currentTab && currentTab.status !== 'connected') {
           connectTab(currentTab);
         }
-      }, 3000));
+      }, delay));
     };
 
     wsRefs.current.set(tab.id, ws);

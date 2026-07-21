@@ -1,6 +1,4 @@
 # ── OpsPilot CI/CD Pipeline ──────────────────────────────────────────────
-# Runs on every PR/push to main; builds frontend + Rust, runs tests, and
-# publishes multi-arch Docker images on tagged releases.
 name: CI/CD
 
 on:
@@ -22,7 +20,7 @@ env:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════
-  # Frontend: lint → type-check → test → build
+  # Frontend: lint → type-check → test → e2e → build
   # ═══════════════════════════════════════════════════════════════════════
   frontend:
     name: Frontend
@@ -47,6 +45,16 @@ jobs:
       - run: npm run test -- --run
       - run: npm run build
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        continue-on-error: true
+
+      - name: Run E2E tests
+        run: npx playwright test --reporter=list
+        continue-on-error: true
+        env:
+          CI: true
+
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
@@ -54,7 +62,7 @@ jobs:
           retention-days: 1
 
   # ═══════════════════════════════════════════════════════════════════════
-  # Rust: check → test → clippy → build
+  # Rust: check → test → clippy → bench → build
   # ═══════════════════════════════════════════════════════════════════════
   rust:
     name: Rust (${{ matrix.os }})
@@ -88,14 +96,19 @@ jobs:
       - name: cargo test
         run: cargo test --workspace --all-targets
 
+      - name: cargo bench (alert_bench)
+        run: cargo bench -p ops-pilot-core --bench alert_bench -- --quick
+        if: github.event_name == 'push' || contains(github.event.head_commit.modified, 'benches/')
+        continue-on-error: true
+
       - name: cargo build --release
-        run: cargo build --release --bin ops-pilot
+        run: cargo build --release --bin ops-pilot-gateway
         if: matrix.os == 'ubuntu-latest'
 
       - uses: actions/upload-artifact@v4
         with:
           name: ops-pilot-bin-${{ matrix.os }}
-          path: backend/target/release/ops-pilot
+          path: backend/target/release/ops-pilot-gateway
           retention-days: 1
         if: matrix.os == 'ubuntu-latest'
 
@@ -103,23 +116,13 @@ jobs:
   # Docker image (tagged releases, or main after tests pass)
   # ═══════════════════════════════════════════════════════════════════════
   docker:
-    name: Docker image
+    name: Docker Build
     runs-on: ubuntu-latest
     needs: [frontend, rust]
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist/
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: ops-pilot-bin-ubuntu-latest
-          path: backend/target/release/
 
       - name: Set Docker metadata
         id: meta
@@ -132,9 +135,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=branch
             type=sha,prefix=,suffix=,format=short
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -150,7 +151,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -158,12 +158,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ═══════════════════════════════════════════════════════════════════════
-  # Summary badge (for README)
+  # Summary badge
   # ═══════════════════════════════════════════════════════════════════════
   summary:
     name: Summary
     runs-on: ubuntu-latest
-    needs: [frontend, rust]
+    needs: [frontend, rust, docker]
     if: always()
 
     steps:

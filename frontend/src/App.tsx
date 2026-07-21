@@ -8,7 +8,7 @@ import { AgentChat } from './components/AgentChat';
 import { LoginPage } from './pages/Login';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorBoundary, installGlobalErrorListener } from './components/ErrorBoundary';
 import { useTheme } from './components/ThemeProvider';
 import { ThemePicker } from './components/ThemePicker';
 import { useI18n } from './i18n';
@@ -523,6 +523,10 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
 /* ── 根组件 ── */
 export function App() {
   const { token } = useAuthStore();
+
+  useEffect(() => {
+    installGlobalErrorListener();
+  }, []);
 
   return (
     <ErrorBoundary>
