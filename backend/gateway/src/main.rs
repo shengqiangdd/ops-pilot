@@ -84,6 +84,9 @@ use ops_pilot_gateway::routes::threats::threats_routes;
 use ops_pilot_gateway::routes::timeline::timeline_routes;
 use ops_pilot_gateway::routes::vulnerabilities::vulnerabilities_routes;
 use ops_pilot_gateway::routes::audit_log_routes::audit_log_routes;
+use ops_pilot_gateway::routes::session_routes::session_routes;
+use ops_pilot_gateway::routes::rca_routes::rca_routes;
+use ops_pilot_gateway::routes::cluster_routes::cluster_routes;
 use ops_pilot_gateway::routes::ws_events_handler;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
 use ops_pilot_mod_core::ModCore;
@@ -552,6 +555,9 @@ async fn main() {
         .merge(gitops_routes(pool.clone()))
         .merge(dashboard_routes(pool.clone()))
         .merge(audit_log_routes(pool.clone()))
+        .merge(session_routes(pool.clone()))
+        .merge(rca_routes(pool.clone()))
+        .merge(cluster_routes(pool.clone()))
         .layer(axum::middleware::from_fn_with_state(
             auth_middleware_state.clone(),
             ops_pilot_gateway::middleware::auth_middleware,

@@ -229,6 +229,41 @@ pub async fn run_seed(db: &SqlitePool) -> anyhow::Result<()> {
     .await?;
     info!("  Ensured slow_queries table");
 
+    // 12. Ensure session_records table exists
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS session_records (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            host TEXT NOT NULL,
+            user_name TEXT NOT NULL,
+            command TEXT NOT NULL,
+            output TEXT,
+            exit_code INTEGER,
+            recorded_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_session_records_session ON session_records(session_id);"#
+    )
+    .execute(db)
+    .await?;
+    info!("  Ensured session_records table");
+
+    // 13. Ensure clusters table exists
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS clusters (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            api_server TEXT NOT NULL,
+            token TEXT,
+            status TEXT DEFAULT 'unknown',
+            metrics_json TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )"#
+    )
+    .execute(db)
+    .await?;
+    info!("  Ensured clusters table");
+
     info!("Seed complete!");
     Ok(())
 }

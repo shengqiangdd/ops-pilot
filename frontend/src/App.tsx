@@ -74,6 +74,9 @@ const AlertDiagnosisPage = lazy(() => import('./pages/AlertDiagnosis').then(m =>
 const GitOpsPage = lazy(() => import('./pages/GitOps').then(m => ({ default: m.GitOpsPage })));
 const DashboardLayoutsPage = lazy(() => import('./pages/DashboardLayouts').then(m => ({ default: m.DashboardLayoutsPage })));
 const AuditLogViewPage = lazy(() => import('./pages/AuditLogView').then(m => ({ default: m.AuditLogViewPage })));
+const SessionReplayPage = lazy(() => import('./pages/SessionReplay').then(m => ({ default: m.SessionReplayPage })));
+const RCAnalysisPage = lazy(() => import('./pages/RCAnalysis').then(m => ({ default: m.RCAnalysisPage })));
+const ClusterManagerPage = lazy(() => import('./pages/ClusterManager').then(m => ({ default: m.ClusterManagerPage })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -86,7 +89,8 @@ type Tab =
   | 'backup' | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
   | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm' | 'ops-dashboard' | 'change-risk' | 'inspection' | 'ids' | 'container-sec'
-  | 'alert-diagnosis' | 'gitops' | 'dashboard-layouts' | 'audit-log-view';
+  | 'alert-diagnosis' | 'gitops' | 'dashboard-layouts' | 'audit-log-view'
+  | 'session-replay' | 'rca-analysis' | 'clusters';
 
 const ALL_TABS: Tab[] = [
   'ops-dashboard', 'dashboard', 'chat', 'modules', 'backup', 'hosts', 'vault', 'security', 'health',
@@ -94,6 +98,7 @@ const ALL_TABS: Tab[] = [
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
   'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos', 'finops', 'apm', 'change-risk', 'inspection', 'ids', 'container-sec',
   'alert-diagnosis', 'gitops', 'dashboard-layouts', 'audit-log-view',
+  'session-replay', 'rca-analysis', 'clusters',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -158,6 +163,9 @@ const ICONS: Record<Tab, string> = {
   gitops: '🔀',
   'dashboard-layouts': '📐',
   'audit-log-view': '📋',
+  'session-replay': '⏪',
+  'rca-analysis': '🔬',
+  clusters: '🌐',
 };
 
 /* ── Tab role requirements ── */
@@ -220,6 +228,9 @@ const TAB_ROLES: Record<Tab, Role[]> = {
   gitops: ['admin'],
   'dashboard-layouts': ['operator', 'admin'],
   'audit-log-view': ['admin'],
+  'session-replay': ['operator', 'admin'],
+  'rca-analysis': ['operator', 'admin'],
+  clusters: ['admin'],
 };
 
 const ROLE_HIERARCHY: Record<Role, number> = {
@@ -238,11 +249,11 @@ function hasRequiredRole(userRole: Role | null, required: Role[]): boolean {
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📡', catKey: 'cat.overview', tabs: ['ops-dashboard'] },
   { icon: '💬', catKey: 'cat.system', tabs: ['chat'] },
-  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'monitor', 'apm'] },
+  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'monitor', 'apm', 'clusters'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['ids', 'container-sec', 'secrets-scan', 'compliance', 'threats'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['change-risk', 'inspection', 'cicd', 'jobs'] },
-  { icon: '🔔', catKey: 'cat.monitor', tabs: ['health', 'metrics', 'incidents', 'slos', 'alert-diagnosis'] },
-  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline', 'audit-log-view'] },
+  { icon: '🔔', catKey: 'cat.monitor', tabs: ['health', 'metrics', 'incidents', 'slos', 'alert-diagnosis', 'rca-analysis'] },
+  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline', 'audit-log-view', 'session-replay'] },
   { icon: '🔧', catKey: 'cat.integration', tabs: ['backup', 'audit', 'users', 'gitops', 'dashboard-layouts'] },
 ];
 
@@ -357,6 +368,9 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'gitops': return <GitOpsPage />;
       case 'dashboard-layouts': return <DashboardLayoutsPage />;
       case 'audit-log-view': return <AuditLogViewPage />;
+      case 'session-replay': return <SessionReplayPage />;
+      case 'rca-analysis': return <RCAnalysisPage />;
+      case 'clusters': return <ClusterManagerPage />;
       default: return <Dashboard />;
     }
   };
