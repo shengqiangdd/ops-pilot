@@ -4,6 +4,7 @@ use axum::{
     response::IntoResponse,
     Json, Router,
 };
+use chrono::Datelike;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::Sqlite;
 use sqlx::SqlitePool;
@@ -73,13 +74,13 @@ pub struct CostOverview {
     pub currency: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct CostByService {
     pub service: String,
     pub total: f64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct CostByProvider {
     pub provider: String,
     pub total: f64,
@@ -269,8 +270,9 @@ pub async fn cost_forecast(
         "SELECT record_date, SUM(cost_amount) FROM cost_records WHERE record_date >= date('now', '-3 months') GROUP BY record_date ORDER BY record_date"
     ).fetch_all(&state.pool).await.unwrap_or_default();
 
+    let null_f64: Option<f64> = None;
     let data_points: Vec<serde_json::Value> = result.iter().map(|(date, amount)| {
-        serde_json::json!({"date": date, "actual": amount, "predicted": null::<f64>})
+        serde_json::json!({"date": date, "actual": amount, "predicted": null_f64})
     }).collect();
 
     // Add forecast points
@@ -279,7 +281,7 @@ pub async fn cost_forecast(
         let date = (today + chrono::Duration::days(i)).format("%Y-%m-%d").to_string();
         let predicted = data_points.last().map(|d| d["actual"].as_f64().unwrap_or(0.0) * (1.0 + 0.01 * i as f64)).unwrap_or(0.0);
         let mut points = data_points.clone();
-        points.push(serde_json::json!({"date": date, "actual": null::<f64>, "predicted": predicted}));
+        points.push(serde_json::json!({"date": date, "actual": null_f64, "predicted": predicted}));
     }
 
     (StatusCode::OK, Json(serde_json::json!({
