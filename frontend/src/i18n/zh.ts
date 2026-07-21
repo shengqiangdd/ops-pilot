@@ -46,6 +46,7 @@ const zh: Record<string, string> = {
   'tab.channels': '渠道',
   'tab.cmdb': 'CMDB',
   'tab.timeline': '时间线',
+  'tab.cicd': 'CI/CD',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -93,6 +94,7 @@ const zh: Record<string, string> = {
   'title.channels': '通知渠道',
   'title.cmdb': '配置管理',
   'title.timeline': '事件时间线',
+  'title.cicd': 'CI/CD 流水线',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -271,6 +273,38 @@ const zh: Record<string, string> = {
   'timeline.detail.time': '时间',
   'timeline.detail.type': '类型',
   'timeline.detail.description': '详情',
+
+  /* CI/CD page */
+  'cicd.title': 'CI/CD 流水线',
+  'cicd.tab.templates': '模板',
+  'cicd.tab.runs': '运行',
+  'cicd.tab.deployments': '部署',
+  'cicd.add_template': '添加模板',
+  'cicd.cancel': '取消',
+  'cicd.creating': '创建中...',
+  'cicd.create': '创建',
+  'cicd.name': '名称',
+  'cicd.description': '描述',
+  'cicd.stages': '阶段 (JSON)',
+  'cicd.run': '运行',
+  'cicd.view': '查看',
+  'cicd.cancel_run': '取消',
+  'cicd.rollback': '回滚',
+  'cicd.no_templates': '暂无模板',
+  'cicd.no_runs': '暂无运行记录',
+  'cicd.no_deployments': '暂无部署记录',
+  'cicd.no_description': '暂无描述',
+  'cicd.run_col.name': '名称',
+  'cicd.run_col.status': '状态',
+  'cicd.run_col.branch': '分支',
+  'cicd.run_col.time': '时间',
+  'cicd.run_col.actions': '操作',
+  'cicd.deploy_col.name': '名称',
+  'cicd.deploy_col.env': '环境',
+  'cicd.deploy_col.strategy': '策略',
+  'cicd.deploy_col.version': '版本',
+  'cicd.deploy_col.status': '状态',
+  'cicd.deploy_col.actions': '操作',
 
   /* Desk */
   'desk': '桌面',

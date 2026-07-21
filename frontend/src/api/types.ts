@@ -500,3 +500,78 @@ export interface TimelineEvent {
   description: string;
   source: string;
 }
+
+// ── CI/CD types ────────────────────────────────────────────────────────
+
+export interface PipelineTemplate {
+  id: string;
+  name: string;
+  description: string;
+  stages_json: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePipelineTemplateInput {
+  name: string;
+  description?: string;
+  stages_json?: string;
+}
+
+export interface PipelineRun {
+  id: string;
+  template_id: string;
+  name: string;
+  status: string;
+  triggered_by: string;
+  branch: string;
+  commit_sha: string;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
+  created_at: string;
+}
+
+export interface PipelineStageRun {
+  id: string;
+  run_id: string;
+  stage_name: string;
+  status: string;
+  log: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface PipelineRunDetail {
+  run: PipelineRun;
+  stages: PipelineStageRun[];
+}
+
+export interface CreatePipelineRunInput {
+  template_id: string;
+  name?: string;
+  branch?: string;
+  commit_sha?: string;
+}
+
+export interface Deployment {
+  id: string;
+  name: string;
+  service_id: string;
+  environment: string;
+  strategy: string;
+  status: string;
+  version: string;
+  config_json: string;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+}
+
+export interface CreateDeploymentInput {
+  name: string;
+  service_id?: string;
+  environment?: string;
+  strategy?: string;
+  version?: string;
+}

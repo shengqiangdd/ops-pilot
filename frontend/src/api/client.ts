@@ -41,6 +41,13 @@ import type {
   DiagnoseRequest,
   DiagnoseResponse,
   TimelineEvent,
+  PipelineTemplate,
+  CreatePipelineTemplateInput,
+  PipelineRun,
+  PipelineRunDetail,
+  CreatePipelineRunInput,
+  Deployment,
+  CreateDeploymentInput,
 } from './types';
 
 const BASE = '/api';
@@ -510,4 +517,51 @@ export const api = {
     const qs = params ? new URLSearchParams(params).toString() : '';
     return requestWithAuth<TimelineEvent[]>(`/timeline/events${qs ? '?' + qs : ''}`, token);
   },
+
+  // ── CI/CD ───────────────────────────────────────────────────────────
+
+  listCICDTemplates: (token: string) =>
+    requestWithAuth<PipelineTemplate[]>('/cicd/templates', token),
+
+  createCICDTemplate: (token: string, input: CreatePipelineTemplateInput) =>
+    requestWithAuth<PipelineTemplate>('/cicd/templates', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  deleteCICDTemplate: (token: string, templateId: string) =>
+    requestWithAuth<void>(`/cicd/templates/${templateId}`, token, {
+      method: 'DELETE',
+    }),
+
+  listCICDRuns: (token: string) =>
+    requestWithAuth<PipelineRun[]>('/cicd/runs', token),
+
+  createCICDRun: (token: string, input: CreatePipelineRunInput) =>
+    requestWithAuth<PipelineRun>('/cicd/runs', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getCICDRunDetail: (token: string, runId: string) =>
+    requestWithAuth<PipelineRunDetail>(`/cicd/runs/${runId}`, token),
+
+  cancelCICDRun: (token: string, runId: string) =>
+    requestWithAuth<{ status: string }>(`/cicd/runs/${runId}/cancel`, token, {
+      method: 'POST',
+    }),
+
+  listCICDDeployments: (token: string) =>
+    requestWithAuth<Deployment[]>('/cicd/deployments', token),
+
+  createCICDDeployment: (token: string, input: CreateDeploymentInput) =>
+    requestWithAuth<Deployment>('/cicd/deployments', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  rollbackCICDDeployment: (token: string, deploymentId: string) =>
+    requestWithAuth<Deployment>(`/cicd/deployments/${deploymentId}/rollback`, token, {
+      method: 'PUT',
+    }),
 };
