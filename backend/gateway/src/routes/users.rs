@@ -15,7 +15,7 @@ pub struct UserState {
 }
 
 #[derive(Deserialize)]
-struct CreateUserRequest {
+pub struct CreateUserRequest {
     username: String,
     email: String,
     password: String,
@@ -23,7 +23,7 @@ struct CreateUserRequest {
 }
 
 #[derive(Deserialize)]
-struct UpdateRoleRequest {
+pub struct UpdateRoleRequest {
     role: String,
 }
 
@@ -69,7 +69,7 @@ pub async fn create_user(
     let role = req.role.unwrap_or_else(|| "operator".to_string());
 
     // Validate role
-    let role_enum = Role::from_str(&role);
+    let role_enum = Role::parse_role(&role);
     if role_enum.as_str() != role.to_lowercase() {
         return (
             StatusCode::BAD_REQUEST,
@@ -102,7 +102,7 @@ pub async fn update_user_role(
     Json(req): Json<UpdateRoleRequest>,
 ) -> impl IntoResponse {
     // Validate role
-    let role_enum = Role::from_str(&req.role);
+    let role_enum = Role::parse_role(&req.role);
     if role_enum.as_str() != req.role.to_lowercase() {
         return (
             StatusCode::BAD_REQUEST,
@@ -138,7 +138,7 @@ pub async fn delete_user(
 
 /// Build the user routes sub-router.
 pub fn user_routes(service: Arc<AuthService>) -> axum::Router {
-    use axum::routing::{delete, get, post, put};
+    use axum::routing::{delete, get, put};
 
     let state = UserState { service };
 

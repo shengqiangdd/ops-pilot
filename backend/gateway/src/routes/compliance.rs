@@ -5,7 +5,6 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::sqlite::Sqlite;
 use sqlx::SqlitePool;
 
 #[derive(Clone)]

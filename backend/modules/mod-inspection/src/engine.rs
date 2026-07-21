@@ -51,14 +51,14 @@ impl InspectionEngine {
     }
 
     pub async fn run_inspection(&self, task_id: &str) -> anyhow::Result<InspectionResult> {
-        let mut items = Vec::new();
-
         // Built-in checks
-        items.push(ItemCheckResult { item_id: "cpu_check".into(), category: "health".into(), check_name: "CPU Usage < 80%".into(), passed: true, actual_value: "45%".into(), message: "CPU usage is within normal range".into(), severity: "info".into() });
-        items.push(ItemCheckResult { item_id: "mem_check".into(), category: "health".into(), check_name: "Memory Usage < 85%".into(), passed: true, actual_value: "62%".into(), message: "Memory usage is within normal range".into(), severity: "info".into() });
-        items.push(ItemCheckResult { item_id: "disk_check".into(), category: "health".into(), check_name: "Disk Usage < 90%".into(), passed: true, actual_value: "68%".into(), message: "Disk usage is within normal range".into(), severity: "info".into() });
-        items.push(ItemCheckResult { item_id: "ssh_check".into(), category: "security".into(), check_name: "SSH Root Login Disabled".into(), passed: true, actual_value: "no".into(), message: "Root login is properly disabled".into(), severity: "info".into() });
-        items.push(ItemCheckResult { item_id: "cert_check".into(), category: "certificate".into(), check_name: "SSL Certificate Valid".into(), passed: true, actual_value: "30 days".into(), message: "Certificate expires in 30 days".into(), severity: "info".into() });
+        let items = vec![
+            ItemCheckResult { item_id: "cpu_check".into(), category: "health".into(), check_name: "CPU Usage < 80%".into(), passed: true, actual_value: "45%".into(), message: "CPU usage is within normal range".into(), severity: "info".into() },
+            ItemCheckResult { item_id: "mem_check".into(), category: "health".into(), check_name: "Memory Usage < 85%".into(), passed: true, actual_value: "62%".into(), message: "Memory usage is within normal range".into(), severity: "info".into() },
+            ItemCheckResult { item_id: "disk_check".into(), category: "health".into(), check_name: "Disk Usage < 90%".into(), passed: true, actual_value: "68%".into(), message: "Disk usage is within normal range".into(), severity: "info".into() },
+            ItemCheckResult { item_id: "ssh_check".into(), category: "security".into(), check_name: "SSH Root Login Disabled".into(), passed: true, actual_value: "no".into(), message: "Root login is properly disabled".into(), severity: "info".into() },
+            ItemCheckResult { item_id: "cert_check".into(), category: "certificate".into(), check_name: "SSL Certificate Valid".into(), passed: true, actual_value: "30 days".into(), message: "Certificate expires in 30 days".into(), severity: "info".into() },
+        ];
 
         let passed_count = items.iter().filter(|i| i.passed).count();
         let total = items.len();

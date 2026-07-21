@@ -43,7 +43,7 @@ impl FileSyncModule {
         })?;
 
         let data = tokio::fs::read(source_path).await?;
-        let total_chunks = (data.len() + CHUNK_SIZE - 1) / CHUNK_SIZE;
+        let total_chunks = data.len().div_ceil(CHUNK_SIZE);
 
         // Create destination directory on remote host
         if let Some(parent) = Path::new(dest_path).parent() {

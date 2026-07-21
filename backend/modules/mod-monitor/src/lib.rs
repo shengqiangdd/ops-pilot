@@ -17,7 +17,6 @@ use ops_pilot_sdk::events::OpsEvent;
 use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinition};
 use sqlx::SqlitePool;
 use tokio::sync::RwLock;
-use tracing::info;
 
 pub struct ModMonitor {
     collector: Arc<RwLock<collector::MetricsCollector>>,

@@ -81,6 +81,7 @@ pub struct PriorityScheduler {
     /// Weighted fair queue: group → accumulated weight for round-robin among same priority.
     group_weights: HashMap<String, f64>,
     /// Default weight for new jobs.
+    #[allow(dead_code)]
     default_weight: f64,
 }
 
@@ -156,7 +157,7 @@ impl PriorityScheduler {
 
     /// Extract a group name from job name (text before first dash or underscore).
     fn extract_group(name: &str) -> String {
-        name.split(|c: char| c == '-' || c == '_')
+        name.split(['-', '_'])
             .next()
             .unwrap_or(name)
             .to_string()

@@ -100,6 +100,7 @@ pub struct CostBudgetRow {
     pub status: String,
 }
 
+#[allow(dead_code)]
 fn pseudo_random(seed: u64) -> f64 {
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() as u64;
     ((nanos.wrapping_mul(6364136223846793005).wrapping_add(seed)) % 1000) as f64 / 1000.0
@@ -291,7 +292,7 @@ pub async fn cost_forecast(
 }
 
 pub fn finops_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post};
+    use axum::routing::{delete, get};
     let state = FinOpsState { pool };
     Router::new()
         .route("/api/finops/overview", get(cost_overview))

@@ -395,7 +395,7 @@ pub async fn create_notification_channel(
 /// POST /api/alert/channels/:id/test — test a notification channel
 pub async fn test_notification_channel(
     Path(channel_id): Path<String>,
-    State(state): State<AlertState>,
+    State(_state): State<AlertState>,
 ) -> impl IntoResponse {
     // For now, just return success. In production, send a test message.
     (StatusCode::OK, Json(serde_json::json!({
@@ -443,7 +443,7 @@ pub async fn test_notify(
 
 /// Build the alert routes sub-router.
 pub fn alert_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post, put};
+    use axum::routing::{get, post, put};
 
     let state = AlertState { pool };
 

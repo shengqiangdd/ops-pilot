@@ -375,7 +375,7 @@ pub async fn scan_vulnerabilities(
 
 /// Build the vulnerabilities routes sub-router.
 pub fn vulnerabilities_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post};
+    use axum::routing::{get, post};
 
     let state = VulnerabilitiesState { pool };
 

@@ -44,13 +44,14 @@ pub struct ApprovalDecision {
 }
 
 pub struct ChangeRiskEngine {
+    #[allow(dead_code)]
     db: SqlitePool,
 }
 
 impl ChangeRiskEngine {
     pub fn new(db: SqlitePool) -> Self { Self { db } }
 
-    pub async fn assess(&self, resource: &str, change_type: &str, description: &str, affected_services: &[String]) -> RiskAssessment {
+    pub async fn assess(&self, _resource: &str, change_type: &str, description: &str, affected_services: &[String]) -> RiskAssessment {
         let mut score = 0.3;
         let mut factors = Vec::new();
 
@@ -72,10 +73,10 @@ impl ChangeRiskEngine {
 
         // Factor 3: Time window
         let hour = chrono::Utc::now().hour();
-        if hour >= 2 && hour <= 5 {
+        if (2..=5).contains(&hour) {
             score -= 0.1;
             factors.push(RiskFactor { category: "timing".into(), impact: "low".into(), probability: "low".into(), description: "Off-hours deployment (lower risk)".into() });
-        } else if hour >= 9 && hour <= 17 {
+        } else if (9..=17).contains(&hour) {
             score += 0.1;
             factors.push(RiskFactor { category: "timing".into(), impact: "medium".into(), probability: "medium".into(), description: "Business hours deployment".into() });
         }

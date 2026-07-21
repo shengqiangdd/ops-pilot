@@ -138,7 +138,7 @@ impl AlertDeduplicator {
 
         // Weighted bit vote vector: +weight for 1-bits, -weight for 0-bits
         let mut bit_votes = [0.0_f64; SIMHASH_BITS as usize];
-        let n_tokens = tokens.len() as f64;
+        let _n_tokens = tokens.len() as f64;
 
         for (i, token) in tokens.iter().enumerate() {
             // Position weight: earlier tokens weigh more (inverse position)

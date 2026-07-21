@@ -65,6 +65,7 @@ pub struct ChangeStats {
     pub high_risk: i64,
 }
 
+#[allow(dead_code)]
 fn pseudo_random(seed: u64) -> f64 {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -304,7 +305,7 @@ pub async fn related_incidents(
 }
 
 pub fn change_analysis_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{get, post, put};
+    use axum::routing::{get, post};
 
     let state = ChangeAnalysisState { pool };
 

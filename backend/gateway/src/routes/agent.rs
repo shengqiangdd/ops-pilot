@@ -113,7 +113,7 @@ pub struct NlQueryResponse {
 ///
 /// Converts natural language to structured queries and executes them.
 pub async fn nl_query(
-    State(state): State<AgentState>,
+    State(_state): State<AgentState>,
     Json(req): Json<NlQueryRequest>,
 ) -> impl IntoResponse {
     let query = req.query.to_lowercase();
@@ -181,7 +181,7 @@ pub struct DiagnoseResponse {
 ///
 /// Analyzes host metrics, audit logs, and knowledge base to provide diagnosis.
 pub async fn diagnose(
-    State(state): State<AgentState>,
+    State(_state): State<AgentState>,
     Json(req): Json<DiagnoseRequest>,
 ) -> impl IntoResponse {
     let issue = req.issue_description.to_lowercase();

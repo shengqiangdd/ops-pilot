@@ -5,7 +5,6 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::sqlite::Sqlite;
 use sqlx::SqlitePool;
 
 /// Shared application state for jobs routes.
@@ -319,7 +318,7 @@ pub async fn get_run_detail(
 
 /// Build the jobs routes sub-router.
 pub fn jobs_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post};
+    use axum::routing::{get, post};
 
     let state = JobsState { pool };
 

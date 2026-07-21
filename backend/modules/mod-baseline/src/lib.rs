@@ -19,6 +19,7 @@ use tokio::sync::RwLock;
 use tracing::info;
 
 pub struct ModBaseline {
+    #[allow(dead_code)]
     db: SqlitePool,
     checker: Arc<RwLock<checks::BaselineChecker>>,
     store: Arc<reports::ReportStore>,

@@ -108,7 +108,7 @@ fn generate_metric_data(base: f64, trend: f64, points: usize) -> Vec<f64> {
     let mut data = Vec::new();
     for i in 0..points {
         let value = base + trend * (i as f64) + pseudo_random(i as u64) * 10.0 - 5.0;
-        data.push(value.max(0.0).min(100.0));
+        data.push(value.clamp(0.0, 100.0));
     }
     data
 }
@@ -153,7 +153,7 @@ fn analyze_metric(
     let mut predicted_values = Vec::new();
     for i in 0..forecast_hours {
         let predicted = intercept + slope * (historical_points as f64 + i as f64);
-        let predicted = predicted.max(0.0).min(100.0);
+        let predicted = predicted.clamp(0.0, 100.0);
         predicted_values.push(predicted);
 
         let ts = now + chrono::Duration::hours(i as i64);
@@ -184,7 +184,7 @@ fn analyze_metric(
         .map(|(a, s)| (a - s).abs())
         .collect();
     let avg_residual = residuals.iter().sum::<f64>() / residuals.len() as f64;
-    let confidence = (1.0 - avg_residual / 50.0).max(0.3).min(0.95);
+    let confidence = (1.0 - avg_residual / 50.0).clamp(0.3, 0.95);
 
     // Risk assessment
     let (risk_level, est_time) = if predicted_value >= threshold {

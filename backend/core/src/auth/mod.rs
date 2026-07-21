@@ -88,7 +88,7 @@ pub enum Role {
 
 impl Role {
     /// Parse a role from string.
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse_role(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "admin" => Role::Admin,
             "viewer" => Role::Viewer,
@@ -225,7 +225,7 @@ impl AuthService {
             .map_err(|_| AuthError::InvalidCredentials)?;
 
         let now = chrono::Utc::now().timestamp() as u64;
-        let role = Role::from_str(&user.role);
+        let role = Role::parse_role(&user.role);
         let claims = UserIdClaims {
             sub: user.id,
             role: role.as_str().to_string(),
@@ -508,7 +508,7 @@ impl AuthService {
             .to_string();
 
         let id = Uuid::new_v4().to_string();
-        let role_str = Role::from_str(role).as_str();
+        let role_str = Role::parse_role(role).as_str();
 
         let result = sqlx::query(
             "INSERT INTO users (id, username, email, password_hash, role) VALUES (?, ?, ?, ?, ?)",
@@ -546,7 +546,7 @@ impl AuthService {
         user_id: &str,
         role: &str,
     ) -> Result<(), AuthError> {
-        let role_str = Role::from_str(role).as_str();
+        let role_str = Role::parse_role(role).as_str();
         sqlx::query("UPDATE users SET role = ? WHERE id = ?")
             .bind(role_str)
             .bind(user_id)

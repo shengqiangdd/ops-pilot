@@ -6,14 +6,12 @@
 pub mod image_scanner;
 pub mod runtime_checker;
 
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use ops_pilot_sdk::context::ModuleContext;
 use ops_pilot_sdk::events::OpsEvent;
 use ops_pilot_sdk::traits::{HealthStatus, ModuleAction, OpsModule, ToolDefinition};
 use sqlx::SqlitePool;
-use tracing::info;
 
 pub struct ModContainerSec {
     image_scanner: image_scanner::ImageScanner,

@@ -105,7 +105,7 @@ async fn discover_services(
                             Ok(8443) => "https-alt",
                             Ok(27017) => "mongodb",
                             Ok(p) => {
-                                if p >= 3000 && p <= 9999 {
+                                if (3000..=9999).contains(&p) {
                                     "app"
                                 } else {
                                     "service"

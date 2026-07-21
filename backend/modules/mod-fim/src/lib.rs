@@ -18,6 +18,7 @@ use tokio::sync::RwLock;
 use tracing::info;
 
 pub struct ModFim {
+    #[allow(dead_code)]
     db: SqlitePool,
     scanner: Arc<RwLock<scanner::FimScanner>>,
     store: Arc<storage::FimStore>,
@@ -104,7 +105,7 @@ impl OpsModule for ModFim {
                         ]
                     });
 
-                let mut scanner = self.scanner.write().await;
+                let scanner = self.scanner.write().await;
                 let hashes = scanner.compute_hashes(host_id, &paths).await?;
 
                 for (path, hash) in &hashes {
@@ -132,7 +133,7 @@ impl OpsModule for ModFim {
                 }
 
                 let paths: Vec<String> = baseline.iter().map(|(p, _)| p.clone()).collect();
-                let mut scanner = self.scanner.write().await;
+                let scanner = self.scanner.write().await;
                 let current = scanner.compute_hashes(host_id, &paths).await?;
 
                 let mut changes = Vec::new();

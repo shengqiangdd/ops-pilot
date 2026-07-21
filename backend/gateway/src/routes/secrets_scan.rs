@@ -68,6 +68,7 @@ pub struct SeverityCount {
     pub count: i64,
 }
 
+#[allow(dead_code)]
 fn pseudo_random(seed: u64) -> f64 {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

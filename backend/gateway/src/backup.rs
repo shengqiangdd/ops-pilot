@@ -55,14 +55,9 @@ pub async fn export_backup(pool: &SqlitePool) -> Result<SystemBackup> {
                             .map(|v| Value::Number(v.into()))
                             .unwrap_or(Value::Null),
                         "REAL" | "real" => row
-                            .try_get::<f64, _>(i)
-                            .and_then(|v| {
-                                Ok(
-                                    serde_json::Number::from_f64(v)
+                            .try_get::<f64, _>(i).map(|v| serde_json::Number::from_f64(v)
                                         .map(Value::Number)
-                                        .unwrap_or(Value::Null),
-                                )
-                            })
+                                        .unwrap_or(Value::Null))
                             .unwrap_or(Value::Null),
                         _ => Value::Null,
                     };

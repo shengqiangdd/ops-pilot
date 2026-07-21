@@ -134,7 +134,7 @@ impl AnomalyDetector {
         // Seasonal: average detrended values at each position in the period
         let detrended: Vec<f64> = data.iter().zip(trend.iter()).map(|(d, t)| d - t).collect();
         let mut seasonal = vec![0.0_f64; period];
-        for s in 0..period {
+        for (s, slot) in seasonal.iter_mut().enumerate() {
             let mut sum = 0.0;
             let mut count = 0;
             for i in (s..n).step_by(period) {
@@ -142,7 +142,7 @@ impl AnomalyDetector {
                 count += 1;
             }
             if count > 0 {
-                seasonal[s] = sum / count as f64;
+                *slot = sum / count as f64;
             }
         }
         // Normalize seasonal to sum to zero

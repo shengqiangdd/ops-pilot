@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use chrono::{Utc, Duration};
-use serde::{Deserialize, Serialize};
 
 /// Key used to group similar alerts.
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -24,6 +23,7 @@ struct AlertState {
     last_seen: chrono::DateTime<Utc>,
     count: u32,
     suppressed: bool,
+    #[allow(dead_code)]
     message: String,
 }
 
@@ -118,7 +118,7 @@ impl AlertSuppressor {
         let mut total_suppressed = 0u32;
         let mut active_groups = 0u32;
 
-        for (key, val) in state.iter() {
+        for val in state.values() {
             if val.suppressed || val.count > 1 {
                 total_suppressed += val.count;
                 active_groups += 1;

@@ -70,6 +70,7 @@ pub struct ChaosStats {
     pub running: i64,
 }
 
+#[allow(dead_code)]
 fn pseudo_random(seed: u64) -> f64 {
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() as u64;
     ((nanos.wrapping_mul(6364136223846793005).wrapping_add(seed)) % 1000) as f64 / 1000.0
@@ -215,7 +216,7 @@ pub async fn chaos_stats(
 }
 
 pub fn chaos_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post};
+    use axum::routing::{get, post};
     let state = ChaosState { pool };
     Router::new()
         .route("/api/chaos/experiments", get(list_experiments).post(create_experiment))

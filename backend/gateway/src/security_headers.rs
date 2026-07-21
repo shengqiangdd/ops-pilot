@@ -3,10 +3,7 @@
 //! Applies CSP, HSTS, X-Frame-Options, and other hardening headers
 //! to every response via `tower-http::SetResponseHeaderLayer`.
 
-use axum::http::{
-    header::{HeaderName, HeaderValue},
-    HeaderMap,
-};
+use axum::http::header::{HeaderName, HeaderValue};
 use std::sync::LazyLock;
 use tower_http::set_header::SetResponseHeaderLayer;
 
