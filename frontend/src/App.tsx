@@ -77,6 +77,8 @@ const AuditLogViewPage = lazy(() => import('./pages/AuditLogView').then(m => ({ 
 const SessionReplayPage = lazy(() => import('./pages/SessionReplay').then(m => ({ default: m.SessionReplayPage })));
 const RCAnalysisPage = lazy(() => import('./pages/RCAnalysis').then(m => ({ default: m.RCAnalysisPage })));
 const ClusterManagerPage = lazy(() => import('./pages/ClusterManager').then(m => ({ default: m.ClusterManagerPage })));
+const TraceExplorerPage = lazy(() => import('./pages/TraceExplorer').then(m => ({ default: m.TraceExplorerPage })));
+const AnomalyDetectPage = lazy(() => import('./pages/AnomalyDetect').then(m => ({ default: m.AnomalyDetectPage })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -90,7 +92,8 @@ type Tab =
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
   | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm' | 'ops-dashboard' | 'change-risk' | 'inspection' | 'ids' | 'container-sec'
   | 'alert-diagnosis' | 'gitops' | 'dashboard-layouts' | 'audit-log-view'
-  | 'session-replay' | 'rca-analysis' | 'clusters';
+  | 'session-replay' | 'rca-analysis' | 'clusters'
+  | 'trace-explorer' | 'anomaly-detect';
 
 const ALL_TABS: Tab[] = [
   'ops-dashboard', 'dashboard', 'chat', 'modules', 'backup', 'hosts', 'vault', 'security', 'health',
@@ -99,6 +102,7 @@ const ALL_TABS: Tab[] = [
   'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos', 'finops', 'apm', 'change-risk', 'inspection', 'ids', 'container-sec',
   'alert-diagnosis', 'gitops', 'dashboard-layouts', 'audit-log-view',
   'session-replay', 'rca-analysis', 'clusters',
+  'trace-explorer', 'anomaly-detect',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -166,6 +170,8 @@ const ICONS: Record<Tab, string> = {
   'session-replay': '⏪',
   'rca-analysis': '🔬',
   clusters: '🌐',
+  'trace-explorer': '🔍',
+  'anomaly-detect': '📉',
 };
 
 /* ── Tab role requirements ── */
@@ -231,6 +237,8 @@ const TAB_ROLES: Record<Tab, Role[]> = {
   'session-replay': ['operator', 'admin'],
   'rca-analysis': ['operator', 'admin'],
   clusters: ['admin'],
+  'trace-explorer': ['operator', 'admin'],
+  'anomaly-detect': ['operator', 'admin'],
 };
 
 const ROLE_HIERARCHY: Record<Role, number> = {
@@ -252,8 +260,8 @@ const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'monitor', 'apm', 'clusters'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['ids', 'container-sec', 'secrets-scan', 'compliance', 'threats'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['change-risk', 'inspection', 'cicd', 'jobs'] },
-  { icon: '🔔', catKey: 'cat.monitor', tabs: ['health', 'metrics', 'incidents', 'slos', 'alert-diagnosis', 'rca-analysis'] },
-  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline', 'audit-log-view', 'session-replay'] },
+  { icon: '🔔', catKey: 'cat.monitor', tabs: ['health', 'metrics', 'incidents', 'slos', 'alert-diagnosis', 'rca-analysis', 'anomaly-detect'] },
+  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline', 'audit-log-view', 'session-replay', 'trace-explorer'] },
   { icon: '🔧', catKey: 'cat.integration', tabs: ['backup', 'audit', 'users', 'gitops', 'dashboard-layouts'] },
 ];
 
@@ -371,6 +379,8 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'session-replay': return <SessionReplayPage />;
       case 'rca-analysis': return <RCAnalysisPage />;
       case 'clusters': return <ClusterManagerPage />;
+      case 'trace-explorer': return <TraceExplorerPage />;
+      case 'anomaly-detect': return <AnomalyDetectPage />;
       default: return <Dashboard />;
     }
   };

@@ -16,6 +16,7 @@
 pub mod agent;
 pub mod alert_advisor;
 pub mod alert_suppression;
+pub mod anomaly_detector;
 pub mod audit_log;
 pub mod backup;
 pub mod cluster_manager;
@@ -27,6 +28,7 @@ pub mod metrics;
 pub mod middleware;
 pub mod notify;
 pub mod oauth2;
+pub mod otel_integration;
 pub mod rca_engine;
 pub mod report_generator;
 pub mod retry_queue;

@@ -264,6 +264,28 @@ pub async fn run_seed(db: &SqlitePool) -> anyhow::Result<()> {
     .await?;
     info!("  Ensured clusters table");
 
+    // 14. Ensure trace_spans table exists
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS trace_spans (
+            trace_id TEXT NOT NULL,
+            span_id TEXT NOT NULL,
+            parent_span_id TEXT,
+            operation_name TEXT NOT NULL,
+            service TEXT NOT NULL,
+            start_time INTEGER NOT NULL,
+            end_time INTEGER NOT NULL,
+            duration_ms INTEGER NOT NULL,
+            status TEXT DEFAULT 'ok',
+            tags_json TEXT,
+            PRIMARY KEY (trace_id, span_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_trace_service ON trace_spans(service);
+        CREATE INDEX IF NOT EXISTS idx_trace_start ON trace_spans(start_time);"#
+    )
+    .execute(db)
+    .await?;
+    info!("  Ensured trace_spans table");
+
     info!("Seed complete!");
     Ok(())
 }
