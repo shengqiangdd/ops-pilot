@@ -2,7 +2,10 @@
 //!
 //! Provides tools to create, list, pause, resume, and delete scheduled jobs.
 //! Jobs are stored in SQLite and executed by a background ticker.
+//! Enhanced with priority-based weighted fair scheduling.
 
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap};
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -34,6 +37,145 @@ fn parse_interval(expr: &str) -> Option<tokio::time::Duration> {
         _ => return None,
     };
     Some(duration)
+}
+
+// ── Priority Scheduler ──────────────────────────────────────────────────────
+
+/// A job with priority metadata for the scheduler.
+#[derive(Debug, Clone)]
+pub struct PrioritizedJob {
+    pub name: String,
+    pub priority: u8,          // 0-255, higher = more urgent
+    pub weight: f64,           // WFQ weight for fair scheduling among same-priority jobs
+    pub max_retries: u8,
+    pub retry_delay_secs: u64,
+    pub retries_done: u8,
+    pub cron_expr: String,
+    pub action_json: String,
+}
+
+impl PartialEq for PrioritizedJob {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority == other.priority
+    }
+}
+
+impl Eq for PrioritizedJob {}
+
+impl PartialOrd for PrioritizedJob {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PrioritizedJob {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.priority.cmp(&other.priority)
+    }
+}
+
+/// Priority-aware scheduler with Weighted Fair Queueing (WFQ).
+pub struct PriorityScheduler {
+    /// BinaryHeap for O(log n) priority dequeue (max-heap).
+    pending: BinaryHeap<PrioritizedJob>,
+    /// Weighted fair queue: group → accumulated weight for round-robin among same priority.
+    group_weights: HashMap<String, f64>,
+    /// Default weight for new jobs.
+    default_weight: f64,
+}
+
+impl PriorityScheduler {
+    pub fn new() -> Self {
+        Self {
+            pending: BinaryHeap::new(),
+            group_weights: HashMap::new(),
+            default_weight: 1.0,
+        }
+    }
+
+    /// Enqueue a job into the priority queue.
+    pub fn enqueue(&mut self, job: PrioritizedJob) {
+        self.pending.push(job);
+    }
+
+    /// Dequeue the highest-priority job (simple priority order).
+    pub fn dequeue(&mut self) -> Option<PrioritizedJob> {
+        self.pending.pop()
+    }
+
+    /// Weighted Fair Queueing: among jobs at the same priority level,
+    /// select the one whose group has the lowest accumulated weight (least served).
+    pub fn weighted_next(&mut self) -> Option<PrioritizedJob> {
+        if self.pending.is_empty() {
+            return None;
+        }
+
+        // Collect all jobs at the highest priority level
+        let max_priority = self.pending.peek()?.priority;
+        let mut candidates: Vec<PrioritizedJob> = Vec::new();
+        let mut remaining: BinaryHeap<PrioritizedJob> = BinaryHeap::new();
+
+        while let Some(job) = self.pending.pop() {
+            if job.priority == max_priority {
+                candidates.push(job);
+            } else {
+                remaining.push(job);
+            }
+        }
+
+        self.pending = remaining;
+
+        if candidates.len() == 1 {
+            let job = candidates.into_iter().next()?;
+            return Some(job);
+        }
+
+        // Pick candidate with lowest accumulated group weight
+        let best_idx = candidates.iter()
+            .enumerate()
+            .min_by(|a, b| {
+                let w_a = self.group_weights.get(&Self::extract_group(&a.1.name)).unwrap_or(&0.0);
+                let w_b = self.group_weights.get(&Self::extract_group(&b.1.name)).unwrap_or(&0.0);
+                w_a.partial_cmp(w_b).unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .map(|(i, _)| i)
+            .unwrap_or(0);
+
+        let chosen = candidates.remove(best_idx);
+
+        // Update weight for the chosen group
+        let chosen_group = Self::extract_group(&chosen.name);
+        let weight = self.group_weights.entry(chosen_group).or_insert(0.0);
+        *weight += chosen.weight;
+
+        // Put back remaining candidates
+        self.pending.extend(candidates);
+
+        Some(chosen)
+    }
+
+    /// Extract a group name from job name (text before first dash or underscore).
+    fn extract_group(name: &str) -> String {
+        name.split(|c: char| c == '-' || c == '_')
+            .next()
+            .unwrap_or(name)
+            .to_string()
+    }
+
+    /// Number of pending jobs.
+    pub fn len(&self) -> usize {
+        self.pending.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.pending.is_empty()
+    }
+}
+
+impl Default for PriorityScheduler {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 // ── Module ───────────────────────────────────────────────────────────────────

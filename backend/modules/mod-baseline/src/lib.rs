@@ -5,6 +5,7 @@
 //! Produces drift reports and auto-remediation suggestions.
 
 pub mod checks;
+pub mod prediction;
 pub mod reports;
 
 use std::sync::Arc;
