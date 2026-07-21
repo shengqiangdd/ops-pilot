@@ -59,6 +59,10 @@ const FinOpsPage = lazy(() => import('./pages/FinOps').then(m => ({ default: m.F
 const APMPage = lazy(() => import('./pages/APM').then(m => ({ default: m.APMPage })));
 const AdvisorChatPage = lazy(() => import('./pages/AdvisorChat').then(m => ({ default: m.AdvisorChat })));
 const OpsDashboardPage = lazy(() => import('./pages/OpsDashboard').then(m => ({ default: m.OpsDashboard })));
+const ChangeRiskPage = lazy(() => import('./pages/ChangeRisk').then(m => ({ default: m.ChangeRiskPage })));
+const InspectionPage = lazy(() => import('./pages/Inspection').then(m => ({ default: m.InspectionPage })));
+const IdsPage = lazy(() => import('./pages/Ids').then(m => ({ default: m.IdsPage })));
+const ContainerSecPage = lazy(() => import('./pages/ContainerSec').then(m => ({ default: m.ContainerSecPage })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -77,13 +81,13 @@ type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
-  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm' | 'ops-dashboard';
+  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm' | 'ops-dashboard' | 'change-risk' | 'inspection' | 'ids' | 'container-sec';
 
 const ALL_TABS: Tab[] = [
   'ops-dashboard', 'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
-  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos', 'finops', 'apm',
+  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos', 'finops', 'apm', 'change-risk', 'inspection', 'ids', 'container-sec',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -139,6 +143,10 @@ const ICONS: Record<Tab, string> = {
   chaos: '💥',
   finops: '💰',
   apm: '📈',
+  'change-risk': '⚠️',
+  inspection: '🔍',
+  ids: '🛡️',
+  'container-sec': '🐳',
 };
 
 /* ── Tab role requirements ── */
@@ -192,6 +200,10 @@ const TAB_ROLES: Record<Tab, Role[]> = {
   chaos: ['operator', 'admin'],
   finops: ['operator', 'admin'],
   apm: ['viewer', 'operator', 'admin'],
+  'change-risk': ['operator', 'admin'],
+  inspection: ['operator', 'admin'],
+  ids: ['operator', 'admin'],
+  'container-sec': ['operator', 'admin'],
 };
 
 const ROLE_HIERARCHY: Record<Role, number> = {
@@ -209,14 +221,12 @@ function hasRequiredRole(userRole: Role | null, required: Role[]): boolean {
 /* ── 扁平化分类（无二级嵌套的独立分类） */
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📡', catKey: 'cat.overview', tabs: ['ops-dashboard'] },
-  { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
-  { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault', 'audit', 'users'] },
-  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'cmdb', 'monitor', 'apm'] },
-  { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'vulnerabilities', 'soar', 'secrets-scan', 'compliance', 'threats', 'fim', 'baseline'] },
-  { icon: '🤖', catKey: 'cat.automation', tabs: ['cicd', 'jobs', 'remediation', 'change-analysis', 'scheduler', 'runbook', 'filesync'] },
-  { icon: '🔔', catKey: 'cat.monitor', tabs: ['escalation', 'health', 'alert-rules', 'alert-history', 'channels', 'metrics', 'incidents', 'predictions', 'slos', 'oncall'] },
-  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'log-intel', 'advisor', 'timeline', 'chaos', 'finops'] },
-  { icon: '🔗', catKey: 'cat.integration', tabs: ['webhook', 'config', 'knowledge'] },
+  { icon: '💬', catKey: 'cat.system', tabs: ['chat'] },
+  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'monitor', 'apm'] },
+  { icon: '🛡️', catKey: 'cat.security', tabs: ['ids', 'container-sec', 'secrets-scan', 'compliance', 'threats'] },
+  { icon: '🤖', catKey: 'cat.automation', tabs: ['change-risk', 'inspection', 'cicd', 'jobs'] },
+  { icon: '🔔', catKey: 'cat.monitor', tabs: ['health', 'metrics', 'incidents', 'slos'] },
+  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline'] },
 ];
 
 /* ── 侧边栏分类名称翻译 ── */
@@ -321,6 +331,10 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'chaos': return <ChaosPage />;
       case 'finops': return <FinOpsPage />;
       case 'apm': return <APMPage />;
+      case 'change-risk': return <ChangeRiskPage />;
+      case 'inspection': return <InspectionPage />;
+      case 'ids': return <IdsPage />;
+      case 'container-sec': return <ContainerSecPage />;
       default: return <Dashboard />;
     }
   };

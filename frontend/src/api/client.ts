@@ -1082,4 +1082,35 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
+
+  // ── Change Risk ─────────────────────────────────────────────────────
+  analyzeChangeRisk: (token: string, input: { resource: string; change_type: string; description: string; affected_services: string[] }) =>
+    requestWithAuth<any>('/agent/change-risk/assess', token, { method: 'POST', body: JSON.stringify(input) }),
+
+  checkChangeConflicts: (token: string, changes: any[]) =>
+    requestWithAuth<any>('/agent/change-risk/conflicts', token, { method: 'POST', body: JSON.stringify({ changes }) }),
+
+  // ── Inspection ─────────────────────────────────────────────────────
+  createInspection: (token: string, input: { name: string; categories: string[] }) =>
+    requestWithAuth<any>('/agent/inspection/create', token, { method: 'POST', body: JSON.stringify(input) }),
+
+  runInspection: (token: string, taskId: string) =>
+    requestWithAuth<any>(`/agent/inspection/run/${taskId}`, token, { method: 'POST' }),
+
+  // ── IDS ────────────────────────────────────────────────────────────
+  analyzeLog: (token: string, input: { log_line: string; source?: string }) =>
+    requestWithAuth<any>('/agent/ids/analyze-log', token, { method: 'POST', body: JSON.stringify(input) }),
+
+  geolocateIp: (token: string, ip: string) =>
+    requestWithAuth<any>(`/agent/ids/geolocate/${ip}`, token),
+
+  checkBlocklist: (token: string, ip: string) =>
+    requestWithAuth<any>(`/agent/ids/blocklist/${ip}`, token),
+
+  // ── Container Security ────────────────────────────────────────────
+  scanContainerImage: (token: string, imageName: string) =>
+    requestWithAuth<any>('/agent/container-sec/scan-image', token, { method: 'POST', body: JSON.stringify({ image_name: imageName }) }),
+
+  checkContainerRuntime: (token: string) =>
+    requestWithAuth<any>('/agent/container-sec/check-runtime', token, { method: 'POST' }),
 };

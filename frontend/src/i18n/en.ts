@@ -15,6 +15,7 @@ const en: Record<string, string> = {
   'cat.monitor': 'Monitoring',
   'cat.intelligence': 'Intelligence',
   'cat.integration': 'Integration',
+  'cat.overview': 'Overview',
 
   'tab.dashboard': 'Dash',
   'tab.chat': 'Chat',
@@ -63,6 +64,10 @@ const en: Record<string, string> = {
   'tab.chaos': 'Chaos',
   'tab.finops': 'FinOps',
   'tab.apm': 'APM',
+  'tab.change-risk': 'Risk',
+  'tab.inspection': 'Inspect',
+  'tab.ids': 'IDS',
+  'tab.container-sec': 'Container',
 
   'title.dashboard': 'Dashboard',
 
@@ -129,6 +134,10 @@ const en: Record<string, string> = {
   'title.chaos': 'Chaos Engineering',
   'title.finops': 'FinOps Cost Analysis',
   'title.apm': 'APM Application Performance',
+  'title.change_risk': 'Change Risk Assessment',
+  'title.inspection': 'Smart Inspection',
+  'title.ids': 'Intrusion Detection',
+  'title.container_sec': 'Container Security',
 
   /* Terminal page */
   'terminal.title': 'Web Terminal',
@@ -1040,6 +1049,57 @@ const en: Record<string, string> = {
 
   'lang.zh': '中文',
   'lang.en': 'English',
+
+  /* Change Risk page */
+  'change_risk.assess': 'Risk Assessment',
+  'change_risk.resource': 'Resource',
+  'change_risk.type': 'Change Type',
+  'change_risk.type_config': 'Config Change',
+  'change_risk.type_deploy': 'Deployment',
+  'change_risk.type_restart': 'Restart',
+  'change_risk.type_readonly': 'Read Only',
+  'change_risk.description': 'Description',
+  'change_risk.services': 'Affected Services (comma separated)',
+  'change_risk.assessing': 'Assessing...',
+  'change_risk.assess_btn': 'Assess Risk',
+  'change_risk.result': 'Assessment Result',
+
+  /* Inspection page */
+  'inspection.create': 'Create Inspection',
+  'inspection.name': 'Inspection Name',
+  'inspection.name_placeholder': 'Enter inspection task name',
+  'inspection.categories': 'Categories',
+  'inspection.running': 'Running...',
+  'inspection.run_btn': 'Run Inspection',
+  'inspection.result': 'Inspection Result',
+
+  /* IDS page */
+  'ids.tab_logs': 'Log Analysis',
+  'ids.tab_anomaly': 'Anomaly',
+  'ids.tab_ip': 'IP Lookup',
+  'ids.tab_blocklist': 'Blocklist',
+  'ids.log_analysis': 'Log Analysis',
+  'ids.analyzing': 'Analyzing...',
+  'ids.analyze_btn': 'Analyze',
+  'ids.threat_detected': 'Threat Detected',
+  'ids.safe': 'Safe',
+  'ids.ip_lookup': 'IP Geolocation',
+  'ids.lookup_btn': 'Lookup',
+  'ids.blocked': 'Blocked',
+  'ids.not_blocked': 'Not Blocked',
+  'ids.anomaly_detection': 'Anomaly Detection',
+  'ids.anomaly_hint': 'Enter metric data as JSON array for anomaly detection',
+  'ids.blocklist': 'Blocklist Check',
+  'ids.blocklist_hint': 'Use the IP Lookup tab to check if an IP is on the blocklist',
+
+  /* Container Security page */
+  'container_sec.image_scan': 'Image Security Scan',
+  'container_sec.scanning': 'Scanning...',
+  'container_sec.scan_btn': 'Scan',
+  'container_sec.runtime_check': 'Runtime Check',
+  'container_sec.checking': 'Checking...',
+  'container_sec.check_btn': 'Check Runtime',
+  'container_sec.recommendations': 'Recommendations',
 };
 
 export default en;

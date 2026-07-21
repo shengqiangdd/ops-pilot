@@ -17,6 +17,7 @@ const zh: Record<string, string> = {
   'cat.monitor': '监控告警',
   'cat.intelligence': '智能分析',
   'cat.integration': '集成管理',
+  'cat.overview': '总览',
 
   /* Tab labels (short) */
   'tab.dashboard': '大屏',
@@ -66,6 +67,10 @@ const zh: Record<string, string> = {
   'tab.chaos': '混沌',
   'tab.finops': '成本',
   'tab.apm': 'APM',
+  'tab.change-risk': '变更风险',
+  'tab.inspection': '巡检',
+  'tab.ids': '入侵检测',
+  'tab.container-sec': '容器安全',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -133,6 +138,10 @@ const zh: Record<string, string> = {
   'title.chaos': '混沌工程',
   'title.finops': 'FinOps 成本分析',
   'title.apm': 'APM 应用性能',
+  'title.change_risk': '变更风险评估',
+  'title.inspection': '智能巡检',
+  'title.ids': '入侵检测',
+  'title.container_sec': '容器安全',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -1069,6 +1078,57 @@ const zh: Record<string, string> = {
   /* Language */
   'lang.zh': '中文',
   'lang.en': 'English',
+
+  /* Change Risk page */
+  'change_risk.assess': '风险评估',
+  'change_risk.resource': '资源名称',
+  'change_risk.type': '变更类型',
+  'change_risk.type_config': '配置变更',
+  'change_risk.type_deploy': '部署',
+  'change_risk.type_restart': '重启',
+  'change_risk.type_readonly': '只读',
+  'change_risk.description': '描述',
+  'change_risk.services': '影响服务（逗号分隔）',
+  'change_risk.assessing': '评估中...',
+  'change_risk.assess_btn': '开始评估',
+  'change_risk.result': '评估结果',
+
+  /* Inspection page */
+  'inspection.create': '创建巡检',
+  'inspection.name': '巡检名称',
+  'inspection.name_placeholder': '输入巡检任务名称',
+  'inspection.categories': '巡检类别',
+  'inspection.running': '运行中...',
+  'inspection.run_btn': '开始巡检',
+  'inspection.result': '巡检结果',
+
+  /* IDS page */
+  'ids.tab_logs': '日志分析',
+  'ids.tab_anomaly': '异常检测',
+  'ids.tab_ip': 'IP 查询',
+  'ids.tab_blocklist': '黑名单',
+  'ids.log_analysis': '日志分析',
+  'ids.analyzing': '分析中...',
+  'ids.analyze_btn': '分析',
+  'ids.threat_detected': '检测到威胁',
+  'ids.safe': '安全',
+  'ids.ip_lookup': 'IP 地理查询',
+  'ids.lookup_btn': '查询',
+  'ids.blocked': '已列入黑名单',
+  'ids.not_blocked': '不在黑名单中',
+  'ids.anomaly_detection': '异常检测',
+  'ids.anomaly_hint': '输入指标数据的 JSON 数组进行异常检测',
+  'ids.blocklist': '黑名单检查',
+  'ids.blocklist_hint': '使用 IP 查询标签页检查 IP 是否在黑名单中',
+
+  /* Container Security page */
+  'container_sec.image_scan': '镜像安全扫描',
+  'container_sec.scanning': '扫描中...',
+  'container_sec.scan_btn': '扫描',
+  'container_sec.runtime_check': '运行时检查',
+  'container_sec.checking': '检查中...',
+  'container_sec.check_btn': '检查运行时',
+  'container_sec.recommendations': '改进建议',
 };
 
 export default zh;
