@@ -33,14 +33,17 @@ pub async fn scan_host(host: &str, ports: Option<&[u16]>) -> Vec<(u16, String)> 
 
     for &port in ports_to_scan {
         let addr = format!("{}:{}", host, port);
-        if let Ok(Ok(_)) = timeout(Duration::from_millis(500), TcpStream::connect(&addr)).await {
-            let service = COMMON_PORTS
-                .iter()
-                .find(|(p, _)| *p == port)
-                .map(|(_, s)| s.to_string())
-                .unwrap_or_else(|| "unknown".to_string());
-            info!(host, port, service = %service, "port open");
-            open_ports.push((port, service));
+        match timeout(Duration::from_millis(500), TcpStream::connect(&addr)).await {
+            Ok(Ok(_)) => {
+                let service = COMMON_PORTS
+                    .iter()
+                    .find(|(p, _)| *p == port)
+                    .map(|(_, s)| s.to_string())
+                    .unwrap_or_else(|| "unknown".to_string());
+                info!(host, port, service = %service, "port open");
+                open_ports.push((port, service));
+            }
+            _ => {}
         }
     }
 

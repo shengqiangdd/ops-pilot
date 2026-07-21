@@ -19,12 +19,6 @@ pub struct RuntimeCheck {
 
 pub struct RuntimeChecker;
 
-impl Default for RuntimeChecker {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl RuntimeChecker {
     pub fn new() -> Self { Self }
 

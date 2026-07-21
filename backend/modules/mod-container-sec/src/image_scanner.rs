@@ -20,12 +20,6 @@ pub struct ImageIssue {
 
 pub struct ImageScanner;
 
-impl Default for ImageScanner {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ImageScanner {
     pub fn new() -> Self { Self }
 

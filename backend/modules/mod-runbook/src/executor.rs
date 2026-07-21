@@ -7,12 +7,6 @@ use super::plans::{ExecutionResult, Runbook, StepResult};
 
 pub struct RunbookExecutor;
 
-impl Default for RunbookExecutor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl RunbookExecutor {
     pub fn new() -> Self {
         Self
@@ -26,7 +20,7 @@ impl RunbookExecutor {
     ) -> anyhow::Result<ExecutionResult> {
         let started_at = Utc::now();
         let mut step_results = Vec::new();
-        let success = true;
+        let mut success = true;
 
         for step in &runbook.steps {
             info!(

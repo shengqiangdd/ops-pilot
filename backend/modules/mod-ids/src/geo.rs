@@ -13,12 +13,6 @@ pub struct GeoInfo {
 
 pub struct GeoLookup;
 
-impl Default for GeoLookup {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl GeoLookup {
     pub fn new() -> Self { Self }
 

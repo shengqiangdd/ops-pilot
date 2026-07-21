@@ -3,7 +3,7 @@
 //! Manages rotation schedules, shift assignments, and after-hours routing
 //! for alert escalation.
 
-use chrono::{DateTime, Timelike, Utc};
+use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 
 /// A person on rotation.

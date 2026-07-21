@@ -272,7 +272,8 @@ fn generate_alerts_section() -> String {
 }
 
 fn generate_changes_section() -> String {
-    r#"<div class="section">
+    format!(
+        r#"<div class="section">
     <h2>📝 Recent Changes</h2>
     <table>
         <thead>
@@ -284,11 +285,13 @@ fn generate_changes_section() -> String {
             <tr><td>2026-07-20 16:45</td><td>devops</td><td>deploy.execute</td><td>v2.1.0</td></tr>
         </tbody>
     </table>
-</div>"#.to_string()
+</div>"#
+    )
 }
 
 fn generate_diagnostics_section() -> String {
-    r#"<div class="section">
+    format!(
+        r#"<div class="section">
     <h2>🔍 Diagnostics Summary</h2>
     <div class="stat-grid">
         <div class="stat-card">
@@ -308,11 +311,13 @@ fn generate_diagnostics_section() -> String {
             <div class="stat-label">Disk</div>
         </div>
     </div>
-</div>"#.to_string()
+</div>"#
+    )
 }
 
 fn generate_health_section() -> String {
-    r#"<div class="section">
+    format!(
+        r#"<div class="section">
     <h2>❤️ Service Health</h2>
     <table>
         <thead>
@@ -325,7 +330,8 @@ fn generate_health_section() -> String {
             <tr><td>Nginx</td><td><span class="badge badge-success">Healthy</span></td><td>100%</td><td>v1.25</td></tr>
         </tbody>
     </table>
-</div>"#.to_string()
+</div>"#
+    )
 }
 
 // ── Handlers ───────────────────────────────────────────────────────────
@@ -555,7 +561,7 @@ pub async fn list_schedules(
 
 /// Build the reports routes sub-router.
 pub fn reports_routes(pool: SqlitePool) -> Router {
-    use axum::routing::get;
+    use axum::routing::{get, post};
 
     let state = ReportsState { pool };
 

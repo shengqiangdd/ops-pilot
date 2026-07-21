@@ -14,12 +14,6 @@ pub struct AnalysisResult {
 
 pub struct LogAnalyzer;
 
-impl Default for LogAnalyzer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl LogAnalyzer {
     pub fn new() -> Self { Self }
 

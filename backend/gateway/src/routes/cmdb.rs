@@ -554,7 +554,7 @@ pub async fn get_config_version(
 
 /// Build the CMDB routes sub-router.
 pub fn cmdb_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get, post};
+    use axum::routing::{delete, get, post, put};
 
     let state = CmdbState { pool };
 

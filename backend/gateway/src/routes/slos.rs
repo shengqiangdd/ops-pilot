@@ -422,7 +422,7 @@ pub async fn burn_rate_alerts(
 
 /// Build the SLOs routes sub-router.
 pub fn slos_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{get, post};
+    use axum::routing::{delete, get, post, put};
 
     let state = SlosState { pool };
 

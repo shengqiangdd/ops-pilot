@@ -21,12 +21,6 @@ pub struct AlertClassifier {
     resource_frequency: HashMap<String, Vec<i64>>,
 }
 
-impl Default for AlertClassifier {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl AlertClassifier {
     pub fn new() -> Self {
         Self {
@@ -74,7 +68,7 @@ impl AlertClassifier {
 
         // Rule 3: Time-based (night alerts are more suspicious)
         let hour = (timestamp % 86400) / 3600;
-        if (0..6).contains(&hour) {
+        if hour >= 0 && hour < 6 {
             severity_score += 0.1;
             tags.push("night_time".into());
         }

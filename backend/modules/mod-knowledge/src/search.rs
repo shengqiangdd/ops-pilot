@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use chrono::Utc;
 use sqlx::SqlitePool;
 
 use super::extraction::KnowledgeEntry;
@@ -22,12 +23,6 @@ pub struct TfIdfIndex {
     doc_store: Vec<KnowledgeEntry>,
     /// doc_id lookup by entry.id
     id_map: HashMap<String, usize>,
-}
-
-impl Default for TfIdfIndex {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl TfIdfIndex {
@@ -60,7 +55,7 @@ impl TfIdfIndex {
         self.doc_count = self.doc_store.len();
 
         // Tokenize combined text (title + root_cause + resolution)
-        let combined = format!("{} {} {}", self.doc_store[doc_id].title, self.doc_store[doc_id].root_cause, self.doc_store[doc_id].resolution);
+        let combined = format!("{} {} {}", &self.doc_store[doc_id].title, &self.doc_store[doc_id].root_cause, &self.doc_store[doc_id].resolution);
         let tokens = Self::tokenize(&combined);
 
         // Count term frequencies in this document

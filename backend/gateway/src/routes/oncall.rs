@@ -1,10 +1,11 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::sqlite::Sqlite;
 use sqlx::SqlitePool;
 
 #[derive(Clone)]
@@ -268,7 +269,7 @@ pub async fn list_escalations(
 }
 
 pub fn oncall_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{get, post};
+    use axum::routing::{delete, get, post, put};
     let state = OnCallState { pool };
     Router::new()
         .route("/api/oncall/schedules", get(list_schedules).post(create_schedule))

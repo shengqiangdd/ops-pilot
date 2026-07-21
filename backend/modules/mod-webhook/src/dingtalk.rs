@@ -34,7 +34,7 @@ impl DingTalkNotifier {
         let string_to_sign = format!("{}\n{}", timestamp, secret);
         let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC accepts any key length");
         mac.update(string_to_sign.as_bytes());
-        let sign = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, mac.finalize().into_bytes());
+        let sign = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &mac.finalize().into_bytes());
         format!("{}&timestamp={}&sign={}", webhook_url, timestamp, sign)
     }
 

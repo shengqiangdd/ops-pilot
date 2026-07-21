@@ -240,7 +240,7 @@ pub async fn update_error_status(
 }
 
 pub fn apm_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{get, put};
+    use axum::routing::{get, post, put};
     let state = ApmState { pool };
     Router::new()
         .route("/api/apm/services", get(list_services))

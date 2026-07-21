@@ -3,6 +3,7 @@
 //! Categories: SSH configuration, password policy, file permissions,
 //! kernel parameters, service auditing, user management, network security.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use ops_pilot_core::ssh::SshConnectionPool;

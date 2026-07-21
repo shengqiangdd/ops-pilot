@@ -291,7 +291,7 @@ pub async fn cost_forecast(
 }
 
 pub fn finops_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{delete, get};
+    use axum::routing::{delete, get, post};
     let state = FinOpsState { pool };
     Router::new()
         .route("/api/finops/overview", get(cost_overview))

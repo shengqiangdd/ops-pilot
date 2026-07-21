@@ -215,7 +215,7 @@ pub async fn chaos_stats(
 }
 
 pub fn chaos_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{get, post};
+    use axum::routing::{delete, get, post};
     let state = ChaosState { pool };
     Router::new()
         .route("/api/chaos/experiments", get(list_experiments).post(create_experiment))

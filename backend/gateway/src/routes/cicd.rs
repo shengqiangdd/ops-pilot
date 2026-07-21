@@ -493,7 +493,7 @@ pub async fn rollback_deployment(
 
 /// Build the CI/CD routes sub-router.
 pub fn cicd_routes(pool: SqlitePool) -> Router {
-    use axum::routing::{get, post, put};
+    use axum::routing::{delete, get, post, put};
 
     let state = CICDState { pool };
 

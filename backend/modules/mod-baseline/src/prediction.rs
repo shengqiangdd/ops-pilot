@@ -109,7 +109,7 @@ impl HoltWinters {
     /// CI width grows with sqrt(h) based on residual standard error.
     pub fn predict_with_ci(&self, steps: usize) -> Vec<PredictionPoint> {
         let residuals: Vec<f64> = self.fitted.iter().enumerate()
-            .map(|(_i, _)| {
+            .map(|(i, _)| {
                 // Simple residual approximation (actual - fitted for training data)
                 0.0 // Placeholder; real impl needs original data
             })

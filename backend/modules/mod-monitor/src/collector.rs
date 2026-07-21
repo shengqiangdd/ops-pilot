@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use ops_pilot_core::ssh::SshConnectionPool;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use super::models::{HostMetrics, MetricPoint, MetricType};
 

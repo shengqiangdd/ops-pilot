@@ -15,12 +15,6 @@ pub struct BlocklistChecker {
     known_threats: HashSet<String>,
 }
 
-impl Default for BlocklistChecker {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl BlocklistChecker {
     pub fn new() -> Self {
         let mut known_threats = HashSet::new();
