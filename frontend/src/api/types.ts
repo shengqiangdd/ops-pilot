@@ -575,3 +575,53 @@ export interface CreateDeploymentInput {
   strategy?: string;
   version?: string;
 }
+
+// ── Jobs types ─────────────────────────────────────────────────────────
+
+export interface Job {
+  id: string;
+  name: string;
+  description: string;
+  steps_json: string;
+  retry_policy: string;
+  timeout_seconds: number;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateJobInput {
+  name: string;
+  description?: string;
+  steps_json: string;
+  retry_policy?: string;
+  timeout_seconds?: number;
+}
+
+export interface JobRun {
+  id: string;
+  job_id: string;
+  status: string;
+  triggered_by: string;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface JobStepRun {
+  id: string;
+  run_id: string;
+  step_name: string;
+  status: string;
+  output: string;
+  error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface JobRunDetail {
+  run: JobRun;
+  steps: JobStepRun[];
+}

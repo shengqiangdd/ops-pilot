@@ -48,6 +48,10 @@ import type {
   CreatePipelineRunInput,
   Deployment,
   CreateDeploymentInput,
+  Job,
+  CreateJobInput,
+  JobRun,
+  JobRunDetail,
 } from './types';
 
 const BASE = '/api';
@@ -564,4 +568,34 @@ export const api = {
     requestWithAuth<Deployment>(`/cicd/deployments/${deploymentId}/rollback`, token, {
       method: 'PUT',
     }),
+
+  // ── Jobs ─────────────────────────────────────────────────────────────
+
+  listJobs: (token: string) =>
+    requestWithAuth<Job[]>('/jobs', token),
+
+  createJob: (token: string, input: CreateJobInput) =>
+    requestWithAuth<Job>('/jobs', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getJob: (token: string, jobId: string) =>
+    requestWithAuth<Job>(`/jobs/${jobId}`, token),
+
+  deleteJob: (token: string, jobId: string) =>
+    requestWithAuth<void>(`/jobs/${jobId}`, token, {
+      method: 'DELETE',
+    }),
+
+  executeJob: (token: string, jobId: string) =>
+    requestWithAuth<JobRun>(`/jobs/${jobId}/execute`, token, {
+      method: 'POST',
+    }),
+
+  listJobRuns: (token: string, jobId: string) =>
+    requestWithAuth<JobRun[]>(`/jobs/${jobId}/runs`, token),
+
+  getJobRunDetail: (token: string, runId: string) =>
+    requestWithAuth<JobRunDetail>(`/jobs/runs/${runId}`, token),
 };

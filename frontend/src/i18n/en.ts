@@ -45,6 +45,7 @@ const en: Record<string, string> = {
   'tab.timeline': 'Timeline',
   'tab.cicd': 'CI/CD',
   'tab.metrics': 'Metrics',
+  'tab.jobs': 'Jobs',
 
   'title.dashboard': 'Dashboard',
 
@@ -93,6 +94,7 @@ const en: Record<string, string> = {
   'title.timeline': 'Event Timeline',
   'title.cicd': 'CI/CD Pipelines',
   'title.metrics_viz': 'Metrics Dashboard',
+  'title.jobs': 'Job Orchestration',
 
   /* Terminal page */
   'terminal.title': 'Web Terminal',
@@ -320,6 +322,33 @@ const en: Record<string, string> = {
   'metrics.threshold_cpu': 'CPU',
   'metrics.threshold_memory': 'Memory',
   'metrics.threshold_disk': 'Disk',
+
+  /* Jobs page */
+  'jobs.title': 'Job Orchestration',
+  'jobs.reload': 'Reload',
+  'jobs.loading': 'Loading...',
+  'jobs.add': 'Add Job',
+  'jobs.cancel': 'Cancel',
+  'jobs.creating': 'Creating...',
+  'jobs.create': 'Create',
+  'jobs.execute': 'Execute',
+  'jobs.view': 'View',
+  'jobs.delete_confirm': 'Are you sure you want to delete this job?',
+  'jobs.empty': 'No jobs',
+  'jobs.no_description': 'No description',
+  'jobs.list': 'Job List',
+  'jobs.runs': 'Run History',
+  'jobs.select_job': 'Select a job to view history',
+  'jobs.run_detail': 'Run Detail',
+  'jobs.no_runs': 'No runs',
+  'jobs.no_step_data': 'No step data',
+  'jobs.name': 'Job Name',
+  'jobs.description': 'Description',
+  'jobs.steps': 'Steps (JSON)',
+  'jobs.run_col.status': 'Status',
+  'jobs.run_col.time': 'Time',
+  'jobs.run_col.duration': 'Duration',
+  'jobs.run_col.actions': 'Actions',
 
   'modules.title': 'Modules',
   'modules.reload': 'Reload',

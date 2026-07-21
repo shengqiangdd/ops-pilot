@@ -1624,3 +1624,273 @@ paths:
       responses:
         '101':
           description: WebSocket upgrade
+
+  # ── Timeline ──────────────────────────────────────────────────────
+  /api/timeline/events:
+    get:
+      tags: [Timeline]
+      summary: Get aggregated timeline events
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: types
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Timeline events
+
+  # ── CI/CD ─────────────────────────────────────────────────────────
+  /api/cicd/templates:
+    get:
+      tags: [CI/CD]
+      summary: List pipeline templates
+      responses:
+        '200':
+          description: List of templates
+    post:
+      tags: [CI/CD]
+      summary: Create pipeline template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Template created
+
+  /api/cicd/templates/{id}:
+    get:
+      tags: [CI/CD]
+      summary: Get template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template details
+    delete:
+      tags: [CI/CD]
+      summary: Delete template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Template deleted
+
+  /api/cicd/runs:
+    get:
+      tags: [CI/CD]
+      summary: List pipeline runs
+      responses:
+        '200':
+          description: List of runs
+    post:
+      tags: [CI/CD]
+      summary: Trigger pipeline run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Run triggered
+
+  /api/cicd/runs/{id}:
+    get:
+      tags: [CI/CD]
+      summary: Get run detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Run details with stages
+
+  /api/cicd/runs/{id}/cancel:
+    post:
+      tags: [CI/CD]
+      summary: Cancel pipeline run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Run cancelled
+
+  /api/cicd/deployments:
+    get:
+      tags: [CI/CD]
+      summary: List deployments
+      responses:
+        '200':
+          description: List of deployments
+    post:
+      tags: [CI/CD]
+      summary: Create deployment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Deployment created
+
+  /api/cicd/deployments/{id}/rollback:
+    put:
+      tags: [CI/CD]
+      summary: Rollback deployment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rollback created
+
+  # ── Metrics ───────────────────────────────────────────────────────
+  /api/metrics:
+    get:
+      tags: [Metrics]
+      summary: Get metrics data
+      parameters:
+        - name: host_id
+          in: query
+          schema:
+            type: string
+        - name: metric
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Metrics data
+
+  # ── Jobs ──────────────────────────────────────────────────────────
+  /api/jobs:
+    get:
+      tags: [Jobs]
+      summary: List jobs
+      responses:
+        '200':
+          description: List of jobs
+    post:
+      tags: [Jobs]
+      summary: Create job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Job created
+
+  /api/jobs/{id}:
+    get:
+      tags: [Jobs]
+      summary: Get job detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job details
+    delete:
+      tags: [Jobs]
+      summary: Delete job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Job deleted
+
+  /api/jobs/{id}/execute:
+    post:
+      tags: [Jobs]
+      summary: Execute job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Job execution started
+
+  /api/jobs/{id}/runs:
+    get:
+      tags: [Jobs]
+      summary: List job runs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of job runs
+
+  /api/jobs/runs/{run_id}:
+    get:
+      tags: [Jobs]
+      summary: Get job run detail
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Run details with steps

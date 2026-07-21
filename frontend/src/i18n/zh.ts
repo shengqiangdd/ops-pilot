@@ -48,6 +48,7 @@ const zh: Record<string, string> = {
   'tab.timeline': '时间线',
   'tab.cicd': 'CI/CD',
   'tab.metrics': '指标',
+  'tab.jobs': '作业',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -97,6 +98,7 @@ const zh: Record<string, string> = {
   'title.timeline': '事件时间线',
   'title.cicd': 'CI/CD 流水线',
   'title.metrics_viz': '指标仪表盘',
+  'title.jobs': '作业编排',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -324,6 +326,33 @@ const zh: Record<string, string> = {
   'metrics.threshold_cpu': 'CPU',
   'metrics.threshold_memory': '内存',
   'metrics.threshold_disk': '磁盘',
+
+  /* Jobs page */
+  'jobs.title': '作业编排',
+  'jobs.reload': '刷新',
+  'jobs.loading': '加载中...',
+  'jobs.add': '添加作业',
+  'jobs.cancel': '取消',
+  'jobs.creating': '创建中...',
+  'jobs.create': '创建',
+  'jobs.execute': '执行',
+  'jobs.view': '查看',
+  'jobs.delete_confirm': '确定要删除此作业吗？',
+  'jobs.empty': '暂无作业',
+  'jobs.no_description': '暂无描述',
+  'jobs.list': '作业列表',
+  'jobs.runs': '执行历史',
+  'jobs.select_job': '选择作业查看历史',
+  'jobs.run_detail': '执行详情',
+  'jobs.no_runs': '暂无执行记录',
+  'jobs.no_step_data': '暂无步骤数据',
+  'jobs.name': '作业名称',
+  'jobs.description': '描述',
+  'jobs.steps': '步骤 (JSON)',
+  'jobs.run_col.status': '状态',
+  'jobs.run_col.time': '时间',
+  'jobs.run_col.duration': '耗时',
+  'jobs.run_col.actions': '操作',
 
   /* Desk */
   'desk': '桌面',
