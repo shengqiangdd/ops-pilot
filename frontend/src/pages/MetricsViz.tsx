@@ -5,6 +5,7 @@ import { generateAllMetrics, type MetricSeries } from '../lib/metrics';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useI18n } from '../i18n';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 type TimeRange = '1h' | '6h' | '24h' | '7d';
 type RefreshInterval = 5 | 15 | 30 | 0;
@@ -27,6 +28,8 @@ export function MetricsVizPage() {
   const { token } = useAuthStore();
   const { t } = useI18n();
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hosts, setHosts] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedHost, setSelectedHost] = useState('');
   const [timeRange, setTimeRange] = useState<TimeRange>('1h');
@@ -37,8 +40,8 @@ export function MetricsVizPage() {
   useEffect(() => {
     if (!token) return;
     api.listHosts(token)
-      .then((h) => setHosts(h.map((x) => ({ id: x.id, name: x.name }))))
-      .catch(() => {});
+      .then((h) => { setHosts(h.map((x) => ({ id: x.id, name: x.name }))); setLoading(false); })
+      .catch((e) => { setError(e?.message || 'Failed to load'); setLoading(false); });
   }, [token]);
 
   // Generate metrics data
@@ -69,6 +72,9 @@ export function MetricsVizPage() {
     'Memory %': 85,
     'Disk %': 90,
   }), []);
+
+  if (loading) return <LoadingState skeleton="chart" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
 
   return (
     <div className="space-y-4 animate-slide-up">

@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import type { BaselineCheckResult } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 const STATUS_ICON: Record<string, string> = { Pass: '✅', Fail: '❌', Warn: '⚠️', Skip: '⏭️', Info: 'ℹ️' };
 
@@ -45,6 +46,9 @@ export function BaselinePage() {
 
   const scoreColor = score !== null ? (score >= 80 ? 'text-green-600' : score >= 60 ? 'text-amber-600' : 'text-md-error') : 'text-md-outline';
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">

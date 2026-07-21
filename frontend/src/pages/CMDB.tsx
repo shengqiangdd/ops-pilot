@@ -4,6 +4,7 @@ import type { CMDBService, CreateServiceInput, ServiceDetail, ConfigVersion } fr
 import { useAuthStore } from '../stores/useAuthStore';
 import { useI18n } from '../i18n';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 type View = 'list' | 'detail' | 'configs';
 
@@ -137,6 +138,9 @@ export function CMDBPage() {
     }
   };
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       {/* Header */}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from '../lib/cn';
 import { useAuthStore } from '../stores/useAuthStore';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 interface SecurityCheck {
   id: string;
@@ -151,6 +152,9 @@ export function SecurityPage() {
     }
   }, [token, selectedHost, selectedCheck]);
 
+
+  if (loading) return <LoadingState skeleton="chart" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-6 animate-slide-up">
       <div>

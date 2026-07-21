@@ -5,6 +5,7 @@ import type { ApmService, ApmTrace, ApmError, ApmDashboard } from '../api/types'
 import { useAuthStore } from '../stores/useAuthStore';
 import { useI18n } from '../i18n';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 export function APMPage() {
   const { token } = useAuthStore();
@@ -85,6 +86,9 @@ export function APMPage() {
     { range: '1s+', count: traces.filter(t => t.duration_ms >= 1000).length },
   ] : [];
 
+
+  if (loading) return <LoadingState skeleton="chart" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useAuthStore } from '../stores/useAuthStore';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 export function ConfigPage() {
   const { token } = useAuthStore();
@@ -45,6 +46,9 @@ export function ConfigPage() {
     }
   }, [token, newKey, newValue, load]);
 
+
+  if (loading) return <LoadingState skeleton="detail" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">

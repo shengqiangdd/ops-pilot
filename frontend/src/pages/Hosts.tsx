@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useVaultStore } from '../stores/useVaultStore';
 import { useI18n } from '../i18n';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 const EMPTY_FORM: CreateHostInput = {
   name: '',
@@ -162,6 +163,9 @@ export function HostsPage() {
     setExpandedResults(new Set());
   };
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       {/* Header */}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import type { WebhookInfo } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 export function WebhookPage() {
   const { token } = useAuthStore();
@@ -38,6 +39,9 @@ export function WebhookPage() {
     } finally { setSaving(false); }
   }, [token, name, url, secret, load]);
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Webhooks</h2>

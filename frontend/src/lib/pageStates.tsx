@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { ListPageSkeleton, DetailPageSkeleton, ChartPageSkeleton, FormPageSkeleton } from '../components/PageSkeleton';
 
 const skeletons = {
@@ -36,4 +37,50 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
       )}
     </div>
   );
+}
+
+/** Standard page data fetching hook with loading/error/empty state management. */
+export function usePageData<T>(
+  fetcher: (signal?: AbortSignal) => Promise<T>,
+  deps: unknown[] = [],
+): {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
+} {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setLoading(true);
+    setError(null);
+
+    fetcher(controller.signal)
+      .then(result => {
+        if (!controller.signal.aborted) {
+          setData(result);
+          setLoading(false);
+        }
+      })
+      .catch(e => {
+        if (!controller.signal.aborted && e?.name !== 'AbortError') {
+          setError(e?.message || 'Failed to load data');
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [...deps, refreshKey]);
+
+  const refetch = useCallback(() => setRefreshKey(k => k + 1), []);
+
+  return { data, loading, error, refetch };
 }

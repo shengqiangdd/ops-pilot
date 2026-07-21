@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import type { FimScanResult } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 const STATUS_COLORS: Record<string, string> = {
   modified: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200',
@@ -52,6 +53,9 @@ export function FIMPage() {
     }
   }, [token, hostId]);
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">

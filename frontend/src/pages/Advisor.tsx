@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import type { AdvisorSuggestion } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: 'bg-md-error-container text-md-on-error-container',
@@ -37,6 +38,9 @@ export function AdvisorPage() {
     try { await api.dismissSuggestion(token, id); await load(); } catch (e) { setError(e instanceof Error ? e.message : 'Failed'); }
   }, [token, load]);
 
+
+  if (loading) return <LoadingState skeleton="detail" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">

@@ -4,6 +4,7 @@ import type { NotificationChannel, CreateChannelInput } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useI18n } from '../i18n';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 const EMPTY_FORM: CreateChannelInput = {
   name: '',
@@ -77,6 +78,9 @@ export function NotificationChannelsPage() {
     }
   };
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">

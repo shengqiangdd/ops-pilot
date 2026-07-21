@@ -5,6 +5,7 @@ import type { ComplianceFramework, ComplianceOverview } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useI18n } from '../i18n';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 export function CompliancePage() {
   const { token } = useAuthStore();
@@ -13,6 +14,7 @@ export function CompliancePage() {
   const [frameworks, setFrameworks] = useState<ComplianceFramework[]>([]);
   const [overview, setOverview] = useState<ComplianceOverview | null>(null);
   const [selectedFramework, setSelectedFramework] = useState('cis-benchmark');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
 
@@ -36,7 +38,9 @@ export function CompliancePage() {
     }
   }, [token]);
 
-  useEffect(() => { loadFrameworks(); loadOverview(); }, [loadFrameworks, loadOverview]);
+  useEffect(() => {
+    Promise.all([loadFrameworks(), loadOverview()]).finally(() => setLoading(false));
+  }, [loadFrameworks, loadOverview]);
 
   const handleScan = async () => {
     setScanning(true);
@@ -60,6 +64,9 @@ export function CompliancePage() {
     { name: 'Failed', value: overview.failed, color: '#B3261E' },
     { name: 'N/A', value: overview.not_applicable, color: '#9E9E9E' },
   ].filter(d => d.value > 0) : [];
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
 
   return (
     <div className="space-y-4 animate-slide-up">

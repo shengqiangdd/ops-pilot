@@ -4,6 +4,7 @@ import 'reactflow/dist/style.css';
 import { api } from '../api/client';
 import type { TopoGraph } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 const NODE_COLORS: Record<string, string> = {
   Host: '#3b82f6',
@@ -72,6 +73,9 @@ export function TopologyPage() {
     style: { stroke: '#94a3b8' },
   }));
 
+
+  if (loading) return <LoadingState skeleton="chart" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">

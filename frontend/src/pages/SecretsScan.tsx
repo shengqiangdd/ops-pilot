@@ -5,6 +5,7 @@ import type { ScanResult, ScanStats } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useI18n } from '../i18n';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 export function SecretsScanPage() {
   const { token } = useAuthStore();
@@ -92,6 +93,9 @@ export function SecretsScanPage() {
 
   const COLORS = ['#B3261E', '#E8710A', '#F9A825', '#4CAF50', '#2196F3'];
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">

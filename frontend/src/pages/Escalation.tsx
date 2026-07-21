@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { api } from '../api/client';
 import { useAuthStore } from '../stores/useAuthStore';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 const SEVERITIES = ['P1', 'P2', 'P3', 'P4'];
 const CHANNELS = ['webhook', 'sms', 'email', 'pagerduty', 'chatops'];
@@ -56,6 +57,9 @@ export function EscalationPage() {
     setSelectedChannels((prev) => prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]);
   };
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-6 animate-slide-up">
       <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Escalation</h2>

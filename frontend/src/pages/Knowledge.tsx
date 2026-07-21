@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { api } from '../api/client';
 import type { KnowledgeEntry } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 export function KnowledgePage() {
   const { token } = useAuthStore();
@@ -41,6 +42,9 @@ export function KnowledgePage() {
     }
   }, [token, incidentId]);
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-6 animate-slide-up">
       <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Knowledge Base</h2>

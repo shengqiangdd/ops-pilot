@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import type { SchedulerJob } from '../api/types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { cn } from '../lib/cn';
+import { LoadingState, ErrorState } from '../lib/pageStates';
 
 export function SchedulerPage() {
   const { token } = useAuthStore();
@@ -39,6 +40,9 @@ export function SchedulerPage() {
     } finally { setSaving(false); }
   }, [token, jobName, cronExpr, action, load]);
 
+
+  if (loading) return <LoadingState skeleton="list" />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   return (
     <div className="space-y-4 animate-slide-up">
       <h2 className="text-headline-small md:text-headline-medium font-medium text-md-on-surface">Scheduler</h2>
