@@ -20,6 +20,8 @@ members = [
     "modules/mod-baseline",
     "modules/mod-runbook",
     "modules/mod-knowledge",
+    "modules/mod-change-risk",
+    "modules/mod-inspection",
 ]
 resolver = "2"
 

@@ -71,6 +71,17 @@ impl OpsModule for ModKnowledge {
                     "required": ["incident_id"]
                 }),
             },
+            ToolDefinition {
+                name: "knowledge_recommend".into(),
+                description: "Recommend knowledge articles based on alert/fault tags".into(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "tags": {"type": "array", "items": {"type": "string"}, "description": "Tags to search for (e.g. ['network', 'ssh', 'timeout'])"}
+                    },
+                    "required": ["tags"]
+                }),
+            },
         ]
     }
 
@@ -102,6 +113,31 @@ impl OpsModule for ModKnowledge {
 
                 info!(incident_id, title = %entry.title, "Knowledge extracted");
                 Ok(serde_json::to_value(&entry)?)
+            }
+            "knowledge_recommend" => {
+                let tags: Vec<String> = params["tags"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                    .ok_or_else(|| anyhow::anyhow!("missing tags"))?;
+
+                // Search for each tag and collect unique results
+                let mut all_results = Vec::new();
+                let mut seen_ids = std::collections::HashSet::new();
+                for tag in &tags {
+                    if let Ok(results) = self.store.search(tag).await {
+                        for entry in results {
+                            if seen_ids.insert(entry.id.clone()) {
+                                all_results.push(entry);
+                            }
+                        }
+                    }
+                }
+
+                Ok(serde_json::json!({
+                    "tags": tags,
+                    "recommendations": all_results,
+                    "count": all_results.len(),
+                }))
             }
             _ => Err(anyhow::anyhow!("unknown tool: {}", tool)),
         }

@@ -2328,6 +2328,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ops-pilot-mod-change-risk"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "ops-pilot-mod-config"
 version = "0.1.0"
 dependencies = [
@@ -2390,6 +2407,23 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ops-pilot-mod-inspection"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "ops-pilot-core",
+ "ops-pilot-sdk",
+ "serde",
+ "serde_json",
  "sqlx",
  "tokio",
  "tracing",
