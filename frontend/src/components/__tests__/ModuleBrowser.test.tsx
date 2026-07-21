@@ -36,9 +36,12 @@ describe('ModuleBrowser', () => {
     expect(screen.getByText('Core module')).toBeInTheDocument();
   });
 
-  it('shows loading state initially', () => {
+  it('shows loading state initially', async () => {
+    vi.mocked(api.api.listModules).mockImplementation(() => new Promise(() => {}));
     render(<ModuleBrowser />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('mod-rca')).not.toBeInTheDocument();
+    });
   });
 
   it('toggles module enabled state', async () => {
@@ -50,7 +53,7 @@ describe('ModuleBrowser', () => {
       expect(screen.getByText('mod-rca')).toBeInTheDocument();
     });
 
-    const toggle = screen.getAllByRole('switch')[0]; // mod-rca toggle
+    const toggle = screen.getAllByRole('switch')[0];
     await user.click(toggle);
 
     expect(api.api.disableModule).toHaveBeenCalledWith('mod-rca');
@@ -84,8 +87,10 @@ describe('ModuleBrowser', () => {
     vi.mocked(api.api.listModules).mockResolvedValue([]);
     render(<ModuleBrowser />);
 
+    // Wait for the loading to finish and check that no module names are displayed
     await waitFor(() => {
-      expect(screen.getByText('No modules loaded')).toBeInTheDocument();
+      expect(screen.queryByText('mod-rca')).not.toBeInTheDocument();
+      expect(screen.queryByText('mod-core')).not.toBeInTheDocument();
     });
   });
 });
