@@ -16,6 +16,7 @@
 pub mod agent;
 pub mod docs;
 pub mod llm;
+pub mod metrics;
 pub mod middleware;
 pub mod oauth2;
 pub mod routes;

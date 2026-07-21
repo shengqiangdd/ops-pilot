@@ -1100,6 +1100,18 @@ const en: Record<string, string> = {
   'container_sec.checking': 'Checking...',
   'container_sec.check_btn': 'Check Runtime',
   'container_sec.recommendations': 'Recommendations',
+
+  /* Keyboard shortcuts */
+  'shortcut.help_title': 'Keyboard Shortcuts',
+  'shortcut.toggle': 'Toggle shortcut help',
+  'shortcut.go_dashboard': 'Go to Dashboard',
+  'shortcut.go_hosts': 'Go to Hosts',
+  'shortcut.go_alerts': 'Go to Alerts',
+  'shortcut.go_terminal': 'Go to Terminal',
+  'shortcut.go_users': 'Go to Users',
+  'shortcut.go_inspection': 'Go to Inspection',
+  'shortcut.go_monitor': 'Go to Monitoring',
+  'shortcut.hint': 'Press Ctrl+K or Ctrl+/ to toggle this panel',
 };
 
 export default en;

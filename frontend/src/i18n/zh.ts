@@ -1129,6 +1129,18 @@ const zh: Record<string, string> = {
   'container_sec.checking': '检查中...',
   'container_sec.check_btn': '检查运行时',
   'container_sec.recommendations': '改进建议',
+
+  /* Keyboard shortcuts */
+  'shortcut.help_title': '键盘快捷键',
+  'shortcut.toggle': '切换快捷键帮助',
+  'shortcut.go_dashboard': '跳转到总览大屏',
+  'shortcut.go_hosts': '跳转到主机管理',
+  'shortcut.go_alerts': '跳转到告警页面',
+  'shortcut.go_terminal': '跳转到终端',
+  'shortcut.go_users': '跳转到用户管理',
+  'shortcut.go_inspection': '跳转到智能巡检',
+  'shortcut.go_monitor': '跳转到监控面板',
+  'shortcut.hint': '按 Ctrl+K 或 Ctrl+/ 切换此面板',
 };
 
 export default zh;

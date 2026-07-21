@@ -9,6 +9,8 @@ import { LoginPage } from './pages/Login';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
 import { ErrorBoundary, installGlobalErrorListener } from './components/ErrorBoundary';
+import { useKeyboardShortcuts, useNavigationShortcuts } from './hooks/useKeyboardShortcuts';
+import { ShortcutHelp } from './components/ShortcutHelp';
 import { useTheme } from './components/ThemeProvider';
 import { ThemePicker } from './components/ThemePicker';
 import { useI18n } from './i18n';
@@ -523,6 +525,9 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
 /* ── 根组件 ── */
 export function App() {
   const { token } = useAuthStore();
+  const { shortcuts, showHelp, setShowHelp } = useNavigationShortcuts();
+
+  useKeyboardShortcuts(shortcuts);
 
   useEffect(() => {
     installGlobalErrorListener();
@@ -530,6 +535,7 @@ export function App() {
 
   return (
     <ErrorBoundary>
+      <ShortcutHelp shortcuts={shortcuts} open={showHelp} onClose={() => setShowHelp(false)} />
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         <Route path="/terminal/:hostId" element={token ? <AppShell initialTab="terminal" /> : <Navigate to="/login" replace />} />

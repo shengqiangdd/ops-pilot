@@ -482,6 +482,9 @@ async fn main() {
         // API docs
         .route("/api/docs/openapi.json", get(ops_pilot_gateway::docs::openapi_json))
         .route("/api/docs/swagger-ui", get(ops_pilot_gateway::docs::swagger_ui))
+        // Prometheus metrics
+        .route("/api/metrics", get(ops_pilot_gateway::metrics::metrics_handler))
+        .route("/api/metrics/json", get(ops_pilot_gateway::metrics::metrics_json_handler))
         .merge(auth_routes(auth_service.clone(), login_limiter))
         .layer(axum::extract::Extension(oauth2_state));
 
