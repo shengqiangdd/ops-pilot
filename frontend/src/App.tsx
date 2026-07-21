@@ -139,6 +139,70 @@ const ICONS: Record<Tab, string> = {
   apm: '📈',
 };
 
+/* ── Tab role requirements ── */
+type Role = 'admin' | 'operator' | 'viewer';
+const TAB_ROLES: Record<Tab, Role[]> = {
+  dashboard: ['viewer', 'operator', 'admin'],
+  chat: ['operator', 'admin'],
+  modules: ['operator', 'admin'],
+  hosts: ['operator', 'admin'],
+  vault: ['operator', 'admin'],
+  security: ['operator', 'admin'],
+  health: ['viewer', 'operator', 'admin'],
+  topo: ['viewer', 'operator', 'admin'],
+  monitor: ['viewer', 'operator', 'admin'],
+  escalation: ['operator', 'admin'],
+  fim: ['operator', 'admin'],
+  baseline: ['operator', 'admin'],
+  runbook: ['operator', 'admin'],
+  knowledge: ['viewer', 'operator', 'admin'],
+  config: ['operator', 'admin'],
+  webhook: ['operator', 'admin'],
+  scheduler: ['operator', 'admin'],
+  filesync: ['operator', 'admin'],
+  advisor: ['operator', 'admin'],
+  terminal: ['operator', 'admin'],
+  audit: ['admin'],
+  users: ['admin'],
+  'alert-rules': ['operator', 'admin'],
+  'alert-history': ['viewer', 'operator', 'admin'],
+  channels: ['operator', 'admin'],
+  cmdb: ['operator', 'admin'],
+  timeline: ['viewer', 'operator', 'admin'],
+  cicd: ['operator', 'admin'],
+  metrics: ['viewer', 'operator', 'admin'],
+  jobs: ['operator', 'admin'],
+  diagnostics: ['operator', 'admin'],
+  reports: ['viewer', 'operator', 'admin'],
+  incidents: ['operator', 'admin'],
+  vulnerabilities: ['operator', 'admin'],
+  predictions: ['operator', 'admin'],
+  slos: ['operator', 'admin'],
+  soar: ['operator', 'admin'],
+  remediation: ['operator', 'admin'],
+  'secrets-scan': ['operator', 'admin'],
+  compliance: ['operator', 'admin'],
+  threats: ['operator', 'admin'],
+  'change-analysis': ['operator', 'admin'],
+  'log-intel': ['operator', 'admin'],
+  oncall: ['operator', 'admin'],
+  chaos: ['operator', 'admin'],
+  finops: ['operator', 'admin'],
+  apm: ['viewer', 'operator', 'admin'],
+};
+
+const ROLE_HIERARCHY: Record<Role, number> = {
+  admin: 3,
+  operator: 2,
+  viewer: 1,
+};
+
+function hasRequiredRole(userRole: Role | null, required: Role[]): boolean {
+  if (!userRole) return false;
+  const userLevel = ROLE_HIERARCHY[userRole];
+  return required.some(r => userLevel >= ROLE_HIERARCHY[r]);
+}
+
 /* ── 扁平化分类（无二级嵌套的独立分类） */
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
@@ -166,7 +230,7 @@ const CAT_KEY_LABELS: Record<string, string> = {
 /* ── AppShell ── */
 function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
   const [tab, setTab] = useState<Tab>(initialTab ?? 'dashboard');
-  const { token, username, logout } = useAuthStore();
+  const { token, username, logout, role } = useAuthStore();
   const { isUnlocked, checkStatus } = useVaultStore();
   const { isDark, toggleDark } = useTheme();
   const { t, lang, setLang } = useI18n();
@@ -311,21 +375,23 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
                 </button>
                 {!isCollapsed && (
                   <div className="pb-0.5 space-y-0.5">
-                    {item.tabs.map(key => (
-                      <button
-                        key={key}
-                        onClick={() => navigateTo(key)}
-                        className={cn(
-                          'flex items-center gap-3 w-full pl-9 pr-3 py-2 text-sm font-medium transition-all duration-150 rounded-md-lg',
-                          tab === key
-                            ? 'glass-card text-md-on-surface shadow-sm'
-                            : 'text-md-on-surface-variant hover:glass-card hover:text-md-on-surface',
-                        )}
-                      >
-                        <span className="text-lg">{key === 'vault' ? vaultIcon : ICONS[key]}</span>
-                        <span>{t('tab.' + key)}</span>
-                      </button>
-                    ))}
+                    {item.tabs
+                      .filter(key => hasRequiredRole(role, TAB_ROLES[key] || ['viewer']))
+                      .map(key => (
+                        <button
+                          key={key}
+                          onClick={() => navigateTo(key)}
+                          className={cn(
+                            'flex items-center gap-3 w-full pl-9 pr-3 py-2 text-sm font-medium transition-all duration-150 rounded-md-lg',
+                            tab === key
+                              ? 'glass-card text-md-on-surface shadow-sm'
+                              : 'text-md-on-surface-variant hover:glass-card hover:text-md-on-surface',
+                          )}
+                        >
+                          <span className="text-lg">{key === 'vault' ? vaultIcon : ICONS[key]}</span>
+                          <span>{t('tab.' + key)}</span>
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>

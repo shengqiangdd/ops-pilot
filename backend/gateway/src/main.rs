@@ -69,6 +69,7 @@ use ops_pilot_gateway::routes::apm::apm_routes;
 use ops_pilot_gateway::routes::predictions::predictions_routes;
 use ops_pilot_gateway::routes::remediation::remediation_routes;
 use ops_pilot_gateway::routes::reports::reports_routes;
+use ops_pilot_gateway::routes::roles::roles_routes;
 use ops_pilot_gateway::routes::secrets_scan::secrets_scan_routes;
 use ops_pilot_gateway::routes::slos::slos_routes;
 use ops_pilot_gateway::routes::soar::soar_routes;
@@ -505,6 +506,7 @@ async fn main() {
         .merge(chaos_routes(pool.clone()))
         .merge(finops_routes(pool.clone()))
         .merge(apm_routes(pool.clone()))
+        .merge(roles_routes(pool.clone()))
         .layer(axum::middleware::from_fn_with_state(
             auth_middleware_state.clone(),
             ops_pilot_gateway::middleware::auth_middleware,
