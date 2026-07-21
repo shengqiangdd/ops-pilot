@@ -14,9 +14,13 @@
 //! 网关本身不包含业务逻辑 —— 所有计算委托给 `ops-pilot-core` 和 `ops-pilot-mod-*` 模块。
 
 pub mod agent;
+pub mod alert_advisor;
 pub mod alert_suppression;
+pub mod audit_log;
 pub mod backup;
+pub mod dashboard_store;
 pub mod docs;
+pub mod gitops;
 pub mod llm;
 pub mod metrics;
 pub mod middleware;

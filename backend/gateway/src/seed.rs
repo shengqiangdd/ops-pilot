@@ -187,6 +187,48 @@ pub async fn run_seed(db: &SqlitePool) -> anyhow::Result<()> {
     .await?;
     info!("  Ensured delivery_queue table");
 
+    // 9. Ensure dashboard_layouts table exists
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS dashboard_layouts (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            layout_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )"#
+    )
+    .execute(db)
+    .await?;
+    info!("  Ensured dashboard_layouts table");
+
+    // 10. Ensure audit_logs table exists
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS audit_logs (
+            id TEXT PRIMARY KEY,
+            actor TEXT NOT NULL,
+            action TEXT NOT NULL,
+            resource TEXT NOT NULL,
+            detail TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )"#
+    )
+    .execute(db)
+    .await?;
+    info!("  Ensured audit_logs table");
+
+    // 11. Ensure slow_queries table exists
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS slow_queries (
+            id TEXT PRIMARY KEY,
+            query_text TEXT NOT NULL,
+            duration_ms INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )"#
+    )
+    .execute(db)
+    .await?;
+    info!("  Ensured slow_queries table");
+
     info!("Seed complete!");
     Ok(())
 }

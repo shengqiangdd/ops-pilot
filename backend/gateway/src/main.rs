@@ -63,7 +63,9 @@ use ops_pilot_gateway::routes::cmdb::cmdb_routes;
 use ops_pilot_gateway::routes::cicd::cicd_routes;
 use ops_pilot_gateway::routes::change_analysis::change_analysis_routes;
 use ops_pilot_gateway::routes::compliance::compliance_routes;
+use ops_pilot_gateway::routes::dashboard_routes::dashboard_routes;
 use ops_pilot_gateway::routes::diagnostics::diagnostics_routes;
+use ops_pilot_gateway::routes::gitops_routes::gitops_routes;
 use ops_pilot_gateway::routes::incidents::incidents_routes;
 use ops_pilot_gateway::routes::jobs::jobs_routes;
 use ops_pilot_gateway::routes::log_intelligence::log_intelligence_routes;
@@ -81,6 +83,7 @@ use ops_pilot_gateway::routes::soar::soar_routes;
 use ops_pilot_gateway::routes::threats::threats_routes;
 use ops_pilot_gateway::routes::timeline::timeline_routes;
 use ops_pilot_gateway::routes::vulnerabilities::vulnerabilities_routes;
+use ops_pilot_gateway::routes::audit_log_routes::audit_log_routes;
 use ops_pilot_gateway::routes::ws_events_handler;
 use ops_pilot_gateway::tools::registry::ToolRegistry;
 use ops_pilot_mod_core::ModCore;
@@ -546,6 +549,9 @@ async fn main() {
         .merge(roles_routes(pool.clone()))
         .merge(search_routes(pool.clone()))
         .merge(report_routes().layer(axum::extract::Extension(app_state.clone())))
+        .merge(gitops_routes(pool.clone()))
+        .merge(dashboard_routes(pool.clone()))
+        .merge(audit_log_routes(pool.clone()))
         .layer(axum::middleware::from_fn_with_state(
             auth_middleware_state.clone(),
             ops_pilot_gateway::middleware::auth_middleware,

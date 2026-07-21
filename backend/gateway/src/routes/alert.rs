@@ -441,6 +441,21 @@ pub async fn test_notify(
     }
 }
 
+/// GET /api/alert/diagnose/:id — AI 告警诊断
+pub async fn diagnose_alert_handler(
+    Path(alert_id): Path<String>,
+    State(state): State<AlertState>,
+) -> impl IntoResponse {
+    match crate::alert_advisor::diagnose_alert(&state.pool, &alert_id).await {
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+        Err(e) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": e})),
+        )
+            .into_response(),
+    }
+}
+
 /// Build the alert routes sub-router.
 pub fn alert_routes(pool: SqlitePool) -> Router {
     use axum::routing::{get, post, put};
@@ -451,6 +466,7 @@ pub fn alert_routes(pool: SqlitePool) -> Router {
         .route("/api/alert/rules", get(list_alert_rules).post(create_alert_rule))
         .route("/api/alert/rules/{id}", put(update_alert_rule).delete(delete_alert_rule))
         .route("/api/alert/history", get(list_alert_history))
+        .route("/api/alert/diagnose/{id}", get(diagnose_alert_handler))
         .route("/api/alert/channels", get(list_notification_channels).post(create_notification_channel))
         .route("/api/alert/channels/{id}/test", post(test_notification_channel))
         .route("/api/alert/test-notify", post(test_notify))
