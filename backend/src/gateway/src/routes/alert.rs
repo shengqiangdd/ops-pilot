@@ -5,6 +5,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::sqlite::Sqlite;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
@@ -127,44 +128,61 @@ pub async fn update_alert_rule(
     State(state): State<AlertState>,
     Json(req): Json<UpdateAlertRuleRequest>,
 ) -> impl IntoResponse {
-    let mut updates = Vec::new();
-    let mut binds: Vec<Box<dyn sqlx::Encode<'_, sqlx::Sqlite> + Send + Sync>> = Vec::new();
+    let mut builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new("UPDATE alert_rules SET ");
+
+    let mut first = true;
 
     if let Some(name) = &req.name {
-        updates.push("name = ?");
-        binds.push(Box::new(name.clone()));
+        if !first { builder.push(", "); }
+        builder.push("name = ");
+        builder.push_bind(name.clone());
+        first = false;
     }
     if let Some(metric) = &req.metric {
-        updates.push("metric = ?");
-        binds.push(Box::new(metric.clone()));
+        if !first { builder.push(", "); }
+        builder.push("metric = ");
+        builder.push_bind(metric.clone());
+        first = false;
     }
     if let Some(condition) = &req.condition {
-        updates.push("condition = ?");
-        binds.push(Box::new(condition.clone()));
+        if !first { builder.push(", "); }
+        builder.push("condition = ");
+        builder.push_bind(condition.clone());
+        first = false;
     }
     if let Some(threshold) = req.threshold {
-        updates.push("threshold = ?");
-        binds.push(Box::new(threshold));
+        if !first { builder.push(", "); }
+        builder.push("threshold = ");
+        builder.push_bind(threshold);
+        first = false;
     }
     if let Some(severity) = &req.severity {
-        updates.push("severity = ?");
-        binds.push(Box::new(severity.clone()));
+        if !first { builder.push(", "); }
+        builder.push("severity = ");
+        builder.push_bind(severity.clone());
+        first = false;
     }
     if let Some(silence) = req.silence_minutes {
-        updates.push("silence_minutes = ?");
-        binds.push(Box::new(silence as i64));
+        if !first { builder.push(", "); }
+        builder.push("silence_minutes = ");
+        builder.push_bind(silence as i64);
+        first = false;
     }
     if let Some(enabled) = req.enabled {
-        updates.push("enabled = ?");
-        binds.push(Box::new(enabled));
+        if !first { builder.push(", "); }
+        builder.push("enabled = ");
+        builder.push_bind(enabled);
+        first = false;
     }
     if let Some(channels) = &req.channel_ids {
         let channels_json = serde_json::to_string(channels).unwrap_or_default();
-        updates.push("channel_ids = ?");
-        binds.push(Box::new(channels_json));
+        if !first { builder.push(", "); }
+        builder.push("channel_ids = ");
+        builder.push_bind(channels_json);
+        first = false;
     }
 
-    if updates.is_empty() {
+    if first {
         return (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"error": "no fields to update"})),
@@ -172,17 +190,11 @@ pub async fn update_alert_rule(
             .into_response();
     }
 
-    updates.push("updated_at = datetime('now')");
-    let sql = format!(
-        "UPDATE alert_rules SET {} WHERE id = ?",
-        updates.join(", ")
-    );
+    builder.push(", updated_at = datetime('now')");
+    builder.push(" WHERE id = ");
+    builder.push_bind(rule_id.clone());
 
-    // Simple approach: just update the common fields
-    let result = sqlx::query(&sql)
-        .bind(&rule_id)
-        .execute(&state.pool)
-        .await;
+    let result = builder.build().execute(&state.pool).await;
 
     match result {
         Ok(_) => {
@@ -261,26 +273,31 @@ pub async fn list_alert_history(
     let per_page = query.per_page.unwrap_or(20).min(100);
     let offset = ((page - 1) * per_page) as i64;
 
-    let mut sql = String::from(
+    let mut builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
         "SELECT h.id, h.rule_id, COALESCE(r.name, 'Unknown') as rule_name, h.severity, h.message, h.status, h.triggered_at, h.acknowledged_at FROM alert_history h LEFT JOIN alert_rules r ON h.rule_id = r.id WHERE 1=1"
     );
 
     if let Some(ref from) = query.from {
-        sql.push_str(&format!(" AND h.triggered_at >= '{}'", from));
+        builder.push(" AND h.triggered_at >= ");
+        builder.push_bind(from.clone());
     }
     if let Some(ref to) = query.to {
-        sql.push_str(&format!(" AND h.triggered_at <= '{}'", to));
+        builder.push(" AND h.triggered_at <= ");
+        builder.push_bind(to.clone());
     }
     if let Some(ref severity) = query.severity {
-        sql.push_str(&format!(" AND h.severity = '{}'", severity));
+        builder.push(" AND h.severity = ");
+        builder.push_bind(severity.clone());
     }
 
-    sql.push_str(" ORDER BY h.triggered_at DESC");
-    sql.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
+    builder.push(" ORDER BY h.triggered_at DESC LIMIT ");
+    builder.push_bind(per_page as i64);
+    builder.push(" OFFSET ");
+    builder.push_bind(offset);
 
-    let result = sqlx::query_as::<_, AlertHistoryEntry>(&sql)
-        .fetch_all(&state.pool)
-        .await;
+    let q = builder.build_query_as::<AlertHistoryEntry>();
+
+    let result = q.fetch_all(&state.pool).await;
 
     match result {
         Ok(entries) => (StatusCode::OK, Json(entries)).into_response(),

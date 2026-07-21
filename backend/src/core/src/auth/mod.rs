@@ -193,6 +193,7 @@ impl AuthService {
                 password_hash: hash,
                 vault_key_encrypted: None,
                 vault_password_hash: None,
+                role: "operator".to_string(),
                 created_at: chrono::Utc::now().to_rfc3339(),
             }),
             Err(sqlx::Error::Database(db_err)) => {

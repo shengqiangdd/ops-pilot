@@ -220,7 +220,7 @@ pub fn audit_routes(pool: SqlitePool) -> axum::Router {
         .with_state(state)
 }
 
-fn apply_filters(builder: &mut sqlx::QueryBuilder<'_, Sqlite>, query: &AuditQuery) {
+fn apply_filters(builder: &mut sqlx::QueryBuilder<Sqlite>, query: &AuditQuery) {
     if let Some(ref user) = query.user {
         builder.push(" AND \"user\" = ");
         builder.push_bind(user.clone());

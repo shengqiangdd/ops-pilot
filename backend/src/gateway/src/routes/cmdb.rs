@@ -5,6 +5,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::sqlite::Sqlite;
 use sqlx::SqlitePool;
 
 /// Shared application state for CMDB routes.
@@ -63,20 +64,26 @@ pub async fn list_services(
     State(state): State<CmdbState>,
     axum::extract::Query(query): axum::extract::Query<ServiceQuery>,
 ) -> impl IntoResponse {
-    let mut sql = String::from("SELECT id, name, version, description, owner, status, created_at, updated_at FROM services WHERE 1=1");
+    let mut builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+        "SELECT id, name, version, description, owner, status, created_at, updated_at FROM services WHERE 1=1"
+    );
 
     if let Some(ref search) = query.search {
-        sql.push_str(&format!(" AND (name LIKE '%{}%' OR description LIKE '%{}%')", search, search));
+        builder.push(" AND (name LIKE ");
+        builder.push_bind(format!("%{}%", search));
+        builder.push(" OR description LIKE ");
+        builder.push_bind(format!("%{}%", search));
+        builder.push(")");
     }
     if let Some(ref status) = query.status {
-        sql.push_str(&format!(" AND status = '{}'", status));
+        builder.push(" AND status = ");
+        builder.push_bind(status.clone());
     }
 
-    sql.push_str(" ORDER BY name ASC");
+    builder.push(" ORDER BY name ASC");
 
-    let result = sqlx::query_as::<_, Service>(&sql)
-        .fetch_all(&state.pool)
-        .await;
+    let q = builder.build_query_as::<Service>();
+    let result = q.fetch_all(&state.pool).await;
 
     match result {
         Ok(services) => (StatusCode::OK, Json(services)).into_response(),
@@ -170,25 +177,42 @@ pub async fn update_service(
     State(state): State<CmdbState>,
     Json(req): Json<UpdateServiceRequest>,
 ) -> impl IntoResponse {
-    let mut updates = Vec::new();
+    let mut builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new("UPDATE services SET ");
+
+    let mut first = true;
 
     if let Some(name) = &req.name {
-        updates.push(format!("name = '{}'", name));
+        if !first { builder.push(", "); }
+        builder.push("name = ");
+        builder.push_bind(name.clone());
+        first = false;
     }
     if let Some(version) = &req.version {
-        updates.push(format!("version = '{}'", version));
+        if !first { builder.push(", "); }
+        builder.push("version = ");
+        builder.push_bind(version.clone());
+        first = false;
     }
     if let Some(description) = &req.description {
-        updates.push(format!("description = '{}'", description));
+        if !first { builder.push(", "); }
+        builder.push("description = ");
+        builder.push_bind(description.clone());
+        first = false;
     }
     if let Some(owner) = &req.owner {
-        updates.push(format!("owner = '{}'", owner));
+        if !first { builder.push(", "); }
+        builder.push("owner = ");
+        builder.push_bind(owner.clone());
+        first = false;
     }
     if let Some(status) = &req.status {
-        updates.push(format!("status = '{}'", status));
+        if !first { builder.push(", "); }
+        builder.push("status = ");
+        builder.push_bind(status.clone());
+        first = false;
     }
 
-    if updates.is_empty() {
+    if first {
         return (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"error": "no fields to update"})),
@@ -196,13 +220,11 @@ pub async fn update_service(
             .into_response();
     }
 
-    updates.push("updated_at = datetime('now')".to_string());
-    let sql = format!("UPDATE services SET {} WHERE id = ?", updates.join(", "));
+    builder.push(", updated_at = datetime('now')");
+    builder.push(" WHERE id = ");
+    builder.push_bind(service_id.clone());
 
-    let result = sqlx::query(&sql)
-        .bind(&service_id)
-        .execute(&state.pool)
-        .await;
+    let result = builder.build().execute(&state.pool).await;
 
     match result {
         Ok(_) => {
@@ -464,7 +486,7 @@ pub async fn create_config_version(
     .await
     .unwrap_or(None);
 
-    let version = max_version.and_then(|m| m.0).unwrap_or(0) + 1;
+    let version = max_version.map(|m| m.0).unwrap_or(0) + 1;
 
     let result = sqlx::query(
         "INSERT INTO config_versions (id, service_id, config_json, version, changed_by, change_note) VALUES (?, ?, ?, ?, ?, ?)"

@@ -5,6 +5,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::sqlite::Sqlite;
 use sqlx::SqlitePool;
 
 /// Shared application state for timeline routes.
@@ -50,19 +51,22 @@ pub async fn list_events(
 
     // Fetch audit logs
     if type_list.contains(&"audit") {
-        let mut sql = String::from(
+        let mut builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
             r#"SELECT id, created_at as timestamp, 'audit' as type, 'info' as severity, action as title, resource as description, "user" as source FROM audit_log WHERE 1=1"#
         );
         if let Some(ref from) = query.from {
-            sql.push_str(&format!(" AND created_at >= '{}'", from));
+            builder.push(" AND created_at >= ");
+            builder.push_bind(from.clone());
         }
         if let Some(ref to) = query.to {
-            sql.push_str(&format!(" AND created_at <= '{}'", to));
+            builder.push(" AND created_at <= ");
+            builder.push_bind(to.clone());
         }
-        sql.push_str(" ORDER BY created_at DESC");
-        sql.push_str(&format!(" LIMIT {}", limit));
+        builder.push(" ORDER BY created_at DESC LIMIT ");
+        builder.push_bind(limit);
 
-        if let Ok(rows) = sqlx::query_as::<_, TimelineEvent>(&sql)
+        if let Ok(rows) = builder
+            .build_query_as::<TimelineEvent>()
             .fetch_all(&state.pool)
             .await
         {
@@ -72,19 +76,22 @@ pub async fn list_events(
 
     // Fetch alert history
     if type_list.contains(&"alert") {
-        let mut sql = String::from(
+        let mut builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
             "SELECT h.id, h.triggered_at as timestamp, 'alert' as type, h.severity, COALESCE(r.name, 'Unknown') as title, h.message as description, 'system' as source FROM alert_history h LEFT JOIN alert_rules r ON h.rule_id = r.id WHERE 1=1"
         );
         if let Some(ref from) = query.from {
-            sql.push_str(&format!(" AND h.triggered_at >= '{}'", from));
+            builder.push(" AND h.triggered_at >= ");
+            builder.push_bind(from.clone());
         }
         if let Some(ref to) = query.to {
-            sql.push_str(&format!(" AND h.triggered_at <= '{}'", to));
+            builder.push(" AND h.triggered_at <= ");
+            builder.push_bind(to.clone());
         }
-        sql.push_str(" ORDER BY h.triggered_at DESC");
-        sql.push_str(&format!(" LIMIT {}", limit));
+        builder.push(" ORDER BY h.triggered_at DESC LIMIT ");
+        builder.push_bind(limit);
 
-        if let Ok(rows) = sqlx::query_as::<_, TimelineEvent>(&sql)
+        if let Ok(rows) = builder
+            .build_query_as::<TimelineEvent>()
             .fetch_all(&state.pool)
             .await
         {
@@ -94,19 +101,22 @@ pub async fn list_events(
 
     // Fetch host operations (status changes)
     if type_list.contains(&"operation") {
-        let mut sql = String::from(
+        let mut builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
             r#"SELECT id, updated_at as timestamp, 'operation' as type, 'info' as severity, name as title, address as description, status as source FROM hosts WHERE 1=1"#
         );
         if let Some(ref from) = query.from {
-            sql.push_str(&format!(" AND updated_at >= '{}'", from));
+            builder.push(" AND updated_at >= ");
+            builder.push_bind(from.clone());
         }
         if let Some(ref to) = query.to {
-            sql.push_str(&format!(" AND updated_at <= '{}'", to));
+            builder.push(" AND updated_at <= ");
+            builder.push_bind(to.clone());
         }
-        sql.push_str(" ORDER BY updated_at DESC");
-        sql.push_str(&format!(" LIMIT {}", limit));
+        builder.push(" ORDER BY updated_at DESC LIMIT ");
+        builder.push_bind(limit);
 
-        if let Ok(rows) = sqlx::query_as::<_, TimelineEvent>(&sql)
+        if let Ok(rows) = builder
+            .build_query_as::<TimelineEvent>()
             .fetch_all(&state.pool)
             .await
         {
