@@ -100,7 +100,13 @@ mod tests {
     #[test]
     fn test_classify_critical() {
         let mut classifier = AlertClassifier::new();
-        let result = classifier.classify("CRITICAL: Service down", "host/prod-1", 1000);
+        // Pre-seed 12 alerts on the same resource to trigger high_frequency (+0.2)
+        let ts = 1730000000; // Non-night timestamp (hour ~= 17)
+        for i in 0..12 {
+            classifier.classify("something happened", "host/prod-1", ts + i);
+        }
+        // Now classify critical alert: keyword(+0.5) + high_frequency(+0.2) = 0.7 → critical
+        let result = classifier.classify("CRITICAL: Service down", "host/prod-1", ts + 12);
         assert_eq!(result.severity, "critical");
         assert!(result.confidence >= 0.7);
     }

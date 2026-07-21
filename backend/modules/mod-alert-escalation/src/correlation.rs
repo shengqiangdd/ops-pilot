@@ -185,10 +185,8 @@ mod tests {
         correlator.add_alert("a1", "host/prod-1", "warning", "CPU high", 1000);
         let inc = correlator.add_alert("a2", "host/prod-2", "warning", "Memory high", 1100);
 
-        // Different resources should not be correlated
-        assert_eq!(inc.len(), 1); // Only the first one with 2 alerts? No - different resources
-        // Actually with 2 alerts on different resources, no incident should form
-        assert!(inc.is_empty() || inc[0].alert_count == 2);
+        // Different resources should NOT be correlated — each has only 1 alert
+        assert!(inc.is_empty(), "different resources should not form an incident, got {:?}", inc);
     }
 
     #[test]
