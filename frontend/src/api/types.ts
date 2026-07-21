@@ -859,3 +859,83 @@ export interface BurnRateAlert {
   severity: string;
   suggestion: string;
 }
+
+// ── SOAR types ─────────────────────────────────────────────────────────
+
+export interface Playbook {
+  id: string;
+  name: string;
+  description: string;
+  trigger_type: string;
+  trigger_conditions_json: string;
+  steps_json: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePlaybookInput {
+  name: string;
+  description?: string;
+  trigger_type: string;
+  trigger_conditions_json?: string;
+  steps_json: string;
+}
+
+export interface Execution {
+  id: string;
+  playbook_id: string;
+  trigger_source: string;
+  trigger_id: string;
+  status: string;
+  result_json: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface ExecutionStep {
+  step_type: string;
+  status: string;
+  message: string;
+  duration_ms: number | null;
+}
+
+export interface ExecutionDetail {
+  execution: Execution;
+  playbook_name: string;
+  steps: ExecutionStep[];
+}
+
+// ── Remediation types ──────────────────────────────────────────────────
+
+export interface RemediationRule {
+  id: string;
+  name: string;
+  trigger_type: string;
+  trigger_condition_json: string;
+  actions_json: string;
+  cooldown_minutes: number;
+  max_retries: number;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface CreateRemediationRuleInput {
+  name: string;
+  trigger_type: string;
+  trigger_condition_json?: string;
+  actions_json: string;
+  cooldown_minutes?: number;
+  max_retries?: number;
+}
+
+export interface RemediationExecution {
+  id: string;
+  rule_id: string;
+  trigger_id: string;
+  trigger_type: string;
+  status: string;
+  result_json: string;
+  started_at: string | null;
+  finished_at: string | null;
+}

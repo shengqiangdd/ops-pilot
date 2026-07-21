@@ -71,6 +71,13 @@ import type {
   SLO,
   CreateSloInput,
   BurnRateAlert,
+  Playbook,
+  CreatePlaybookInput,
+  Execution,
+  ExecutionDetail,
+  RemediationRule,
+  CreateRemediationRuleInput,
+  RemediationExecution,
 } from './types';
 
 const BASE = '/api';
@@ -775,4 +782,62 @@ export const api = {
 
   getBurnRateAlerts: (token: string) =>
     requestWithAuth<BurnRateAlert[]>('/slos/burn-rate', token),
+
+  // ── SOAR ───────────────────────────────────────────────────────────
+
+  listPlaybooks: (token: string) =>
+    requestWithAuth<Playbook[]>('/soar/playbooks', token),
+
+  createPlaybook: (token: string, input: CreatePlaybookInput) =>
+    requestWithAuth<Playbook>('/soar/playbooks', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getPlaybook: (token: string, playbookId: string) =>
+    requestWithAuth<Playbook>(`/soar/playbooks/${playbookId}`, token),
+
+  deletePlaybook: (token: string, playbookId: string) =>
+    requestWithAuth<void>(`/soar/playbooks/${playbookId}`, token, {
+      method: 'DELETE',
+    }),
+
+  executePlaybook: (token: string, playbookId: string) =>
+    requestWithAuth<Execution>(`/soar/playbooks/${playbookId}/execute`, token, {
+      method: 'POST',
+    }),
+
+  listSoarExecutions: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<Execution[]>(`/soar/executions${qs ? '?' + qs : ''}`, token);
+  },
+
+  getSoarExecution: (token: string, execId: string) =>
+    requestWithAuth<ExecutionDetail>(`/soar/executions/${execId}`, token),
+
+  // ── Remediation ─────────────────────────────────────────────────────
+
+  listRemediationRules: (token: string) =>
+    requestWithAuth<RemediationRule[]>('/remediation/rules', token),
+
+  createRemediationRule: (token: string, input: CreateRemediationRuleInput) =>
+    requestWithAuth<RemediationRule>('/remediation/rules', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  deleteRemediationRule: (token: string, ruleId: string) =>
+    requestWithAuth<void>(`/remediation/rules/${ruleId}`, token, {
+      method: 'DELETE',
+    }),
+
+  testRemediationRule: (token: string, ruleId: string) =>
+    requestWithAuth<{ status: string }>(`/remediation/rules/${ruleId}/test`, token, {
+      method: 'POST',
+    }),
+
+  listRemediationExecutions: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<RemediationExecution[]>(`/remediation/executions${qs ? '?' + qs : ''}`, token);
+  },
 };
