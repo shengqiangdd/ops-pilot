@@ -1,5 +1,6 @@
 pub mod agent;
 pub mod alert;
+pub mod search;
 pub mod apm;
 pub mod audit;
 pub mod backup;
@@ -68,6 +69,7 @@ pub use remediation::remediation_routes;
 pub use reports::reports_routes;
 pub use roles::roles_routes;
 pub use runbook::runbook_routes;
+pub use search::search_routes;
 pub use secrets_scan::secrets_scan_routes;
 pub use security::security_routes;
 pub use slos::slos_routes;

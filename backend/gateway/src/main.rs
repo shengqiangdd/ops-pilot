@@ -50,6 +50,7 @@ use ops_pilot_gateway::routes::knowledge::knowledge_routes;
 use ops_pilot_gateway::routes::modules::{module_routes, ModuleManager};
 use ops_pilot_gateway::routes::monitor::monitor_routes;
 use ops_pilot_gateway::routes::runbook::runbook_routes;
+use ops_pilot_gateway::routes::search::search_routes;
 use ops_pilot_gateway::routes::security::security_routes;
 use ops_pilot_gateway::routes::topo::topo_routes;
 use ops_pilot_gateway::routes::vault::vault_routes;
@@ -543,6 +544,7 @@ async fn main() {
         .merge(finops_routes(pool.clone()))
         .merge(apm_routes(pool.clone()))
         .merge(roles_routes(pool.clone()))
+        .merge(search_routes(pool.clone()))
         .merge(report_routes().layer(axum::extract::Extension(app_state.clone())))
         .layer(axum::middleware::from_fn_with_state(
             auth_middleware_state.clone(),

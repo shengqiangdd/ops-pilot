@@ -13,6 +13,7 @@ import { useKeyboardShortcuts, useNavigationShortcuts } from './hooks/useKeyboar
 import { ShortcutHelp } from './components/ShortcutHelp';
 import { useTheme } from './components/ThemeProvider';
 import { ThemePicker } from './components/ThemePicker';
+import { GlobalSearch } from './components/GlobalSearch';
 import { useI18n } from './i18n';
 import { cn } from './lib/cn';
 import { ChartPageSkeleton } from './components/PageSkeleton';
@@ -454,7 +455,8 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
               </>
             ) : t('title.' + tab)}
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <GlobalSearch />
             <span className="text-sm text-md-on-surface-variant hidden sm:inline mr-1">{username}</span>
             <ThemePicker />
             <button
