@@ -103,6 +103,15 @@ import type {
   ChaosExperiment,
   CreateChaosExperimentInput,
   ChaosStats,
+  CostOverview,
+  CostByService,
+  CostByProvider,
+  CostBudget,
+  CreateBudgetInput,
+  ApmService,
+  ApmTrace,
+  ApmError,
+  ApmDashboard,
 } from './types';
 
 const BASE = '/api';
@@ -1020,4 +1029,57 @@ export const api = {
 
   getChaosStats: (token: string) =>
     requestWithAuth<ChaosStats>('/chaos/stats', token),
+
+  // ── FinOps ─────────────────────────────────────────────────────────
+
+  getFinOpsOverview: (token: string) =>
+    requestWithAuth<CostOverview>('/finops/overview', token),
+
+  listFinOpsCosts: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<Array<{ id: string; service: string; cost_amount: number }>>(`/finops/costs${qs ? '?' + qs : ''}`, token);
+  },
+
+  getFinOpsCostsByService: (token: string) =>
+    requestWithAuth<CostByService[]>('/finops/costs/by-service', token),
+
+  getFinOpsCostsByProvider: (token: string) =>
+    requestWithAuth<CostByProvider[]>('/finops/costs/by-provider', token),
+
+  listFinOpsBudgets: (token: string) =>
+    requestWithAuth<CostBudget[]>('/finops/budgets', token),
+
+  createFinOpsBudget: (token: string, input: CreateBudgetInput) =>
+    requestWithAuth<{ id: string }>('/finops/budgets', token, { method: 'POST', body: JSON.stringify(input) }),
+
+  deleteFinOpsBudget: (token: string, id: string) =>
+    requestWithAuth<void>(`/finops/budgets/${id}`, token, { method: 'DELETE' }),
+
+  getFinOpsForecast: (token: string) =>
+    requestWithAuth<{ historical: Array<{ date: string; actual: number | null; predicted: number | null }>; forecast_days: number }>('/finops/forecast', token),
+
+  // ── APM ────────────────────────────────────────────────────────────
+
+  getApmDashboard: (token: string) =>
+    requestWithAuth<ApmDashboard>('/apm/dashboard', token),
+
+  listApmServices: (token: string) =>
+    requestWithAuth<ApmService[]>('/apm/services', token),
+
+  getApmService: (token: string, serviceId: string) =>
+    requestWithAuth<ApmService>(`/apm/services/${serviceId}`, token),
+
+  listServiceTraces: (token: string, serviceId: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<ApmTrace[]>(`/apm/services/${serviceId}/traces${qs ? '?' + qs : ''}`, token);
+  },
+
+  listRecentErrors: (token: string) =>
+    requestWithAuth<ApmError[]>('/apm/traces/recent-errors', token),
+
+  updateApmError: (token: string, errorId: string, input: { status: string }) =>
+    requestWithAuth<{ status: string }>(`/apm/errors/${errorId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
 };

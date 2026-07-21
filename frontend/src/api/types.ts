@@ -1192,3 +1192,96 @@ export interface ChaosStats {
   failed: number;
   running: number;
 }
+
+// ── FinOps types ───────────────────────────────────────────────────────
+
+export interface CostOverview {
+  total_spend_this_month: number;
+  total_spend_last_month: number;
+  month_over_month_change: number;
+  budget_total: number;
+  budget_actual: number;
+  forecast_spend: number;
+  currency: string;
+}
+
+export interface CostByService {
+  service: string;
+  total: number;
+}
+
+export interface CostByProvider {
+  provider: string;
+  total: number;
+}
+
+export interface CostBudget {
+  id: string;
+  name: string;
+  amount: number;
+  period: string;
+  start_date: string;
+  end_date: string;
+  notify_threshold: number;
+  actual_spend: number;
+  forecast_spend: number;
+  status: string;
+}
+
+export interface CreateBudgetInput {
+  name: string;
+  amount: number;
+  period: string;
+  start_date: string;
+  end_date: string;
+  notify_threshold?: number;
+}
+
+// ── APM types ─────────────────────────────────────────────────────────
+
+export interface ApmService {
+  id: string;
+  name: string;
+  service_type: string;
+  host_id: string;
+  endpoint: string;
+  language: string;
+  health: string;
+}
+
+export interface ApmTrace {
+  id: string;
+  service_id: string;
+  trace_id: string;
+  span_id: string;
+  parent_span_id: string | null;
+  operation: string;
+  duration_ms: number;
+  start_time: string;
+  status: string;
+  http_method: string | null;
+  http_path: string | null;
+  http_status: number | null;
+  error_message: string | null;
+}
+
+export interface ApmError {
+  id: string;
+  service_id: string;
+  error_type: string;
+  error_message: string;
+  stack_trace: string;
+  count: number;
+  first_seen: string;
+  last_seen: string;
+  status: string;
+}
+
+export interface ApmDashboard {
+  total_services: number;
+  healthy_services: number;
+  total_requests: number;
+  error_rate: number;
+  avg_latency: number;
+  p99_latency: number;
+}

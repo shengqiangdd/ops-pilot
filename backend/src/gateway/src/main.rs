@@ -64,6 +64,8 @@ use ops_pilot_gateway::routes::jobs::jobs_routes;
 use ops_pilot_gateway::routes::log_intelligence::log_intelligence_routes;
 use ops_pilot_gateway::routes::oncall::oncall_routes;
 use ops_pilot_gateway::routes::chaos::chaos_routes;
+use ops_pilot_gateway::routes::finops::finops_routes;
+use ops_pilot_gateway::routes::apm::apm_routes;
 use ops_pilot_gateway::routes::predictions::predictions_routes;
 use ops_pilot_gateway::routes::remediation::remediation_routes;
 use ops_pilot_gateway::routes::reports::reports_routes;
@@ -497,6 +499,8 @@ async fn main() {
         .merge(log_intelligence_routes(pool.clone()))
         .merge(oncall_routes(pool.clone()))
         .merge(chaos_routes(pool.clone()))
+        .merge(finops_routes(pool.clone()))
+        .merge(apm_routes(pool.clone()))
         .fallback_service(static_service)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());

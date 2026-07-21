@@ -55,6 +55,8 @@ const ChangeAnalysisPage = lazy(() => import('./pages/ChangeAnalysis').then(m =>
 const LogIntelligencePage = lazy(() => import('./pages/LogIntelligence').then(m => ({ default: m.LogIntelligencePage })));
 const OnCallPage = lazy(() => import('./pages/OnCall').then(m => ({ default: m.OnCallPage })));
 const ChaosPage = lazy(() => import('./pages/Chaos').then(m => ({ default: m.ChaosPage })));
+const FinOpsPage = lazy(() => import('./pages/FinOps').then(m => ({ default: m.FinOpsPage })));
+const APMPage = lazy(() => import('./pages/APM').then(m => ({ default: m.APMPage })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -73,13 +75,13 @@ type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
-  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos';
+  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm';
 
 const ALL_TABS: Tab[] = [
   'dashboard', 'chat', 'modules', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
-  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos',
+  'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos', 'finops', 'apm',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -132,17 +134,19 @@ const ICONS: Record<Tab, string> = {
   'log-intel': '📊',
   oncall: '📅',
   chaos: '💥',
+  finops: '💰',
+  apm: '📈',
 };
 
 /* ── 扁平化分类（无二级嵌套的独立分类） */
 const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '📊', catKey: 'cat.dashboard', tabs: ['dashboard'] },
   { icon: '💬', catKey: 'cat.system', tabs: ['chat', 'modules', 'vault', 'audit', 'users'] },
-  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'cmdb', 'monitor'] },
+  { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'topo', 'cmdb', 'monitor', 'apm'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['security', 'vulnerabilities', 'soar', 'secrets-scan', 'compliance', 'threats', 'fim', 'baseline'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['cicd', 'jobs', 'remediation', 'change-analysis', 'scheduler', 'runbook', 'filesync'] },
   { icon: '🔔', catKey: 'cat.monitor', tabs: ['escalation', 'health', 'alert-rules', 'alert-history', 'channels', 'metrics', 'incidents', 'predictions', 'slos', 'oncall'] },
-  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'log-intel', 'advisor', 'timeline', 'chaos'] },
+  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'log-intel', 'advisor', 'timeline', 'chaos', 'finops'] },
   { icon: '🔗', catKey: 'cat.integration', tabs: ['webhook', 'config', 'knowledge'] },
 ];
 
@@ -244,6 +248,8 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'log-intel': return <LogIntelligencePage />;
       case 'oncall': return <OnCallPage />;
       case 'chaos': return <ChaosPage />;
+      case 'finops': return <FinOpsPage />;
+      case 'apm': return <APMPage />;
       default: return <Dashboard />;
     }
   };
