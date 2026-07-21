@@ -56,10 +56,12 @@ use ops_pilot_gateway::routes::users::user_routes;
 use ops_pilot_gateway::routes::alert::alert_routes;
 use ops_pilot_gateway::routes::cmdb::cmdb_routes;
 use ops_pilot_gateway::routes::cicd::cicd_routes;
+use ops_pilot_gateway::routes::change_analysis::change_analysis_routes;
 use ops_pilot_gateway::routes::compliance::compliance_routes;
 use ops_pilot_gateway::routes::diagnostics::diagnostics_routes;
 use ops_pilot_gateway::routes::incidents::incidents_routes;
 use ops_pilot_gateway::routes::jobs::jobs_routes;
+use ops_pilot_gateway::routes::log_intelligence::log_intelligence_routes;
 use ops_pilot_gateway::routes::predictions::predictions_routes;
 use ops_pilot_gateway::routes::remediation::remediation_routes;
 use ops_pilot_gateway::routes::reports::reports_routes;
@@ -489,6 +491,8 @@ async fn main() {
         .merge(secrets_scan_routes(pool.clone()))
         .merge(compliance_routes(pool.clone()))
         .merge(threats_routes(pool.clone()))
+        .merge(change_analysis_routes(pool.clone()))
+        .merge(log_intelligence_routes(pool.clone()))
         .fallback_service(static_service)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());

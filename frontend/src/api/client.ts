@@ -89,6 +89,13 @@ import type {
   ThreatOverview,
   ThreatIndicator,
   AffectedAsset,
+  ChangeEvent,
+  CreateChangeEventInput,
+  ChangeStats,
+  LogSource,
+  LogPattern,
+  LogAnomaly,
+  LogIntelStats,
 } from './types';
 
 const BASE = '/api';
@@ -905,4 +912,59 @@ export const api = {
 
   getAffectedAssets: (token: string) =>
     requestWithAuth<AffectedAsset[]>('/threats/affected-assets', token),
+
+  // ── Change Analysis ────────────────────────────────────────────────
+
+  listChangeEvents: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<ChangeEvent[]>(`/change-analysis/events${qs ? '?' + qs : ''}`, token);
+  },
+
+  createChangeEvent: (token: string, input: CreateChangeEventInput) =>
+    requestWithAuth<ChangeEvent>('/change-analysis/events', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getChangeEvent: (token: string, eventId: string) =>
+    requestWithAuth<ChangeEvent>(`/change-analysis/events/${eventId}`, token),
+
+  reviewChangeEvent: (token: string, eventId: string, input: { status: string; reviewed_by?: string }) =>
+    requestWithAuth<ChangeEvent>(`/change-analysis/events/${eventId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  getChangeStats: (token: string) =>
+    requestWithAuth<ChangeStats>('/change-analysis/stats', token),
+
+  // ── Log Intelligence ───────────────────────────────────────────────
+
+  listLogSources: (token: string) =>
+    requestWithAuth<LogSource[]>('/log-intel/sources', token),
+
+  analyzeLogs: (token: string, input?: { host_id?: string; source_id?: string }) =>
+    requestWithAuth<{ patterns_found: number; anomalies_found: number }>('/log-intel/analyze', token, {
+      method: 'POST',
+      body: JSON.stringify(input || {}),
+    }),
+
+  listLogPatterns: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<LogPattern[]>(`/log-intel/patterns${qs ? '?' + qs : ''}`, token);
+  },
+
+  listLogAnomalies: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<LogAnomaly[]>(`/log-intel/anomalies${qs ? '?' + qs : ''}`, token);
+  },
+
+  updateLogAnomaly: (token: string, anomalyId: string, input: { status: string }) =>
+    requestWithAuth<{ status: string }>(`/log-intel/anomalies/${anomalyId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  getLogIntelStats: (token: string) =>
+    requestWithAuth<LogIntelStats>('/log-intel/stats', token),
 };

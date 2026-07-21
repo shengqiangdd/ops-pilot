@@ -1035,3 +1035,78 @@ export interface AffectedAsset {
   risk_level: string;
   suggestion: string;
 }
+
+// ── Change Analysis types ──────────────────────────────────────────────
+
+export interface ChangeEvent {
+  id: string;
+  host_id: string;
+  change_type: string;
+  source: string;
+  description: string;
+  content_diff: string;
+  risk_score: number;
+  risk_factors_json: string;
+  status: string;
+  proposed_by: string;
+  reviewed_by: string;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+export interface CreateChangeEventInput {
+  host_id: string;
+  change_type: string;
+  source: string;
+  description: string;
+  content_diff?: string;
+  proposed_by?: string;
+}
+
+export interface ChangeStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  high_risk: number;
+}
+
+// ── Log Intelligence types ─────────────────────────────────────────────
+
+export interface LogSource {
+  id: string;
+  host_id: string;
+  source_name: string;
+  log_path: string;
+  source_type: string;
+  enabled: boolean;
+}
+
+export interface LogPattern {
+  id: string;
+  host_id: string;
+  pattern: string;
+  pattern_type: string;
+  count: number;
+  first_seen: string;
+  last_seen: string;
+  severity: string;
+}
+
+export interface LogAnomaly {
+  id: string;
+  host_id: string;
+  source_id: string;
+  anomaly_type: string;
+  description: string;
+  severity: string;
+  detected_at: string;
+  status: string;
+}
+
+export interface LogIntelStats {
+  total_sources: number;
+  total_patterns: number;
+  total_anomalies: number;
+  open_anomalies: number;
+}
