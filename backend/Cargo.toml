@@ -22,6 +22,8 @@ members = [
     "modules/mod-knowledge",
     "modules/mod-change-risk",
     "modules/mod-inspection",
+    "modules/mod-ids",
+    "modules/mod-container-sec",
 ]
 resolver = "2"
 
