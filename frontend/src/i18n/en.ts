@@ -997,6 +997,8 @@ const en: Record<string, string> = {
   'chat.quick.metrics': 'Query Metrics',
   'chat.quick.hosts': 'Host Status',
   'chat.quick.alerts': 'Recent Alerts',
+  'chat.quick.runbook': 'Recommended Runbook',
+  'chat.runbook_keyword': 'runbook',
   'chat.nl_query_prefix': 'Query',
   'chat.nl_query_intent': 'Intent',
   'chat.nl_query_result': 'Result',

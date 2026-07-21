@@ -3,9 +3,15 @@
 //! Defines escalation policies (e.g. P1 → immediate SMS, P3 → email summary),
 //! manages on-call schedules, and dispatches alerts to the appropriate channels
 //! (webhook, email, ChatOps) with escalating frequency.
+//!
+//! Enhanced with:
+//! - AlertClassifier: rule-based + frequency-based severity classification
+//! - AlertCorrelator: groups related alerts into incidents
 
 pub mod policy;
 pub mod schedule;
+pub mod classifier;
+pub mod correlation;
 
 use std::sync::Arc;
 
@@ -21,6 +27,8 @@ pub struct ModAlertEscalation {
     db: SqlitePool,
     policies: Arc<RwLock<Vec<policy::EscalationPolicy>>>,
     schedules: Arc<RwLock<Vec<schedule::OnCallSchedule>>>,
+    classifier: Arc<RwLock<classifier::AlertClassifier>>,
+    correlator: Arc<RwLock<correlation::AlertCorrelator>>,
 }
 
 impl ModAlertEscalation {
@@ -29,6 +37,8 @@ impl ModAlertEscalation {
             db,
             policies: Arc::new(RwLock::new(policy::default_policies())),
             schedules: Arc::new(RwLock::new(Vec::new())),
+            classifier: Arc::new(RwLock::new(classifier::AlertClassifier::new())),
+            correlator: Arc::new(RwLock::new(correlation::AlertCorrelator::new(300))),
         };
         store
     }
@@ -79,6 +89,34 @@ impl OpsModule for ModAlertEscalation {
                         "message": {"type": "string"}
                     },
                     "required": ["alert_id", "severity"]
+                }),
+            },
+            ToolDefinition {
+                name: "alert_classify".into(),
+                description: "Classify an alert by severity using rule-based + frequency analysis".into(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "message": {"type": "string", "description": "Alert message text"},
+                        "resource": {"type": "string", "description": "Affected resource (e.g. host/prod-1)"},
+                        "timestamp": {"type": "integer", "description": "Unix timestamp (optional, defaults to now)"}
+                    },
+                    "required": ["message", "resource"]
+                }),
+            },
+            ToolDefinition {
+                name: "alert_correlate".into(),
+                description: "Correlate related alerts into incidents based on resource and time proximity".into(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "alert_id": {"type": "string"},
+                        "resource": {"type": "string"},
+                        "severity": {"type": "string"},
+                        "message": {"type": "string"},
+                        "timestamp": {"type": "integer"}
+                    },
+                    "required": ["alert_id", "resource", "severity", "message"]
                 }),
             },
         ]
@@ -166,6 +204,60 @@ impl OpsModule for ModAlertEscalation {
                     }
                 };
                 Ok(result)
+            }
+            "alert_classify" => {
+                let message = params["message"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("missing 'message'"))?
+                    .to_string();
+                let resource = params["resource"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("missing 'resource'"))?
+                    .to_string();
+                let timestamp = params["timestamp"]
+                    .as_i64()
+                    .unwrap_or_else(|| chrono::Utc::now().timestamp());
+
+                let mut classifier = self.classifier.write().await;
+                let result = classifier.classify(&message, &resource, timestamp);
+
+                Ok(serde_json::json!({
+                    "severity": result.severity,
+                    "confidence": result.confidence,
+                    "suggested_action": result.suggested_action,
+                    "tags": result.tags,
+                }))
+            }
+            "alert_correlate" => {
+                let alert_id = params["alert_id"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("missing 'alert_id'"))?
+                    .to_string();
+                let resource = params["resource"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("missing 'resource'"))?
+                    .to_string();
+                let severity = params["severity"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("missing 'severity'"))?
+                    .to_string();
+                let message = params["message"]
+                    .as_str()
+                    .unwrap_or("")
+                    .to_string();
+                let timestamp = params["timestamp"]
+                    .as_i64()
+                    .unwrap_or_else(|| chrono::Utc::now().timestamp());
+
+                let mut correlator = self.correlator.write().await;
+                let incidents = correlator.add_alert(
+                    &alert_id, &resource, &severity, &message, timestamp,
+                );
+
+                Ok(serde_json::json!({
+                    "incidents_formed": incidents.len(),
+                    "incidents": incidents,
+                }))
             }
             _ => Err(anyhow::anyhow!("unknown tool: {}", tool)),
         }

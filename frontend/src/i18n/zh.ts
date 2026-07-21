@@ -1023,6 +1023,8 @@ const zh: Record<string, string> = {
   'chat.quick.metrics': '查询指标',
   'chat.quick.hosts': '主机状态',
   'chat.quick.alerts': '最近告警',
+  'chat.quick.runbook': '推荐运维手册',
+  'chat.runbook_keyword': 'runbook',
   'chat.nl_query_prefix': '查询',
   'chat.nl_query_intent': '意图',
   'chat.nl_query_result': '结果',

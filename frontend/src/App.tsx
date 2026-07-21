@@ -57,6 +57,7 @@ const OnCallPage = lazy(() => import('./pages/OnCall').then(m => ({ default: m.O
 const ChaosPage = lazy(() => import('./pages/Chaos').then(m => ({ default: m.ChaosPage })));
 const FinOpsPage = lazy(() => import('./pages/FinOps').then(m => ({ default: m.FinOpsPage })));
 const APMPage = lazy(() => import('./pages/APM').then(m => ({ default: m.APMPage })));
+const AdvisorChatPage = lazy(() => import('./pages/AdvisorChat').then(m => ({ default: m.AdvisorChat })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -437,6 +438,18 @@ export function App() {
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         <Route path="/terminal/:hostId" element={token ? <AppShell initialTab="terminal" /> : <Navigate to="/login" replace />} />
+        <Route path="/advisor/chat" element={token ? (
+          <div className="flex h-screen bg-md-background">
+            <div className="flex-1 flex flex-col min-w-0">
+              <header className="h-16 flex items-center px-6 bg-md-surface-container/70 backdrop-blur-xl border-b border-md-outline-variant/50">
+                <h1 className="text-title-large font-semibold text-md-on-surface">🤖 AI 运维助手</h1>
+              </header>
+              <main className="flex-1 overflow-hidden p-4 sm:p-6">
+                <AdvisorChatPage />
+              </main>
+            </div>
+          </div>
+        ) : <Navigate to="/login" replace />} />
         <Route path="/*" element={token ? <AppShell /> : <Navigate to="/login" replace />} />
       </Routes>
     </ErrorBoundary>
