@@ -65,7 +65,7 @@ pub struct ExecutionDetail {
     pub steps: Vec<ExecutionStep>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ExecutionStep {
     pub step_type: String,
     pub status: String,

@@ -104,7 +104,7 @@ fn analyze_risk(change_type: &str, description: &str, content_diff: &str) -> (f6
         factors.push(format!("Large change: {} lines", diff_lines));
     }
 
-    risk_score = risk_score.min(1.0);
+    risk_score = f64::min(risk_score, 1.0);
     (risk_score, factors)
 }
 

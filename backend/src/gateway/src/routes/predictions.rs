@@ -287,7 +287,7 @@ pub async fn list_risks(
                 predicted_value: disk_value + 0.2 * 24.0,
                 threshold: 90.0,
                 risk_level: if disk_value > 90.0 { "critical".to_string() } else { "warning".to_string() },
-                estimated_time_to_threshold_hours: Some(est_hours),
+                estimated_time_hours: Some(est_hours),
                 suggestion: "Consider expanding disk space or cleaning up old files".to_string(),
             });
         }
@@ -304,7 +304,7 @@ pub async fn list_risks(
                 predicted_value: mem_value + 0.3 * 24.0,
                 threshold: 95.0,
                 risk_level: if mem_value > 90.0 { "critical".to_string() } else { "warning".to_string() },
-                estimated_time_to_threshold_hours: Some(est_hours),
+                estimated_time_hours: Some(est_hours),
                 suggestion: "Check for memory leaks or consider adding more RAM".to_string(),
             });
         }
@@ -312,7 +312,7 @@ pub async fn list_risks(
 
     // Sort by risk level (critical first)
     risks.sort_by(|a, b| {
-        let order = |s: &str| match s.as_str() {
+        let order = |s: &str| match s {
             "critical" => 0,
             "warning" => 1,
             _ => 2,
