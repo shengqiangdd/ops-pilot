@@ -1110,3 +1110,85 @@ export interface LogIntelStats {
   total_anomalies: number;
   open_anomalies: number;
 }
+
+// ── On-Call types ──────────────────────────────────────────────────────
+
+export interface OnCallSchedule {
+  id: string;
+  name: string;
+  description: string;
+  timezone: string;
+  rotation_type: string;
+  starts_at: string;
+  ends_at: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface OnCallShift {
+  id: string;
+  schedule_id: string;
+  user_id: string;
+  start_time: string;
+  end_time: string;
+  role: string;
+}
+
+export interface OnCallOverride {
+  id: string;
+  schedule_id: string;
+  user_id: string;
+  date: string;
+  reason: string;
+}
+
+export interface OnCallEscalation {
+  id: string;
+  alert_id: string;
+  shift_id: string;
+  notified_at: string;
+  acknowledged_at: string | null;
+  status: string;
+}
+
+export interface CreateOnCallScheduleInput {
+  name: string;
+  description?: string;
+  timezone?: string;
+  rotation_type?: string;
+}
+
+// ── Chaos Engineering types ────────────────────────────────────────────
+
+export interface ChaosExperiment {
+  id: string;
+  name: string;
+  description: string;
+  target_host_ids_json: string;
+  target_type: string;
+  fault_type: string;
+  duration_seconds: number;
+  params_json: string;
+  status: string;
+  started_at: string | null;
+  finished_at: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface CreateChaosExperimentInput {
+  name: string;
+  description?: string;
+  target_host_ids_json?: string;
+  target_type?: string;
+  fault_type: string;
+  duration_seconds?: number;
+  params_json?: string;
+}
+
+export interface ChaosStats {
+  total_experiments: number;
+  completed: number;
+  failed: number;
+  running: number;
+}

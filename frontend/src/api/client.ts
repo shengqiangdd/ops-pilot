@@ -96,6 +96,13 @@ import type {
   LogPattern,
   LogAnomaly,
   LogIntelStats,
+  OnCallSchedule,
+  OnCallShift,
+  OnCallEscalation,
+  CreateOnCallScheduleInput,
+  ChaosExperiment,
+  CreateChaosExperimentInput,
+  ChaosStats,
 } from './types';
 
 const BASE = '/api';
@@ -967,4 +974,50 @@ export const api = {
 
   getLogIntelStats: (token: string) =>
     requestWithAuth<LogIntelStats>('/log-intel/stats', token),
+
+  // ── On-Call ────────────────────────────────────────────────────────
+
+  listOnCallSchedules: (token: string) =>
+    requestWithAuth<OnCallSchedule[]>('/oncall/schedules', token),
+
+  createOnCallSchedule: (token: string, input: CreateOnCallScheduleInput) =>
+    requestWithAuth<OnCallSchedule>('/oncall/schedules', token, { method: 'POST', body: JSON.stringify(input) }),
+
+  getOnCallSchedule: (token: string, id: string) =>
+    requestWithAuth<OnCallSchedule>(`/oncall/schedules/${id}`, token),
+
+  updateOnCallSchedule: (token: string, id: string, input: CreateOnCallScheduleInput) =>
+    requestWithAuth<OnCallSchedule>(`/oncall/schedules/${id}`, token, { method: 'PUT', body: JSON.stringify(input) }),
+
+  deleteOnCallSchedule: (token: string, id: string) =>
+    requestWithAuth<void>(`/oncall/schedules/${id}`, token, { method: 'DELETE' }),
+
+  listOnCallShifts: (token: string) =>
+    requestWithAuth<OnCallShift[]>('/oncall/shifts', token),
+
+  listOnCallEscalations: (token: string) =>
+    requestWithAuth<OnCallEscalation[]>('/oncall/escalations', token),
+
+  // ── Chaos Engineering ──────────────────────────────────────────────
+
+  listChaosExperiments: (token: string) =>
+    requestWithAuth<ChaosExperiment[]>('/chaos/experiments', token),
+
+  createChaosExperiment: (token: string, input: CreateChaosExperimentInput) =>
+    requestWithAuth<ChaosExperiment>('/chaos/experiments', token, { method: 'POST', body: JSON.stringify(input) }),
+
+  getChaosExperiment: (token: string, id: string) =>
+    requestWithAuth<ChaosExperiment>(`/chaos/experiments/${id}`, token),
+
+  deleteChaosExperiment: (token: string, id: string) =>
+    requestWithAuth<void>(`/chaos/experiments/${id}`, token, { method: 'DELETE' }),
+
+  runChaosExperiment: (token: string, id: string) =>
+    requestWithAuth<{ status: string }>(`/chaos/experiments/${id}/run`, token, { method: 'POST' }),
+
+  stopChaosExperiment: (token: string, id: string) =>
+    requestWithAuth<{ status: string }>(`/chaos/experiments/${id}/stop`, token, { method: 'POST' }),
+
+  getChaosStats: (token: string) =>
+    requestWithAuth<ChaosStats>('/chaos/stats', token),
 };
