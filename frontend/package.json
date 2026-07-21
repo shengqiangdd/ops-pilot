@@ -16,6 +16,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "lighthouse": "lighthouse-ci",
+    "lighthouse:local": "lhci autorun",
     "typecheck": "tsc --noEmit",
     "prepare": "echo skip husky"
   },
