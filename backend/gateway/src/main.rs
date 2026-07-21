@@ -54,7 +54,10 @@ use ops_pilot_gateway::routes::security::security_routes;
 use ops_pilot_gateway::routes::topo::topo_routes;
 use ops_pilot_gateway::routes::vault::vault_routes;
 use ops_pilot_gateway::routes::users::user_routes;
+use ops_pilot_gateway::alert_suppression::AlertSuppressor;
+use ops_pilot_gateway::AppState;
 use ops_pilot_gateway::routes::alert::alert_routes;
+use ops_pilot_gateway::routes::report_routes::report_routes;
 use ops_pilot_gateway::routes::cmdb::cmdb_routes;
 use ops_pilot_gateway::routes::cicd::cicd_routes;
 use ops_pilot_gateway::routes::change_analysis::change_analysis_routes;
@@ -437,6 +440,12 @@ async fn main() {
     let static_service =
         tower_http::services::ServeDir::new(&static_dir).append_index_html_on_directories(true);
 
+    // Alert suppression engine
+    let app_state = Arc::new(AppState {
+        pool: pool.clone(),
+        alert_suppressor: AlertSuppressor::new(30, 5),
+    });
+
     // Rate limiter for login endpoint: 5 requests/minute/IP
     let login_limiter = ops_pilot_gateway::middleware::rate_limit::login_limiter();
 
@@ -511,7 +520,7 @@ async fn main() {
         .merge(backup_routes(pool.clone()))
         .merge(runbook_routes(module_manager.clone(), ctx.clone()))
         .merge(knowledge_routes(module_manager.clone(), ctx.clone()))
-        .merge(alert_routes(pool.clone()))
+        .merge(alert_routes(pool.clone()).layer(axum::extract::Extension(app_state.clone())))
         .merge(cmdb_routes(pool.clone()))
         .merge(timeline_routes(pool.clone()))
         .merge(cicd_routes(pool.clone()))
@@ -534,6 +543,7 @@ async fn main() {
         .merge(finops_routes(pool.clone()))
         .merge(apm_routes(pool.clone()))
         .merge(roles_routes(pool.clone()))
+        .merge(report_routes().layer(axum::extract::Extension(app_state.clone())))
         .layer(axum::middleware::from_fn_with_state(
             auth_middleware_state.clone(),
             ops_pilot_gateway::middleware::auth_middleware,

@@ -23,6 +23,7 @@ pub mod monitor;
 pub mod oncall;
 pub mod predictions;
 pub mod remediation;
+pub mod report_routes;
 pub mod reports;
 pub mod roles;
 pub mod runbook;

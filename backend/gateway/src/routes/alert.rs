@@ -2,12 +2,13 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json, Router,
+    Extension, Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::Sqlite;
 use sqlx::SqlitePool;
 use std::sync::Arc;
+use crate::AppState;
 
 /// Shared application state for alert routes.
 #[derive(Clone)]
@@ -407,7 +408,26 @@ pub async fn test_notification_channel(
 /// POST /api/alert/test-notify — test the notification dispatch pipeline
 pub async fn test_notify(
     State(state): State<AlertState>,
+    Extension(app_state): Extension<Arc<AppState>>,
 ) -> impl IntoResponse {
+    // Check alert suppression: if this is a duplicate within the time window, skip dispatch
+    let suppressed = app_state
+        .alert_suppressor
+        .should_suppress(
+            "system",
+            "test_notification",
+            "info",
+            "测试通知",
+        )
+        .await;
+
+    if suppressed {
+        return Json(serde_json::json!({
+            "status": "suppressed",
+            "message": "Alert suppressed (duplicate within aggregation window)"
+        }));
+    }
+
     match crate::notify::dispatch_notification(
         &state.pool,
         "测试通知",

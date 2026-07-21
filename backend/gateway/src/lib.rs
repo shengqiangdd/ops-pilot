@@ -14,6 +14,7 @@
 //! 网关本身不包含业务逻辑 —— 所有计算委托给 `ops-pilot-core` 和 `ops-pilot-mod-*` 模块。
 
 pub mod agent;
+pub mod alert_suppression;
 pub mod backup;
 pub mod docs;
 pub mod llm;
@@ -21,6 +22,7 @@ pub mod metrics;
 pub mod middleware;
 pub mod notify;
 pub mod oauth2;
+pub mod report_generator;
 pub mod retry_queue;
 pub mod routes;
 pub mod security_headers;
@@ -37,6 +39,7 @@ use sqlx::SqlitePool;
 #[derive(Clone)]
 pub struct AppState {
     pub pool: SqlitePool,
+    pub alert_suppressor: crate::alert_suppression::AlertSuppressor,
 }
 
 /// Create a minimum test router with health, docs, CORS, and security headers.

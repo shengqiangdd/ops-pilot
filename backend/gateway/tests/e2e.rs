@@ -15,7 +15,10 @@ async fn setup_app() -> SocketAddr {
     sqlx::query("CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user', created_at TEXT NOT NULL)")
         .execute(&pool).await.unwrap();
     
-    let app_state = Arc::new(AppState { pool: pool.clone() });
+    let app_state = Arc::new(AppState {
+        pool: pool.clone(),
+        alert_suppressor: ops_pilot_gateway::alert_suppression::AlertSuppressor::new(30, 5),
+    });
     let app = ops_pilot_gateway::create_router(app_state).await;
     
     // Bind to random port

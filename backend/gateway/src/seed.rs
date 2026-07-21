@@ -152,7 +152,24 @@ pub async fn run_seed(db: &SqlitePool) -> anyhow::Result<()> {
     }
     info!("  Seeded {} knowledge entries", knowledge.len());
 
-    // 7. Ensure delivery_queue table exists (for retry/dead-letter)
+    // 7b. Ensure reports table exists (for OpsReport persistence)
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS reports (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            report_type TEXT NOT NULL,
+            period_start TEXT NOT NULL,
+            period_end TEXT NOT NULL,
+            generated_at TEXT NOT NULL,
+            summary_json TEXT NOT NULL,
+            sections_json TEXT NOT NULL
+        )"#
+    )
+    .execute(db)
+    .await?;
+    info!("  Ensured reports table");
+
+    // 8. Ensure delivery_queue table exists (for retry/dead-letter)
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS delivery_queue (
             id TEXT PRIMARY KEY,
