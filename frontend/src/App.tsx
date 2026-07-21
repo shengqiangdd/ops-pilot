@@ -1,36 +1,10 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Dashboard } from './components/Dashboard';
 import { ModuleBrowser } from './components/ModuleBrowser';
 import { HealthDashboard } from './components/HealthDashboard';
 import { AgentChat } from './components/AgentChat';
-import { HostsPage } from './pages/Hosts';
-import { VaultPage } from './pages/Vault';
 import { LoginPage } from './pages/Login';
-import { SecurityPage } from './pages/Security';
-import { TopologyPage } from './pages/Topology';
-import { MonitorPage } from './pages/Monitor';
-import { EscalationPage } from './pages/Escalation';
-import { FIMPage } from './pages/FIM';
-import { BaselinePage } from './pages/Baseline';
-import { RunbookPage } from './pages/Runbook';
-import { KnowledgePage } from './pages/Knowledge';
-import { ConfigPage } from './pages/Config';
-import { WebhookPage } from './pages/Webhook';
-import { SchedulerPage } from './pages/Scheduler';
-import { FileSyncPage } from './pages/FileSync';
-import { AdvisorPage } from './pages/Advisor';
-import { TerminalPage } from './pages/Terminal';
-import { AuditLogPage } from './pages/AuditLog';
-import { UsersPage } from './pages/Users';
-import { AlertRulesPage } from './pages/AlertRules';
-import { AlertHistoryPage } from './pages/AlertHistory';
-import { NotificationChannelsPage } from './pages/NotificationChannels';
-import { CMDBPage } from './pages/CMDB';
-import { TimelinePage } from './pages/Timeline';
-import { CICDPage } from './pages/CICD';
-import { MetricsVizPage } from './pages/MetricsViz';
-import { JobsPage } from './pages/Jobs';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -38,6 +12,46 @@ import { useTheme } from './components/ThemeProvider';
 import { ThemePicker } from './components/ThemePicker';
 import { useI18n } from './i18n';
 import { cn } from './lib/cn';
+
+// Lazy-loaded page components for code splitting
+const HostsPage = lazy(() => import('./pages/Hosts').then(m => ({ default: m.HostsPage })));
+const VaultPage = lazy(() => import('./pages/Vault').then(m => ({ default: m.VaultPage })));
+const SecurityPage = lazy(() => import('./pages/Security').then(m => ({ default: m.SecurityPage })));
+const TopologyPage = lazy(() => import('./pages/Topology').then(m => ({ default: m.TopologyPage })));
+const MonitorPage = lazy(() => import('./pages/Monitor').then(m => ({ default: m.MonitorPage })));
+const EscalationPage = lazy(() => import('./pages/Escalation').then(m => ({ default: m.EscalationPage })));
+const FIMPage = lazy(() => import('./pages/FIM').then(m => ({ default: m.FIMPage })));
+const BaselinePage = lazy(() => import('./pages/Baseline').then(m => ({ default: m.BaselinePage })));
+const RunbookPage = lazy(() => import('./pages/Runbook').then(m => ({ default: m.RunbookPage })));
+const KnowledgePage = lazy(() => import('./pages/Knowledge').then(m => ({ default: m.KnowledgePage })));
+const ConfigPage = lazy(() => import('./pages/Config').then(m => ({ default: m.ConfigPage })));
+const WebhookPage = lazy(() => import('./pages/Webhook').then(m => ({ default: m.WebhookPage })));
+const SchedulerPage = lazy(() => import('./pages/Scheduler').then(m => ({ default: m.SchedulerPage })));
+const FileSyncPage = lazy(() => import('./pages/FileSync').then(m => ({ default: m.FileSyncPage })));
+const AdvisorPage = lazy(() => import('./pages/Advisor').then(m => ({ default: m.AdvisorPage })));
+const TerminalPage = lazy(() => import('./pages/Terminal').then(m => ({ default: m.TerminalPage })));
+const AuditLogPage = lazy(() => import('./pages/AuditLog').then(m => ({ default: m.AuditLogPage })));
+const UsersPage = lazy(() => import('./pages/Users').then(m => ({ default: m.UsersPage })));
+const AlertRulesPage = lazy(() => import('./pages/AlertRules').then(m => ({ default: m.AlertRulesPage })));
+const AlertHistoryPage = lazy(() => import('./pages/AlertHistory').then(m => ({ default: m.AlertHistoryPage })));
+const NotificationChannelsPage = lazy(() => import('./pages/NotificationChannels').then(m => ({ default: m.NotificationChannelsPage })));
+const CMDBPage = lazy(() => import('./pages/CMDB').then(m => ({ default: m.CMDBPage })));
+const TimelinePage = lazy(() => import('./pages/Timeline').then(m => ({ default: m.TimelinePage })));
+const CICDPage = lazy(() => import('./pages/CICD').then(m => ({ default: m.CICDPage })));
+const MetricsVizPage = lazy(() => import('./pages/MetricsViz').then(m => ({ default: m.MetricsVizPage })));
+const JobsPage = lazy(() => import('./pages/Jobs').then(m => ({ default: m.JobsPage })));
+
+/* ── Loading fallback ── */
+function LoadingFallback() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 border-2 border-md-primary border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm text-md-on-surface-variant">Loading...</span>
+      </div>
+    </div>
+  );
+}
 
 /* ── tab 类型 ── */
 type Tab =
@@ -333,7 +347,9 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
 
         <main className="flex-1 overflow-auto p-4 sm:p-6 pb-20 md:pb-6">
           <ErrorBoundary key={tab}>
-            {renderContent()}
+            <Suspense fallback={<LoadingFallback />}>
+              {renderContent()}
+            </Suspense>
           </ErrorBoundary>
         </main>
       </div>

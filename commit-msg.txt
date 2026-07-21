@@ -1,0 +1,25 @@
+﻿UI overhaul: 数据大屏 Dashboard + 骨架屏 Skeleton + 科技感玻璃拟态 + 动效优化
+
+### 新增
+- Dashboard 数据大屏页面（作为默认首页）
+  - 模块健康统计卡片（带数字动画 useCountUp）
+  - 模块健康状态列表
+  - 快速入口（6 个快捷导航）
+  - 30 秒自动刷新
+- Skeleton 骨架屏组件（圆形、文字、卡片模式）
+- 科技感 CSS 工具类
+  - glass-card（玻璃拟态+毛玻璃效果+悬浮光晕）
+  - glow-border（渐变发光边框动画）
+  - gradient-text（渐变文字）
+  - animate-slide-up / animate-scale-in / animate-float 等动效
+  - skeleton shimmer 动画
+
+### 改造
+- App.tsx: 新增 dashboard 路由为默认页，侧边栏重构为分类折叠布局
+- ModuleBrowser: 表格 → 玻璃卡片列表，增加骨架屏 loading 态
+- HealthDashboard: 增加骨架屏，统计卡片改为玻璃拟态布局
+- LoginPage: 科技感重设计（网格背景、光晕、玻璃卡片、渐变按钮、图标前缀输入框）
+- index.css: 统一 Typography（字重/间距优化），新增动画 keyframes
+
+### 效果
+- TS 零错误，vite build 通过
