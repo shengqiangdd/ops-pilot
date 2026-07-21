@@ -141,7 +141,10 @@ const en: Record<string, string> = {
   'terminal.reconnect': 'Reconnect',
   'terminal.disconnect': 'Disconnect',
   'terminal.ssh': 'WebSSH',
-  'terminal.select_host_hint': 'Please select a host from the Hosts page and click the "WebSSH" button to connect.',
+  'terminal.no_connections': 'No connections',
+  'terminal.new_connection': 'New Connection',
+  'terminal.select_host_hint': 'Select a host',
+  'terminal.cancel': 'Cancel',
   'terminal.go_to_hosts': 'Go to Hosts',
 
   /* Audit page */

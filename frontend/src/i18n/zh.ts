@@ -145,7 +145,10 @@ const zh: Record<string, string> = {
   'terminal.reconnect': '重新连接',
   'terminal.disconnect': '断开连接',
   'terminal.ssh': 'WebSSH',
-  'terminal.select_host_hint': '请从主机管理页面选择一台主机，然后点击「WebSSH」按钮连接终端。',
+  'terminal.no_connections': '暂无连接',
+  'terminal.new_connection': '新建连接',
+  'terminal.select_host_hint': '选择一台主机',
+  'terminal.cancel': '取消',
   'terminal.go_to_hosts': '前往主机管理',
 
   /* Audit page */
