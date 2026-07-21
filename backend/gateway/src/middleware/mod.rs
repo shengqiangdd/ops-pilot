@@ -103,6 +103,7 @@ mod tests {
                 password_hash TEXT NOT NULL,
                 vault_key_encrypted TEXT,
                 vault_password_hash TEXT,
+                role TEXT NOT NULL DEFAULT 'operator',
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )",
         )
@@ -199,6 +200,7 @@ mod tests {
     async fn test_auth_layer_extractor_present() {
         let claims = UserIdClaims {
             sub: "user-1".into(),
+            role: "admin".into(),
             iat: 1000000,
             exp: 10086400,
         };

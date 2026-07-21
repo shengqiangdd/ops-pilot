@@ -623,7 +623,7 @@ mod tests {
         let resp = create_service(State(state.clone()), Json(req)).await.into_response();
         assert_eq!(resp.status(), StatusCode::CREATED);
 
-        let resp = list_services(State(state), axum::extract::Query(std::collections::HashMap::new())).await.into_response();
+        let resp = list_services(State(state), axum::extract::Query(ServiceQuery { search: None, status: None })).await.into_response();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 }

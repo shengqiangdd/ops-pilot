@@ -129,7 +129,7 @@ impl CommandExecutor {
             let command = command.clone();
 
             join_set.spawn(async move {
-                let result = Self::exec_on_host_inner(&pool, &host_id, &command).await;
+                let result = Self::exec_on_host_inner(pool, &host_id, &command).await;
                 (host_id, result)
             });
         }
@@ -149,66 +149,15 @@ impl CommandExecutor {
         results
     }
 
-    /// Internal helper that takes the pool directly (avoids borrowing `self`
-    /// across spawned tasks).
+    /// Internal helper that calls `exec_on_host` via a temporary executor.
+    /// Avoids borrowing `self` across spawned tasks in `exec_on_all`.
     async fn exec_on_host_inner(
-        pool: &SshConnectionPool,
+        pool: Arc<SshConnectionPool>,
         host_id: &str,
         command: &str,
     ) -> Result<CommandResult, SshError> {
-        let conn = pool.get(host_id).await?;
-        let start = Instant::now();
-
-        let handle = conn.handle.read().await;
-        let channel = handle
-            .channel_open_session()
-            .await
-            .map_err(|e| SshError::Channel(format!("failed to open channel: {}", e)))?;
-
-        channel
-            .exec(true, command.as_bytes())
-            .await
-            .map_err(|e| SshError::Channel(format!("exec failed: {}", e)))?;
-
-        let mut stdout = String::new();
-        let mut stderr = String::new();
-        let mut exit_code: Option<i32> = None;
-        let mut channel = channel;
-
-        while let Some(msg) = channel.wait().await {
-            match msg {
-                ChannelMsg::Data { data } => {
-                    stdout.push_str(&String::from_utf8_lossy(&data));
-                }
-                ChannelMsg::ExtendedData { data, .. } => {
-                    stderr.push_str(&String::from_utf8_lossy(&data));
-                }
-                ChannelMsg::ExitStatus { exit_status } => {
-                    exit_code = Some(exit_status as i32);
-                }
-                ChannelMsg::Eof => break,
-                _ => continue,
-            }
-        }
-
-        let duration_ms = start.elapsed().as_millis() as u64;
-
-        debug!(
-            host_id,
-            command_len = command.len(),
-            stdout_len = stdout.len(),
-            stderr_len = stderr.len(),
-            ?exit_code,
-            duration_ms,
-            "command completed"
-        );
-
-        Ok(CommandResult {
-            stdout,
-            stderr,
-            exit_code,
-            duration_ms,
-        })
+        let executor = CommandExecutor { pool };
+        executor.exec_on_host(host_id, command).await
     }
 
     /// Get a reference to the underlying connection pool.

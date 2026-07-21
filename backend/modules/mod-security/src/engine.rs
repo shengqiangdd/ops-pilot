@@ -1,5 +1,7 @@
 //! Security scanning engine: CIS benchmarks, vulnerability rules, and compliance checks.
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -49,9 +51,11 @@ pub struct ScanOutput {
     pub results: Vec<ScanResult>,
 }
 
-/// The security scanning engine.
+/// The security scanning engine with category-based rule indexing.
 pub struct SecurityEngine {
     rules: Vec<SecurityRule>,
+    /// category -> rule indices for O(1) category lookup
+    rules_by_category: HashMap<String, Vec<usize>>,
 }
 
 impl Default for SecurityEngine {
@@ -62,8 +66,14 @@ impl Default for SecurityEngine {
 
 impl SecurityEngine {
     pub fn new() -> Self {
+        let rules = builtin_rules();
+        let mut rules_by_category: HashMap<String, Vec<usize>> = HashMap::new();
+        for (i, rule) in rules.iter().enumerate() {
+            rules_by_category.entry(rule.category.clone()).or_default().push(i);
+        }
         Self {
-            rules: builtin_rules(),
+            rules,
+            rules_by_category,
         }
     }
 
@@ -74,15 +84,30 @@ impl SecurityEngine {
 
     /// Run a scan for the given check type and optional check IDs.
     ///
-    /// If `check_ids` is empty, all rules matching `check_type` are evaluated.
+    /// If `check_ids` is empty, all rules matching `check_type` are evaluated
+    /// using the category-based index for O(1) lookup.
     /// In a production deployment this would SSH into the host and inspect real state;
     /// here we simulate deterministic results for testing.
     pub fn scan(&self, host_id: &str, check_type: &str, check_ids: &[String]) -> ScanOutput {
         let applicable: Vec<&SecurityRule> = if check_ids.is_empty() {
-            self.rules
-                .iter()
-                .filter(|r| r.matches_check_type(check_type))
-                .collect()
+            let indices: Vec<usize> = match check_type {
+                "cis_linux" | "cis" => {
+                    self.rules_by_category.get("cis").cloned().unwrap_or_default()
+                }
+                "vulnerability" => {
+                    self.rules_by_category.get("vulnerability").cloned().unwrap_or_default()
+                }
+                "cis_docker" | "docker" => {
+                    self.rules_by_category.get("docker").cloned().unwrap_or_default()
+                }
+                "patch" => {
+                    self.rules_by_category.get("patch").cloned().unwrap_or_default()
+                }
+                _ => {
+                    (0..self.rules.len()).collect()
+                }
+            };
+            indices.iter().map(|&i| &self.rules[i]).collect()
         } else {
             self.rules
                 .iter()

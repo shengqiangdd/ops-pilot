@@ -102,14 +102,10 @@ impl AlertDeduplicator {
     }
 
     /// Create a simple fingerprint from an alert message.
-    /// Strips numeric noise (timestamps, IPs) and hashes the result.
+    /// Uses the raw message content hashed via SipHash.
     fn fingerprint(message: &str) -> u64 {
-        let normalized: String = message
-            .chars()
-            .filter(|c| c.is_alphabetic() || c.is_whitespace())
-            .collect();
         let mut hasher = DefaultHasher::new();
-        normalized.hash(&mut hasher);
+        message.hash(&mut hasher);
         hasher.finish()
     }
 

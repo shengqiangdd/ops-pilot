@@ -611,6 +611,7 @@ mod tests {
                 password_hash TEXT NOT NULL,
                 vault_key_encrypted TEXT,
                 vault_password_hash TEXT,
+                role TEXT NOT NULL DEFAULT 'operator',
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )",
         )
@@ -715,12 +716,14 @@ mod tests {
     async fn test_user_id_claims_serialization() {
         let claims = UserIdClaims {
             sub: "user-123".into(),
+            role: "admin".into(),
             iat: 1000000,
             exp: 10086400,
         };
         let json = serde_json::to_string(&claims).unwrap();
         let deserialized: UserIdClaims = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.sub, "user-123");
+        assert_eq!(deserialized.role, "admin");
         assert_eq!(deserialized.exp, 10086400);
     }
 

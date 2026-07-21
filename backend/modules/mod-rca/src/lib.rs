@@ -102,6 +102,10 @@ impl OpsModule for ModRca {
                         "limit": {
                             "type": "integer",
                             "description": "Maximum number of history entries to return (default 10)"
+                        },
+                        "offset": {
+                            "type": "integer",
+                            "description": "Number of entries to skip from the end (default 0)"
                         }
                     }
                 }),
@@ -160,12 +164,23 @@ impl OpsModule for ModRca {
             }
             "rca_history" => {
                 let limit = params.get("limit").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+                let offset = params.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
 
                 let analyzer = self.analyzer.read().await;
                 let history = analyzer.history();
-                let start = history.len().saturating_sub(limit);
-                let entries: Vec<&RcaHistoryEntry> = history[start..].iter().collect();
-                Ok(serde_json::to_value(&entries)?)
+                let total = history.len();
+                let start = total.saturating_sub(limit + offset).min(total);
+                let end = total.saturating_sub(offset).min(total);
+                let entries: Vec<&RcaHistoryEntry> = if end > start {
+                    history[start..end].iter().collect()
+                } else {
+                    Vec::new()
+                };
+                Ok(serde_json::json!({
+                    "total": total,
+                    "offset": offset,
+                    "entries": entries
+                }))
             }
             "rca_analyze_with_llm" => {
                 let symptoms_map = params
@@ -371,7 +386,7 @@ mod tests {
             .await
             .unwrap();
 
-        let history = result.as_array().unwrap();
+        let history = result["entries"].as_array().unwrap();
         assert_eq!(history.len(), 1);
     }
 

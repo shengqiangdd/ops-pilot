@@ -54,7 +54,7 @@ pub async fn list_audit_logs(
 
     // Count total matching rows
     let mut count_builder: sqlx::QueryBuilder<Sqlite> =
-        sqlx::QueryBuilder::new("SELECT COUNT(*) FROM audit_log WHERE 1=1");
+        sqlx::QueryBuilder::new("SELECT COUNT(*) as \"count\" FROM audit_log WHERE 1=1");
 
     apply_filters(&mut count_builder, &query);
 
