@@ -148,10 +148,18 @@ fn generate_report_html(report_type: &str, sections: &[String], _host_ids: &[Str
     )
 }
 
+fn pseudo_random(seed: u64) -> f64 {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64;
+    ((nanos.wrapping_mul(6364136223846793005).wrapping_add(seed)) % 1000) as f64 / 1000.0
+}
+
 fn generate_summary_section() -> String {
-    let cpu = 45.0 + (rand::random::<f64>() * 30.0);
-    let memory = 55.0 + (rand::random::<f64>() * 25.0);
-    let disk = 60.0 + (rand::random::<f64>() * 20.0);
+    let cpu = 45.0 + (pseudo_random(100) * 30.0);
+    let memory = 55.0 + (pseudo_random(101) * 25.0);
+    let disk = 60.0 + (pseudo_random(102) * 20.0);
 
     format!(
         r#"<div class="section">

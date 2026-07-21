@@ -39,7 +39,7 @@ pub struct DiagnosticReport {
     pub categories_json: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DiagnosticCategory {
     pub name: String,
     pub status: String,
@@ -47,7 +47,7 @@ pub struct DiagnosticCategory {
     pub items: Vec<DiagnosticItem>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DiagnosticItem {
     pub check_name: String,
     pub status: String,
@@ -72,8 +72,17 @@ pub struct SystemStatus {
 
 // ── Diagnostic Check Functions ─────────────────────────────────────────
 
+fn pseudo_random(seed: u64) -> f64 {
+    // Simple pseudo-random based on timestamp
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64;
+    ((nanos.wrapping_mul(6364136223846793005).wrapping_add(seed)) % 1000) as f64 / 1000.0
+}
+
 fn check_cpu() -> DiagnosticItem {
-    let value = 35.0 + (rand::random::<f64>() * 40.0);
+    let value = 35.0 + (pseudo_random(1) * 40.0);
     let status = if value > 90.0 { "critical" } else if value > 80.0 { "warning" } else { "ok" };
     DiagnosticItem {
         check_name: "cpu_usage".to_string(),
@@ -90,7 +99,7 @@ fn check_cpu() -> DiagnosticItem {
 }
 
 fn check_memory() -> DiagnosticItem {
-    let value = 40.0 + (rand::random::<f64>() * 45.0);
+    let value = 40.0 + (pseudo_random(2) * 45.0);
     let status = if value > 90.0 { "critical" } else if value > 80.0 { "warning" } else { "ok" };
     DiagnosticItem {
         check_name: "memory_usage".to_string(),
@@ -107,7 +116,7 @@ fn check_memory() -> DiagnosticItem {
 }
 
 fn check_disk() -> DiagnosticItem {
-    let value = 50.0 + (rand::random::<f64>() * 40.0);
+    let value = 50.0 + (pseudo_random(3) * 40.0);
     let status = if value > 95.0 { "critical" } else if value > 85.0 { "warning" } else { "ok" };
     DiagnosticItem {
         check_name: "disk_usage".to_string(),
@@ -124,7 +133,7 @@ fn check_disk() -> DiagnosticItem {
 }
 
 fn check_network() -> DiagnosticItem {
-    let latency = 5.0 + (rand::random::<f64>() * 50.0);
+    let latency = 5.0 + (pseudo_random(4) * 50.0);
     let status = if latency > 100.0 { "critical" } else if latency > 50.0 { "warning" } else { "ok" };
     DiagnosticItem {
         check_name: "network_latency".to_string(),
@@ -142,7 +151,7 @@ fn check_network() -> DiagnosticItem {
 
 fn check_services() -> DiagnosticItem {
     let total = 10;
-    let healthy = 8 + (rand::random::<u32>() % 3) as i64;
+    let healthy = 8 + (pseudo_random(5) * 3.0) as i64;
     let status = if healthy < total / 2 { "critical" } else if healthy < total - 1 { "warning" } else { "ok" };
     DiagnosticItem {
         check_name: "service_health".to_string(),
@@ -159,7 +168,7 @@ fn check_services() -> DiagnosticItem {
 }
 
 fn check_security() -> DiagnosticItem {
-    let vulnerabilities = rand::random::<u32>() % 5;
+    let vulnerabilities = (pseudo_random(6) * 5.0) as u32;
     let status = if vulnerabilities > 3 { "critical" } else if vulnerabilities > 1 { "warning" } else { "ok" };
     DiagnosticItem {
         check_name: "security_vulnerabilities".to_string(),
