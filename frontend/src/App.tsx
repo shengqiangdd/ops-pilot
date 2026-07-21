@@ -70,6 +70,10 @@ const InspectionPage = lazy(() => import('./pages/Inspection').then(m => ({ defa
 const IdsPage = lazy(() => import('./pages/Ids').then(m => ({ default: m.IdsPage })));
 const ContainerSecPage = lazy(() => import('./pages/ContainerSec').then(m => ({ default: m.ContainerSecPage })));
 const ApiDocsPage = lazy(() => import('./pages/ApiDocs').then(m => ({ default: m.default })));
+const AlertDiagnosisPage = lazy(() => import('./pages/AlertDiagnosis').then(m => ({ default: m.AlertDiagnosisPage })));
+const GitOpsPage = lazy(() => import('./pages/GitOps').then(m => ({ default: m.GitOpsPage })));
+const DashboardLayoutsPage = lazy(() => import('./pages/DashboardLayouts').then(m => ({ default: m.DashboardLayoutsPage })));
+const AuditLogViewPage = lazy(() => import('./pages/AuditLogView').then(m => ({ default: m.AuditLogViewPage })));
 
 /* ── Loading fallback ── */
 function LoadingFallback() {
@@ -81,13 +85,15 @@ type Tab =
   | 'dashboard' | 'chat' | 'modules' | 'hosts' | 'vault' | 'security' | 'health'
   | 'backup' | 'topo' | 'monitor' | 'escalation' | 'fim' | 'baseline' | 'runbook'
   | 'knowledge' | 'config' | 'webhook' | 'scheduler' | 'filesync' | 'advisor'
-  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm' | 'ops-dashboard' | 'change-risk' | 'inspection' | 'ids' | 'container-sec';
+  | 'terminal' | 'audit' | 'users' | 'alert-rules' | 'alert-history' | 'channels' | 'cmdb' | 'timeline' | 'cicd' | 'metrics' | 'jobs' | 'diagnostics' | 'reports' | 'incidents' | 'vulnerabilities' | 'predictions' | 'slos' | 'soar' | 'remediation' | 'secrets-scan' | 'compliance' | 'threats' | 'change-analysis' | 'log-intel' | 'oncall' | 'chaos' | 'finops' | 'apm' | 'ops-dashboard' | 'change-risk' | 'inspection' | 'ids' | 'container-sec'
+  | 'alert-diagnosis' | 'gitops' | 'dashboard-layouts' | 'audit-log-view';
 
 const ALL_TABS: Tab[] = [
   'ops-dashboard', 'dashboard', 'chat', 'modules', 'backup', 'hosts', 'vault', 'security', 'health',
   'topo', 'monitor', 'escalation', 'fim', 'baseline', 'runbook',
   'knowledge', 'config', 'webhook', 'scheduler', 'filesync', 'advisor',
   'terminal', 'audit', 'users', 'alert-rules', 'alert-history', 'channels', 'cmdb', 'timeline', 'cicd', 'metrics', 'jobs', 'diagnostics', 'reports', 'incidents', 'vulnerabilities', 'predictions', 'slos', 'soar', 'remediation', 'secrets-scan', 'compliance', 'threats', 'change-analysis', 'log-intel', 'oncall', 'chaos', 'finops', 'apm', 'change-risk', 'inspection', 'ids', 'container-sec',
+  'alert-diagnosis', 'gitops', 'dashboard-layouts', 'audit-log-view',
 ];
 
 const MOBILE_TABS: Tab[] = [
@@ -148,6 +154,10 @@ const ICONS: Record<Tab, string> = {
   inspection: '🔍',
   ids: '🛡️',
   'container-sec': '🐳',
+  'alert-diagnosis': '🩺',
+  gitops: '🔀',
+  'dashboard-layouts': '📐',
+  'audit-log-view': '📋',
 };
 
 /* ── Tab role requirements ── */
@@ -206,6 +216,10 @@ const TAB_ROLES: Record<Tab, Role[]> = {
   inspection: ['operator', 'admin'],
   ids: ['operator', 'admin'],
   'container-sec': ['operator', 'admin'],
+  'alert-diagnosis': ['operator', 'admin'],
+  gitops: ['admin'],
+  'dashboard-layouts': ['operator', 'admin'],
+  'audit-log-view': ['admin'],
 };
 
 const ROLE_HIERARCHY: Record<Role, number> = {
@@ -227,9 +241,9 @@ const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '🖥️', catKey: 'cat.infrastructure', tabs: ['hosts', 'terminal', 'monitor', 'apm'] },
   { icon: '🛡️', catKey: 'cat.security', tabs: ['ids', 'container-sec', 'secrets-scan', 'compliance', 'threats'] },
   { icon: '🤖', catKey: 'cat.automation', tabs: ['change-risk', 'inspection', 'cicd', 'jobs'] },
-  { icon: '🔔', catKey: 'cat.monitor', tabs: ['health', 'metrics', 'incidents', 'slos'] },
-  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline'] },
-  { icon: '🔧', catKey: 'cat.integration', tabs: ['backup', 'audit', 'users'] },
+  { icon: '🔔', catKey: 'cat.monitor', tabs: ['health', 'metrics', 'incidents', 'slos', 'alert-diagnosis'] },
+  { icon: '🧠', catKey: 'cat.intelligence', tabs: ['diagnostics', 'reports', 'advisor', 'timeline', 'audit-log-view'] },
+  { icon: '🔧', catKey: 'cat.integration', tabs: ['backup', 'audit', 'users', 'gitops', 'dashboard-layouts'] },
 ];
 
 /* ── 侧边栏分类名称翻译 ── */
@@ -339,6 +353,10 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
       case 'inspection': return <InspectionPage />;
       case 'ids': return <IdsPage />;
       case 'container-sec': return <ContainerSecPage />;
+      case 'alert-diagnosis': return <AlertDiagnosisPage />;
+      case 'gitops': return <GitOpsPage />;
+      case 'dashboard-layouts': return <DashboardLayoutsPage />;
+      case 'audit-log-view': return <AuditLogViewPage />;
       default: return <Dashboard />;
     }
   };
