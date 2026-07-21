@@ -93,6 +93,13 @@ jobs:
       - name: cargo clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
+      - name: cargo audit (security advisory check)
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+
       - name: cargo test
         run: cargo test --workspace --all-targets
 
