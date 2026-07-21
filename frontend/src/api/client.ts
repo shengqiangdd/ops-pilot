@@ -65,6 +65,12 @@ import type {
   Vulnerability,
   CreateVulnerabilityInput,
   VulnerabilityStats,
+  AnalyzePredictionInput,
+  PredictionResult,
+  RiskItem,
+  SLO,
+  CreateSloInput,
+  BurnRateAlert,
 } from './types';
 
 const BASE = '/api';
@@ -723,4 +729,50 @@ export const api = {
     requestWithAuth<{ status: string; new_vulnerabilities: number }>('/vulnerabilities/scan', token, {
       method: 'POST',
     }),
+
+  // ── Predictions ────────────────────────────────────────────────────
+
+  analyzePrediction: (token: string, input: AnalyzePredictionInput) =>
+    requestWithAuth<PredictionResult>('/predictions/analyze', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  batchPrediction: (token: string, params?: { forecast_hours?: number }) =>
+    requestWithAuth<PredictionResult[]>('/predictions/batch', token, {
+      method: 'POST',
+      body: JSON.stringify(params || {}),
+    }),
+
+  getPredictionRisks: (token: string) =>
+    requestWithAuth<RiskItem[]>('/predictions/risks', token),
+
+  // ── SLOs ───────────────────────────────────────────────────────────
+
+  listSlos: (token: string, params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    return requestWithAuth<SLO[]>(`/slos${qs ? '?' + qs : ''}`, token);
+  },
+
+  createSlo: (token: string, input: CreateSloInput) =>
+    requestWithAuth<SLO>('/slos', token, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getSlo: (token: string, sloId: string) =>
+    requestWithAuth<{ slo: SLO; events: unknown[] }>(`/slos/${sloId}`, token),
+
+  deleteSlo: (token: string, sloId: string) =>
+    requestWithAuth<void>(`/slos/${sloId}`, token, {
+      method: 'DELETE',
+    }),
+
+  evaluateSlo: (token: string, sloId: string) =>
+    requestWithAuth<SLO>(`/slos/${sloId}/evaluate`, token, {
+      method: 'POST',
+    }),
+
+  getBurnRateAlerts: (token: string) =>
+    requestWithAuth<BurnRateAlert[]>('/slos/burn-rate', token),
 };

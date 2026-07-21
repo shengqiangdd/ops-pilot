@@ -59,7 +59,9 @@ use ops_pilot_gateway::routes::cicd::cicd_routes;
 use ops_pilot_gateway::routes::diagnostics::diagnostics_routes;
 use ops_pilot_gateway::routes::incidents::incidents_routes;
 use ops_pilot_gateway::routes::jobs::jobs_routes;
+use ops_pilot_gateway::routes::predictions::predictions_routes;
 use ops_pilot_gateway::routes::reports::reports_routes;
+use ops_pilot_gateway::routes::slos::slos_routes;
 use ops_pilot_gateway::routes::timeline::timeline_routes;
 use ops_pilot_gateway::routes::vulnerabilities::vulnerabilities_routes;
 use ops_pilot_gateway::routes::ws_events_handler;
@@ -475,6 +477,8 @@ async fn main() {
         .merge(reports_routes(pool.clone()))
         .merge(incidents_routes(pool.clone()))
         .merge(vulnerabilities_routes(pool.clone()))
+        .merge(predictions_routes(pool.clone()))
+        .merge(slos_routes(pool.clone()))
         .fallback_service(static_service)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());

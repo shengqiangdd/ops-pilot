@@ -53,6 +53,8 @@ const zh: Record<string, string> = {
   'tab.reports': '报告',
   'tab.incidents': '事件',
   'tab.vulnerabilities': '漏洞',
+  'tab.predictions': '预测',
+  'tab.slos': 'SLO',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -107,6 +109,8 @@ const zh: Record<string, string> = {
   'title.reports': '运维报告',
   'title.incidents': '事件管理',
   'title.vulnerabilities': '漏洞管理',
+  'title.predictions': '容量预测',
+  'title.slos': 'SLO 管理',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -483,6 +487,50 @@ const zh: Record<string, string> = {
   'vulns.col.cvss': 'CVSS',
   'vulns.col.host': '主机',
   'vulns.col.status': '状态',
+
+  /* Predictions page */
+  'predictions.title': '容量预测',
+  'predictions.host': '主机',
+  'predictions.select_host': '选择主机',
+  'predictions.metric': '指标',
+  'predictions.analyze': '分析预测',
+  'predictions.analyzing': '分析中...',
+  'predictions.current': '当前值',
+  'predictions.predicted': '预测值',
+  'predictions.trend': '趋势',
+  'predictions.risk': '风险',
+  'predictions.confidence': '置信度',
+  'predictions.time_to_threshold': '预计达到阈值',
+  'predictions.less_than_hour': '< 1小时',
+  'predictions.hours': '小时',
+  'predictions.trend_chart': '趋势预测图',
+  'predictions.risks': '风险预警',
+  'predictions.no_risks': '暂无风险预警',
+
+  /* SLOs page */
+  'slos.title': 'SLO 管理',
+  'slos.reload': '刷新',
+  'slos.loading': '加载中...',
+  'slos.add': '创建 SLO',
+  'slos.cancel': '取消',
+  'slos.create': '创建',
+  'slos.creating': '创建中...',
+  'slos.empty': '暂无 SLO',
+  'slos.name': '名称',
+  'slos.description': '描述',
+  'slos.sli_type': 'SLI 类型',
+  'slos.type_availability': '可用性',
+  'slos.type_latency': '延迟',
+  'slos.type_error_rate': '错误率',
+  'slos.type_custom': '自定义',
+  'slos.target': '目标 (%)',
+  'slos.window_days': '时间窗口 (天)',
+  'slos.current': '当前 SLI',
+  'slos.evaluate': '评估',
+  'slos.burn_rate_alerts': '燃烧率告警',
+  'slos.budget_remaining': '剩余预算',
+  'slos.time_to_breach': '预计违约',
+  'slos.list': 'SLO 列表',
 
   /* Desk */
   'desk': '桌面',

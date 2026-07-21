@@ -785,3 +785,77 @@ export interface VulnerabilityStats {
   in_progress: number;
   fixed: number;
 }
+
+// ── Predictions types ──────────────────────────────────────────────────
+
+export interface AnalyzePredictionInput {
+  host_id: string;
+  metric_type: string;
+  forecast_hours?: number;
+  threshold?: number;
+}
+
+export interface PredictionDataPoint {
+  timestamp: string;
+  actual: number | null;
+  predicted: number | null;
+}
+
+export interface PredictionResult {
+  host_id: string;
+  metric_type: string;
+  current_value: number;
+  predicted_value: number;
+  trend: string;
+  confidence: number;
+  risk_level: string;
+  estimated_time_to_threshold_hours: number | null;
+  data_points: PredictionDataPoint[];
+}
+
+export interface RiskItem {
+  host_id: string;
+  host_name: string;
+  metric_type: string;
+  current_value: number;
+  predicted_value: number;
+  threshold: number;
+  risk_level: string;
+  estimated_time_hours: number;
+  suggestion: string;
+}
+
+// ── SLO types ──────────────────────────────────────────────────────────
+
+export interface SLO {
+  id: string;
+  name: string;
+  description: string;
+  service_id: string;
+  sli_type: string;
+  target_percentage: number;
+  window_days: number;
+  current_sli: number;
+  error_budget_remaining: number;
+  status: string;
+  created_at: string;
+}
+
+export interface CreateSloInput {
+  name: string;
+  description?: string;
+  service_id?: string;
+  sli_type: string;
+  target_percentage: number;
+  window_days?: number;
+}
+
+export interface BurnRateAlert {
+  slo_id: string;
+  slo_name: string;
+  burn_rate: number;
+  error_budget_remaining: number;
+  estimated_breach_hours: number;
+  severity: string;
+  suggestion: string;
+}
