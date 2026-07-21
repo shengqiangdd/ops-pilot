@@ -1,3 +1,4 @@
+import { apiCache } from './cache';
 import type {
   ModuleInfo,
   ModuleHealth,
@@ -149,6 +150,28 @@ async function requestWithAuth<T>(
   return res.json();
 }
 
+/** Cached version of requestWithAuth — caches GET responses for 30s by default. */
+async function requestWithAuthCached<T>(
+  path: string,
+  token: string,
+  opts?: { ttl?: number; forceRefresh?: boolean },
+): Promise<T> {
+  const method = 'GET';
+  const cacheKey = `${method}:${path}:${token.slice(0, 8)}`;
+  if (!opts?.forceRefresh) {
+    const cached = apiCache.get<T>(cacheKey);
+    if (cached !== null) return cached;
+  }
+  const data = await requestWithAuth<T>(path, token);
+  apiCache.set(cacheKey, data, opts?.ttl ?? 30000);
+  return data;
+}
+
+/** Invalidate cache entries related to a path prefix (called after mutations). */
+function invalidateCache(pathPrefix: string): void {
+  apiCache.invalidateByPrefix(`GET:${pathPrefix}`);
+}
+
 export const api = {
   // ── Modules ────────────────────────────────────────────────────────────
 
@@ -183,18 +206,22 @@ export const api = {
 
   // ── Hosts ──────────────────────────────────────────────────────────────
 
-  listHosts: (token: string) => requestWithAuth<Host[]>('/api/hosts', token),
+  listHosts: (token: string) => requestWithAuthCached<Host[]>('/api/hosts', token, { ttl: 60000 }),
 
-  createHost: (token: string, input: CreateHostInput) =>
-    requestWithAuth<Host>('/api/hosts', token, {
+  createHost: (token: string, input: CreateHostInput) => {
+    invalidateCache('/api/hosts');
+    return requestWithAuth<Host>('/api/hosts', token, {
       method: 'POST',
       body: JSON.stringify(input),
-    }),
+    });
+  },
 
-  deleteHost: (token: string, id: string) =>
-    requestWithAuth<void>(`/api/hosts/${encodeURIComponent(id)}`, token, {
+  deleteHost: (token: string, id: string) => {
+    invalidateCache('/api/hosts');
+    return requestWithAuth<void>(`/api/hosts/${encodeURIComponent(id)}`, token, {
       method: 'DELETE',
-    }),
+    });
+  },
 
   // ── Auth ───────────────────────────────────────────────────────────────
 

@@ -14,6 +14,8 @@ export default defineConfig({
     },
   },
   build: {
+    cssCodeSplit: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -22,6 +24,9 @@ export default defineConfig({
           'vendor-motion': ['framer-motion'],
           'vendor-markdown': ['react-markdown'],
         },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
   },
