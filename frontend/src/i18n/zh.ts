@@ -47,6 +47,7 @@ const zh: Record<string, string> = {
   'tab.cmdb': 'CMDB',
   'tab.timeline': '时间线',
   'tab.cicd': 'CI/CD',
+  'tab.metrics': '指标',
 
   /* Tab titles (page heading) */
   'title.dashboard': '数据大屏',
@@ -95,6 +96,7 @@ const zh: Record<string, string> = {
   'title.cmdb': '配置管理',
   'title.timeline': '事件时间线',
   'title.cicd': 'CI/CD 流水线',
+  'title.metrics_viz': '指标仪表盘',
 
   /* Terminal page */
   'terminal.title': 'Web 终端',
@@ -305,6 +307,23 @@ const zh: Record<string, string> = {
   'cicd.deploy_col.version': '版本',
   'cicd.deploy_col.status': '状态',
   'cicd.deploy_col.actions': '操作',
+
+  /* Monitor page */
+  'monitor.enhanced_view': '增强视图',
+  'monitor.collecting': '采集中...',
+
+  /* Metrics Visualization page */
+  'metrics.host': '主机',
+  'metrics.select_host': '选择主机',
+  'metrics.time_range': '时间范围',
+  'metrics.refresh': '刷新间隔',
+  'metrics.refresh_now': '立即刷新',
+  'metrics.dashboard_title': '实时指标监控',
+  'metrics.no_data': '暂无数据',
+  'metrics.thresholds': '告警阈值',
+  'metrics.threshold_cpu': 'CPU',
+  'metrics.threshold_memory': '内存',
+  'metrics.threshold_disk': '磁盘',
 
   /* Desk */
   'desk': '桌面',

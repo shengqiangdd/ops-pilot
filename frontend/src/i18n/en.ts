@@ -44,6 +44,7 @@ const en: Record<string, string> = {
   'tab.cmdb': 'CMDB',
   'tab.timeline': 'Timeline',
   'tab.cicd': 'CI/CD',
+  'tab.metrics': 'Metrics',
 
   'title.dashboard': 'Dashboard',
 
@@ -91,6 +92,7 @@ const en: Record<string, string> = {
   'title.cmdb': 'Configuration Management',
   'title.timeline': 'Event Timeline',
   'title.cicd': 'CI/CD Pipelines',
+  'title.metrics_viz': 'Metrics Dashboard',
 
   /* Terminal page */
   'terminal.title': 'Web Terminal',
@@ -301,6 +303,23 @@ const en: Record<string, string> = {
   'cicd.deploy_col.version': 'Version',
   'cicd.deploy_col.status': 'Status',
   'cicd.deploy_col.actions': 'Actions',
+
+  /* Monitor page */
+  'monitor.enhanced_view': 'Enhanced View',
+  'monitor.collecting': 'Collecting...',
+
+  /* Metrics Visualization page */
+  'metrics.host': 'Host',
+  'metrics.select_host': 'Select host',
+  'metrics.time_range': 'Time Range',
+  'metrics.refresh': 'Refresh Interval',
+  'metrics.refresh_now': 'Refresh Now',
+  'metrics.dashboard_title': 'Real-time Metrics',
+  'metrics.no_data': 'No data available',
+  'metrics.thresholds': 'Alert Thresholds',
+  'metrics.threshold_cpu': 'CPU',
+  'metrics.threshold_memory': 'Memory',
+  'metrics.threshold_disk': 'Disk',
 
   'modules.title': 'Modules',
   'modules.reload': 'Reload',
