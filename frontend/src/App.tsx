@@ -8,8 +8,9 @@ import { AgentChat } from './components/AgentChat';
 import { LoginPage } from './pages/Login';
 import { useAuthStore } from './stores/useAuthStore';
 import { useVaultStore } from './stores/useVaultStore';
-import { ErrorBoundary, installGlobalErrorListener } from './components/ErrorBoundary';
+import { ErrorBoundary, GlobalErrorLogger, useErrorCountBadge, installGlobalErrorListener } from './components/ErrorBoundary';
 import { useKeyboardShortcuts, useNavigationShortcuts } from './hooks/useKeyboardShortcuts';
+import { WSStatusIndicator } from './components/WSStatusIndicator';
 import { ShortcutHelp } from './components/ShortcutHelp';
 import { useTheme } from './components/ThemeProvider';
 import { ThemePicker } from './components/ThemePicker';
@@ -265,7 +266,7 @@ const SIDEBAR_ITEMS: { icon: string; catKey: string; tabs: Tab[] }[] = [
   { icon: '🔧', catKey: 'cat.integration', tabs: ['backup', 'audit', 'users', 'gitops', 'dashboard-layouts'] },
 ];
 
-/* ── 侧边栏分类名称翻译 ── */
+/* ── 侧边栏分类名称翻译（fallback） ── */
 const CAT_KEY_LABELS: Record<string, string> = {
   'cat.overview': '总览大屏',
   'cat.dashboard': '可配置面板',
@@ -487,6 +488,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
           >
             <span className="text-lg">🚪</span>
             <span>{t('nav.logout')}</span>
+            <ErrorCountBadge />
           </button>
         </div>
       </aside>
@@ -497,13 +499,14 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
           <h1 className="text-title-large font-semibold text-md-on-surface">
             {tab === 'dashboard' ? (
               <>
-                <span className="gradient-text">数据大屏</span>
-                <span className="text-body-medium text-md-on-surface-variant ml-3 font-normal">实时运维总览</span>
+                <span className="gradient-text">{t('title.dashboard')}</span>
+                <span className="text-body-medium text-md-on-surface-variant ml-3 font-normal">{t('dashboard.subtitle')}</span>
               </>
             ) : t('title.' + tab)}
           </h1>
           <div className="flex items-center gap-3">
             <GlobalSearch />
+            <WSStatusIndicator />
             <span className="text-sm text-md-on-surface-variant hidden sm:inline mr-1">{username}</span>
             <ThemePicker />
             <button
@@ -561,10 +564,7 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
             )}
           >
             <span className="text-xl">{ICONS[key]}</span>
-            <span>{
-              key === 'dashboard' ? '概览'
-              : t('tab.' + key)
-            }</span>
+            <span>{t('tab.' + key)}</span>
           </button>
         ))}
       </nav>
@@ -572,9 +572,21 @@ function AppShell({ initialTab }: { initialTab?: Tab } = {}) {
   );
 }
 
+// ── Error badge component ──
+function ErrorCountBadge() {
+  const count = useErrorCountBadge();
+  if (count === 0) return null;
+  return (
+    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-md-full bg-md-error text-white text-[11px] font-bold leading-none animate-scale-in">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
 /* ── 根组件 ── */
 export function App() {
   const { token } = useAuthStore();
+  const { t } = useI18n();
   const { shortcuts, showHelp, setShowHelp } = useNavigationShortcuts();
 
   useKeyboardShortcuts(shortcuts);
@@ -585,6 +597,7 @@ export function App() {
 
   return (
     <ErrorBoundary>
+      <GlobalErrorLogger />
       <ShortcutHelp shortcuts={shortcuts} open={showHelp} onClose={() => setShowHelp(false)} />
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
@@ -593,7 +606,7 @@ export function App() {
           <div className="flex h-screen bg-md-background">
             <div className="flex-1 flex flex-col min-w-0">
               <header className="h-16 flex items-center px-6 bg-md-surface-container/70 backdrop-blur-xl border-b border-md-outline-variant/50">
-                <h1 className="text-title-large font-semibold text-md-on-surface">🤖 AI 运维助手</h1>
+                <h1 className="text-title-large font-semibold text-md-on-surface">🤖 {t('title.advisor')}</h1>
               </header>
               <main className="flex-1 overflow-hidden p-4 sm:p-6">
                 <AdvisorChatPage />

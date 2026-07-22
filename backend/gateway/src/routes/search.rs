@@ -118,3 +118,126 @@ async fn search_handler(
 
     Json(serde_json::json!({"results": results}))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http::{Method, Request, StatusCode};
+    use tower::ServiceExt;
+
+    async fn setup_pool() -> SqlitePool {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS hosts (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                ip TEXT NOT NULL
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO hosts (id, name, ip) VALUES ('h1', 'web-server', '10.0.0.1')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO hosts (id, name, ip) VALUES ('h2', 'db-server', '10.0.0.2')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool
+    }
+
+    #[tokio::test]
+    async fn test_search_empty_query() {
+        let pool = setup_pool().await;
+        let app = search_routes(pool);
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("/api/search?q=")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body: serde_json::Value = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .map(|b| serde_json::from_slice(&b).unwrap())
+            .unwrap();
+        assert!(body["results"].as_array().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_search_hosts_by_name() {
+        let pool = setup_pool().await;
+        let app = search_routes(pool);
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("/api/search?q=web")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body: serde_json::Value = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .map(|b| serde_json::from_slice(&b).unwrap())
+            .unwrap();
+        let results = body["results"].as_array().unwrap();
+        assert!(!results.is_empty());
+        let types: Vec<&str> = results
+            .iter()
+            .filter_map(|r| r["type"].as_str())
+            .collect();
+        assert!(types.contains(&"host"));
+    }
+
+    #[tokio::test]
+    async fn test_search_hosts_by_ip() {
+        let pool = setup_pool().await;
+        let app = search_routes(pool);
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("/api/search?q=10.0.0.2")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body: serde_json::Value = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .map(|b| serde_json::from_slice(&b).unwrap())
+            .unwrap();
+        let results = body["results"].as_array().unwrap();
+        assert!(!results.is_empty());
+        assert!(results.iter().any(|r| r["label"] == "db-server"));
+    }
+
+    #[tokio::test]
+    async fn test_search_no_matches() {
+        let pool = setup_pool().await;
+        let app = search_routes(pool);
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("/api/search?q=zzzznonexistent")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body: serde_json::Value = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .map(|b| serde_json::from_slice(&b).unwrap())
+            .unwrap();
+        assert!(body["results"].as_array().unwrap().is_empty());
+    }
+}

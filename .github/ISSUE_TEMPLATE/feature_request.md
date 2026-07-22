@@ -1,66 +1,29 @@
 ---
 name: Feature Request
-about: Suggest a new feature or improvement for OpsPilot
-title: "[Feature] "
+about: 为 OpsPilot 提出一个新功能或增强建议
+title: '[Feature] '
 labels: enhancement
 assignees: ''
 ---
 
-## Problem Statement
+**你的功能请求与某个问题相关吗？请描述。**
+清晰简洁地描述问题，例如：当 [...] 时，我总是感到不便。
 
-Describe the problem or limitation you're facing. What's the pain point?
+**描述你希望的解决方案**
+清晰简洁地描述你期望的行为或功能。
 
-> Example: "When managing 50+ servers, I need to manually check disk usage across all hosts. There's no automated way to get a unified view."
+**备选方案**
+描述你考虑过的其他解决方案或变通方法。
 
-## Proposed Solution
+**实现建议（可选）**
+如果你对实现方式有初步想法，可以在这里描述：
 
-Describe the solution you'd like. Be as specific as possible.
+- API 端点或数据结构变更
+- UI/UX 交互方式
+- 涉及哪些模块或组件
 
-> Example: "Add a dashboard widget that shows disk usage across all hosts, sorted by usage percentage, with color-coded warnings."
+**附加上下文**
+补充说明。可以包含截图、示例代码或参考链接。
 
-## Alternatives Considered
-
-Describe any alternative solutions or workarounds you've considered.
-
-> Example:
-> - "I tried using `df -h` across all hosts via SSH, but it's slow and error-prone"
-> - "I set up a custom script with Ansible, but it doesn't integrate with the existing UI"
-
-## Use Cases
-
-Describe the real-world scenarios where this feature would be useful.
-
-1. As an infrastructure engineer managing 50+ servers...
-2. During incident response, when I need to quickly identify...
-3. For cost optimization, when I want to...
-
-## Module Relevance
-
-Does this feature relate to a specific module?
-
-- [ ] mod-core (host management, SSH, Docker)
-- [ ] mod-rca (root cause analysis)
-- [ ] mod-finops (cost optimization)
-- [ ] mod-security (security scanning)
-- [ ] mod-topo (topology visualization)
-- [ ] mod-chatops (chat integration)
-- [ ] Core Engine (cross-cutting concern)
-- [ ] Web UI
-- [ ] API
-- [ ] Other: ___________
-
-## UI Mockups
-
-If applicable, add mockups or wireframes of the proposed UI changes.
-
-## Additional Context
-
-Add any other context, screenshots, or examples about the feature request here. Links to related issues, external tools, or documentation are welcome.
-
-## Would You Like to Contribute?
-
-If you're interested in implementing this feature yourself, let us know!
-
-- [ ] Yes, I'd like to implement this feature
-- [ ] Yes, but I'll need guidance
-- [ ] No, I'm just suggesting the idea
+**你的使用场景**
+简要描述你计划如何使用这个功能，帮助开发者理解优先级。

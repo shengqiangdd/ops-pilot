@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useI18n } from '../i18n';
 
 interface DashboardLayout {
   id: string;
@@ -9,6 +10,7 @@ interface DashboardLayout {
 }
 
 export function DashboardLayoutsPage() {
+  const { t } = useI18n();
   const [layouts, setLayouts] = useState<DashboardLayout[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -36,7 +38,7 @@ export function DashboardLayoutsPage() {
     try {
       JSON.parse(newJson);
     } catch {
-      setError('JSON 格式无效');
+      setError(t('dashboard_layouts.invalid_json'));
       return;
     }
     try {
@@ -45,7 +47,7 @@ export function DashboardLayoutsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName, layout_json: newJson }),
       });
-      if (!resp.ok) throw new Error('创建失败');
+      if (!resp.ok) throw new Error(t('dashboard_layouts.create_failed'));
       setShowCreate(false);
       setNewName('');
       setNewJson('');
@@ -56,7 +58,7 @@ export function DashboardLayoutsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除此布局？')) return;
+    if (!confirm(t('dashboard_layouts.delete_confirm'))) return;
     try {
       await fetch(`/api/dashboard/layouts/${id}`, { method: 'DELETE' });
       fetchLayouts();
@@ -81,7 +83,7 @@ export function DashboardLayoutsPage() {
     try {
       JSON.parse(editing.layout_json);
     } catch {
-      setError('JSON 格式无效');
+      setError(t('dashboard_layouts.invalid_json'));
       return;
     }
     try {
@@ -90,7 +92,7 @@ export function DashboardLayoutsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: editing.name, layout_json: editing.layout_json }),
       });
-      if (!resp.ok) throw new Error('更新失败');
+      if (!resp.ok) throw new Error(t('dashboard_layouts.update_failed'));
       setEditing(null);
       fetchLayouts();
     } catch (e: any) {
@@ -102,12 +104,12 @@ export function DashboardLayoutsPage() {
     <div className="space-y-6">
       <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-md-on-surface">仪表盘布局管理</h2>
+          <h2 className="text-lg font-semibold text-md-on-surface">{t('dashboard_layouts.title')}</h2>
           <button
             onClick={() => { setShowCreate(!showCreate); setEditing(null); }}
             className="px-4 py-1.5 rounded-md-lg text-sm font-medium bg-md-primary text-md-on-primary hover:opacity-90 transition-all"
           >
-            {showCreate ? '取消' : '+ 新建布局'}
+            {showCreate ? t('dashboard_layouts.cancel') : '+ ' + t('dashboard_layouts.new')}
           </button>
         </div>
 
@@ -115,20 +117,20 @@ export function DashboardLayoutsPage() {
           <div className="mb-4 p-3 rounded-md-lg bg-red-50 text-red-600 text-sm">{error}</div>
         )}
 
-        {/* 新建表单 */}
+        {/* Create form */}
         {showCreate && (
           <div className="mb-6 p-4 rounded-md-lg border border-md-outline-variant bg-md-surface-container/30 space-y-3">
             <input
               type="text"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              placeholder="布局名称"
+              placeholder={t('dashboard_layouts.name')}
               className="w-full px-3 py-2 rounded-md-lg bg-md-surface border border-md-outline-variant text-md-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-md-primary/50"
             />
             <textarea
               value={newJson}
               onChange={e => setNewJson(e.target.value)}
-              placeholder='布局 JSON，例如: {"columns": 12, "widgets": []}'
+              placeholder={`${t('dashboard_layouts.json_hint')}, ${t('dashboard_layouts.json_hint').toLowerCase()}: {"columns": 12, "widgets": []}`}
               rows={6}
               className="w-full px-3 py-2 rounded-md-lg bg-md-surface border border-md-outline-variant text-md-on-surface text-sm font-mono focus:outline-none focus:ring-2 focus:ring-md-primary/50"
             />
@@ -136,15 +138,15 @@ export function DashboardLayoutsPage() {
               onClick={handleCreate}
               className="px-4 py-1.5 rounded-md-lg text-sm font-medium bg-md-primary text-md-on-primary hover:opacity-90"
             >
-              保存
+              {t('dashboard_layouts.save')}
             </button>
           </div>
         )}
 
-        {/* 编辑表单 */}
+        {/* Edit form */}
         {editing && (
           <div className="mb-6 p-4 rounded-md-lg border border-md-primary bg-md-primary/5 space-y-3">
-            <h3 className="text-sm font-medium text-md-on-surface">编辑: {editing.name}</h3>
+            <h3 className="text-sm font-medium text-md-on-surface">{t('dashboard_layouts.save_edit')}: {editing.name}</h3>
             <input
               type="text"
               value={editing.name}
@@ -158,17 +160,17 @@ export function DashboardLayoutsPage() {
               className="w-full px-3 py-2 rounded-md-lg bg-md-surface border border-md-outline-variant text-md-on-surface text-sm font-mono focus:outline-none focus:ring-2 focus:ring-md-primary/50"
             />
             <div className="flex gap-2">
-              <button onClick={handleSaveEdit} className="px-4 py-1.5 rounded-md-lg text-sm font-medium bg-md-primary text-md-on-primary hover:opacity-90">保存修改</button>
-              <button onClick={() => setEditing(null)} className="px-4 py-1.5 rounded-md-lg text-sm font-medium bg-md-surface-container text-md-on-surface hover:glass-card">取消</button>
+              <button onClick={handleSaveEdit} className="px-4 py-1.5 rounded-md-lg text-sm font-medium bg-md-primary text-md-on-primary hover:opacity-90">{t('dashboard_layouts.save_edit')}</button>
+              <button onClick={() => setEditing(null)} className="px-4 py-1.5 rounded-md-lg text-sm font-medium bg-md-surface-container text-md-on-surface hover:glass-card">{t('dashboard_layouts.cancel_edit')}</button>
             </div>
           </div>
         )}
 
-        {/* 布局列表 */}
+        {/* Layout list */}
         {loading ? (
-          <div className="text-center py-8 text-md-on-surface-variant">加载中...</div>
+          <div className="text-center py-8 text-md-on-surface-variant">{t('dashboard_layouts.loading')}</div>
         ) : layouts.length === 0 ? (
-          <div className="text-center py-8 text-md-on-surface-variant">暂无布局，点击"新建布局"创建第一个</div>
+          <div className="text-center py-8 text-md-on-surface-variant">{t('dashboard_layouts.empty_hint')}</div>
         ) : (
           <div className="space-y-2">
             {layouts.map(layout => (
@@ -176,12 +178,12 @@ export function DashboardLayoutsPage() {
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-medium text-md-on-surface truncate">{layout.name}</h4>
                   <p className="text-xs text-md-on-surface-variant mt-0.5">
-                    更新于 {layout.updated_at}
+                    {t('dashboard_layouts.updated_at').replace('{time}', layout.updated_at)}
                   </p>
                 </div>
                 <div className="flex gap-2 ml-4">
-                  <button onClick={() => handleLoad(layout.id)} className="px-3 py-1 rounded-md text-xs font-medium bg-md-surface-container text-md-on-surface hover:glass-card">编辑</button>
-                  <button onClick={() => handleDelete(layout.id)} className="px-3 py-1 rounded-md text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100">删除</button>
+                  <button onClick={() => handleLoad(layout.id)} className="px-3 py-1 rounded-md text-xs font-medium bg-md-surface-container text-md-on-surface hover:glass-card">{t('dashboard_layouts.edit')}</button>
+                  <button onClick={() => handleDelete(layout.id)} className="px-3 py-1 rounded-md text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100">{t('dashboard_layouts.delete')}</button>
                 </div>
               </div>
             ))}

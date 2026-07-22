@@ -1,5 +1,7 @@
 pub mod agent;
 pub mod alert;
+pub mod auth;
+pub mod health;
 pub mod search;
 pub mod anomaly_routes;
 pub mod apm;
@@ -51,6 +53,8 @@ pub use crate::terminal::terminal_routes;
 pub use crate::ws_events::ws_events_handler;
 pub use agent::agent_routes;
 pub use alert::alert_routes;
+pub use auth::auth_routes;
+pub use health::health_routes;
 pub use anomaly_routes::anomaly_routes;
 pub use apm::apm_routes;
 pub use audit::audit_routes;

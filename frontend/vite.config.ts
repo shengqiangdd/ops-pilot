@@ -16,13 +16,14 @@ export default defineConfig({
   build: {
     cssCodeSplit: true,
     sourcemap: false,
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-charts': ['recharts'],
-          'vendor-motion': ['framer-motion'],
-          'vendor-markdown': ['react-markdown'],
+          'vendor-charts': ['recharts', 'reactflow'],
+          'vendor-utils': ['date-fns', 'framer-motion', 'zustand'],
+          'vendor-xterm': ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links'],
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',

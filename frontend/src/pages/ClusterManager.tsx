@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useI18n } from '../i18n';
 
 interface Cluster {
   id: string;
@@ -21,6 +22,7 @@ interface ClusterStatus {
 }
 
 export function ClusterManagerPage() {
+  const { t } = useI18n();
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -56,7 +58,7 @@ export function ClusterManagerPage() {
           token: newToken || null,
         }),
       });
-      if (!resp.ok) throw new Error('创建失败');
+      if (!resp.ok) throw new Error(t('cluster_manager.create_failed'));
       setShowForm(false);
       setNewName('');
       setNewApiServer('');
@@ -68,7 +70,7 @@ export function ClusterManagerPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`确定删除集群 "${name}"？`)) return;
+    if (!confirm(t('cluster_manager.delete_confirm').replace('{name}', name))) return;
     try {
       await fetch(`/api/clusters/${id}`, { method: 'DELETE' });
       fetchClusters();
@@ -99,12 +101,12 @@ export function ClusterManagerPage() {
     <div className="space-y-6">
       <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-md-on-surface">Multi-Cluster 管理</h2>
+          <h2 className="text-lg font-semibold text-md-on-surface">{t('cluster_manager.title')}</h2>
           <button
             onClick={() => setShowForm(!showForm)}
             className="px-4 py-1.5 rounded-md-lg text-sm font-medium bg-md-primary text-md-on-primary hover:opacity-90 transition-all"
           >
-            {showForm ? '取消' : '+ 注册集群'}
+            {showForm ? t('cluster_manager.cancel') : '+ ' + t('cluster_manager.register')}
           </button>
         </div>
 
@@ -112,44 +114,44 @@ export function ClusterManagerPage() {
           <div className="mb-4 p-3 rounded-md-lg bg-red-50 text-red-600 text-sm">{error}</div>
         )}
 
-        {/* 注册表单 */}
+        {/* Register form */}
         {showForm && (
           <div className="mb-6 p-4 rounded-md-lg border border-md-outline-variant bg-md-surface-container/30 space-y-3">
             <input
               type="text"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              placeholder="集群名称"
+              placeholder={t('cluster_manager.name')}
               className="w-full px-3 py-2 rounded-md-lg bg-md-surface border border-md-outline-variant text-md-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-md-primary/50"
             />
             <input
               type="text"
               value={newApiServer}
               onChange={e => setNewApiServer(e.target.value)}
-              placeholder="API Server 地址 (https://...)"
+              placeholder={t('cluster_manager.api_server')}
               className="w-full px-3 py-2 rounded-md-lg bg-md-surface border border-md-outline-variant text-md-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-md-primary/50"
             />
             <input
               type="password"
               value={newToken}
               onChange={e => setNewToken(e.target.value)}
-              placeholder="认证 Token（可选）"
+              placeholder={t('cluster_manager.token')}
               className="w-full px-3 py-2 rounded-md-lg bg-md-surface border border-md-outline-variant text-md-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-md-primary/50"
             />
             <button
               onClick={handleCreate}
               className="px-4 py-1.5 rounded-md-lg text-sm font-medium bg-md-primary text-md-on-primary hover:opacity-90"
             >
-              注册
+              {t('cluster_manager.register_btn')}
             </button>
           </div>
         )}
 
-        {/* 集群列表 */}
+        {/* Cluster list */}
         {loading ? (
-          <div className="text-center py-8 text-md-on-surface-variant">加载中...</div>
+          <div className="text-center py-8 text-md-on-surface-variant">{t('cluster_manager.loading')}</div>
         ) : clusters.length === 0 ? (
-          <div className="text-center py-8 text-md-on-surface-variant">暂无集群，点击"注册集群"添加</div>
+          <div className="text-center py-8 text-md-on-surface-variant">{t('cluster_manager.add_hint')}</div>
         ) : (
           <div className="space-y-3">
             {clusters.map(cluster => (
@@ -166,47 +168,47 @@ export function ClusterManagerPage() {
                       onClick={() => handleCheckStatus(cluster.id)}
                       className="px-3 py-1 rounded-md text-xs font-medium bg-md-surface-container text-md-on-surface hover:glass-card"
                     >
-                      检查状态
+                      {t('cluster_manager.check_status')}
                     </button>
                     <button
                       onClick={() => handleDelete(cluster.id, cluster.name)}
                       className="px-3 py-1 rounded-md text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100"
                     >
-                      删除
+                      {t('cluster_manager.delete')}
                     </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-md-on-surface-variant">API Server:</span>
+                    <span className="text-md-on-surface-variant">{t('cluster_manager.api_server')}:</span>
                     <span className="ml-2 text-md-on-surface font-mono">{cluster.api_server}</span>
                   </div>
                   <div>
-                    <span className="text-md-on-surface-variant">创建时间:</span>
+                    <span className="text-md-on-surface-variant">{t('cluster_manager.created_at')}:</span>
                     <span className="ml-2 text-md-on-surface">{cluster.created_at}</span>
                   </div>
                 </div>
 
-                {/* 状态详情 */}
+                {/* Status details */}
                 {statusMap[cluster.id] && (
                   <div className="mt-3 p-3 rounded-md-lg bg-md-surface/50 border border-md-outline-variant/20">
                     <div className="grid grid-cols-4 gap-2 text-xs">
                       <div>
-                        <span className="text-md-on-surface-variant">API 可达:</span>
+                        <span className="text-md-on-surface-variant">{t('cluster_manager.api_reachable')}:</span>
                         <span className={`ml-1 font-medium ${statusMap[cluster.id].api_reachable ? 'text-green-600' : 'text-red-600'}`}>
-                          {statusMap[cluster.id].api_reachable ? '是' : '否'}
+                          {statusMap[cluster.id].api_reachable ? t('cluster_manager.yes') : t('cluster_manager.no')}
                         </span>
                       </div>
                       <div>
-                        <span className="text-md-on-surface-variant">节点数:</span>
+                        <span className="text-md-on-surface-variant">{t('cluster_manager.node_count')}:</span>
                         <span className="ml-1 text-md-on-surface font-medium">{statusMap[cluster.id].node_count}</span>
                       </div>
                       <div>
-                        <span className="text-md-on-surface-variant">版本:</span>
+                        <span className="text-md-on-surface-variant">{t('cluster_manager.version')}:</span>
                         <span className="ml-1 text-md-on-surface font-mono">{statusMap[cluster.id].version}</span>
                       </div>
                       <div>
-                        <span className="text-md-on-surface-variant">状态:</span>
+                        <span className="text-md-on-surface-variant">{t('cluster_manager.status')}:</span>
                         <span className={`ml-1 font-medium ${statusColor(statusMap[cluster.id].status)}`}>
                           {statusMap[cluster.id].status}
                         </span>

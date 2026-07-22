@@ -1,62 +1,37 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve OpsPilot
-title: "[Bug] "
+about: 提交 Bug 以帮助我们改进 OpsPilot
+title: '[Bug] '
 labels: bug
 assignees: ''
 ---
 
-## Bug Description
+**描述问题**
+清晰简洁地描述这个 Bug。
 
-A clear and concise description of what the bug is.
+**复现步骤**
+1. 前往 '...'
+2. 点击 '...'
+3. 执行操作 '...'
+4. 看到错误
 
-## Steps to Reproduce
+**预期行为**
+清晰描述你期望发生的事情。
 
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
+**截图**
+如有必要，请附上截图或日志。
 
-## Expected Behavior
+**环境信息**
+- OS: [e.g. Ubuntu 22.04, macOS 14]
+- Rust 版本: [e.g. 1.82.0]
+- Node 版本: [e.g. 20.11.0]
+- 浏览器: [e.g. Chrome 120, Firefox 121]
+- OpsPilot 版本: [e.g. v0.1.0, commit sha]
 
-A clear and concise description of what you expected to happen.
-
-## Actual Behavior
-
-A clear and concise description of what actually happened.
-
-## Screenshots / Logs
-
-If applicable, add screenshots or paste relevant log output to help explain the problem.
-
+**日志输出**
 ```
-# Paste logs here
+粘贴相关日志或错误信息
 ```
 
-## Environment
-
-- **OpsPilot Version:** [e.g., 0.1.0]
-- **Deployment Method:** [e.g., Docker Compose, manual install, Kubernetes]
-- **OS:** [e.g., Ubuntu 22.04, macOS 14, Windows 11]
-- **Rust Version:** [e.g., 1.75.0]
-- **Node.js Version:** [e.g., 20.10.0]
-- **Browser:** [e.g., Chrome 120, Firefox 121] (if UI-related)
-- **LLM Provider:** [e.g., Ollama, OpenAI, DeepSeek]
-
-## Module Information
-
-If the bug is related to a specific module:
-
-- **Module:** [e.g., mod-rca, mod-finops]
-- **Module Version:** [e.g., 0.1.0]
-
-## Additional Context
-
-Add any other context about the problem here. For example:
-- Does this happen consistently or intermittently?
-- Did this work before? If so, what changed?
-- Any relevant configuration (redact secrets)?
-
-## Possible Solution
-
-If you have a suggestion for how to fix the bug, describe it here.
+**其他上下文**
+补充说明（如部署方式 Docker / 本地开发等）。

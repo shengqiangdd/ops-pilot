@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useI18n } from '../i18n';
 
 interface SessionSummary {
   session_id: string;
@@ -21,19 +22,18 @@ interface SessionRecord {
 }
 
 export function SessionReplayPage() {
+  const { t } = useI18n();
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [records, setRecords] = useState<SessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [replaying, setReplaying] = useState(false);
 
-  // 搜索和过滤
   const [searchHost, setSearchHost] = useState('');
   const [searchUser, setSearchUser] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // 分页
   const [page, setPage] = useState(0);
   const pageSize = 20;
 
@@ -67,7 +67,6 @@ export function SessionReplayPage() {
     setReplaying(false);
   };
 
-  // 前端过滤时间范围
   const filteredSessions = sessions.filter(s => {
     if (startDate && s.started_at < startDate) return false;
     if (endDate && s.last_activity > endDate) return false;
@@ -79,22 +78,22 @@ export function SessionReplayPage() {
 
   return (
     <div className="space-y-6">
-      {/* 搜索过滤区 */}
+      {/* Filter area */}
       <div className="glass-card p-6">
-        <h2 className="text-lg font-semibold text-md-on-surface mb-4">终端操作回放</h2>
+        <h2 className="text-lg font-semibold text-md-on-surface mb-4">{t('session_replay.title')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <input
             type="text"
             value={searchHost}
             onChange={e => { setSearchHost(e.target.value); setPage(0); }}
-            placeholder="搜索主机名..."
+            placeholder={t('session_replay.filter_host')}
             className="px-4 py-2 rounded-md-lg bg-md-surface border border-md-outline-variant text-md-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-md-primary/50"
           />
           <input
             type="text"
             value={searchUser}
             onChange={e => { setSearchUser(e.target.value); setPage(0); }}
-            placeholder="搜索用户..."
+            placeholder={t('session_replay.filter_user')}
             className="px-4 py-2 rounded-md-lg bg-md-surface border border-md-outline-variant text-md-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-md-primary/50"
           />
           <input
@@ -112,35 +111,35 @@ export function SessionReplayPage() {
         </div>
         <div className="mt-3 flex items-center justify-between">
           <span className="text-xs text-md-on-surface-variant">
-            共 {filteredSessions.length} 个会话
+            {t('session_replay.total_sessions').replace('{count}', String(filteredSessions.length))}
           </span>
           <button
             onClick={() => { setSearchHost(''); setSearchUser(''); setStartDate(''); setEndDate(''); setPage(0); }}
             className="px-3 py-1 rounded-md text-xs font-medium bg-md-surface-container text-md-on-surface hover:glass-card"
           >
-            清除筛选
+            {t('session_replay.clear_filters')}
           </button>
         </div>
       </div>
 
-      {/* Session 列表 */}
+      {/* Session list */}
       <div className="glass-card p-6">
         {loading ? (
-          <div className="text-center py-8 text-md-on-surface-variant">加载中...</div>
+          <div className="text-center py-8 text-md-on-surface-variant">{t('session_replay.loading')}</div>
         ) : pagedSessions.length === 0 ? (
-          <div className="text-center py-8 text-md-on-surface-variant">暂无会话记录</div>
+          <div className="text-center py-8 text-md-on-surface-variant">{t('session_replay.empty')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-md-outline-variant/50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">会话 ID</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">主机</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">用户</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">命令数</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">开始时间</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">最后活动</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">操作</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">{t('session_replay.col_session_id')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">{t('session_replay.col_host')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">{t('session_replay.col_user')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">{t('session_replay.col_commands')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">{t('session_replay.col_start')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">{t('session_replay.col_last_activity')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-md-on-surface-variant uppercase">{t('session_replay.col_actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,7 +156,7 @@ export function SessionReplayPage() {
                         onClick={() => handleReplay(s.session_id)}
                         className="px-3 py-1 rounded-md text-xs font-medium bg-md-primary text-md-on-primary hover:opacity-90"
                       >
-                        回放
+                        {t('session_replay.replay')}
                       </button>
                     </td>
                   </tr>
@@ -167,7 +166,7 @@ export function SessionReplayPage() {
           </div>
         )}
 
-        {/* 分页 */}
+        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-md-outline-variant/30">
             <button
@@ -175,41 +174,41 @@ export function SessionReplayPage() {
               disabled={page === 0}
               className="px-3 py-1 rounded-md text-xs font-medium bg-md-surface-container text-md-on-surface disabled:opacity-50"
             >
-              上一页
+              {t('session_replay.prev')}
             </button>
             <span className="text-xs text-md-on-surface-variant">
-              第 {page + 1} / {totalPages} 页
+              {t('session_replay.page_info').replace('{page}', String(page + 1)).replace('{total}', String(totalPages))}
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
               className="px-3 py-1 rounded-md text-xs font-medium bg-md-surface-container text-md-on-surface disabled:opacity-50"
             >
-              下一页
+              {t('session_replay.next')}
             </button>
           </div>
         )}
       </div>
 
-      {/* 回放视图 */}
+      {/* Replay view */}
       {selectedSession && (
         <div className="glass-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-md font-semibold text-md-on-surface">
-              会话回放: {selectedSession.slice(0, 8)}...
+              {t('session_replay.replay_view')}: {selectedSession.slice(0, 8)}...
             </h3>
             <button
               onClick={() => { setSelectedSession(null); setRecords([]); }}
               className="px-3 py-1 rounded-md text-xs font-medium bg-md-surface-container text-md-on-surface hover:glass-card"
             >
-              关闭
+              {t('session_replay.close')}
             </button>
           </div>
 
           {replaying ? (
-            <div className="text-center py-8 text-md-on-surface-variant">加载中...</div>
+            <div className="text-center py-8 text-md-on-surface-variant">{t('session_replay.loading')}</div>
           ) : records.length === 0 ? (
-            <div className="text-center py-8 text-md-on-surface-variant">无记录</div>
+            <div className="text-center py-8 text-md-on-surface-variant">{t('session_replay.no_records')}</div>
           ) : (
             <div className="space-y-3">
               {records.map((r) => (

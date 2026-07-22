@@ -348,6 +348,28 @@ export function TerminalPage() {
           </div>
         )}
 
+        {/* Disconnected with reconnection overlay */}
+        {activeTab && activeTab.status === 'disconnected' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#1C1B1F]/80 backdrop-blur-sm z-10">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-amber-500">{t('terminal.reconnecting')}</span>
+              <button
+                onClick={() => {
+                  const tab = tabs.find(t => t.id === activeTabId);
+                  if (tab) {
+                    wsRefs.current.get(tab.id)?.close();
+                    connectTab(tab);
+                  }
+                }}
+                className="text-xs px-3 py-1 rounded-md bg-md-surface-container text-md-on-surface hover:glass-card transition-all"
+              >
+                {t('terminal.reconnect')}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Error overlay */}
         {activeTab && activeTab.status === 'error' && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#1C1B1F]/80 backdrop-blur-sm z-10">
