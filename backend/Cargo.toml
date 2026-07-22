@@ -42,9 +42,8 @@ tokio = { version = "1", features = ["full"] }
 
 # HTTP framework
 axum = { version = "0.8", features = ["ws", "json", "macros", "tokio"] }
-axum-extra = { version = "0.10", features = ["typed-header"] }
 tower = { version = "0.5", features = ["full"] }
-tower-http = { version = "0.6", features = ["cors", "trace", "limit", "fs", "set-header"] }
+tower-http = { version = "0.7", features = ["cors", "trace", "limit", "fs", "set-header"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -86,30 +85,30 @@ async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 
 # HTTP client
-reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"] }
+reqwest = { version = "0.13", features = ["json", "stream", "rustls-tls"] }
 
 # WebSocket
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 
 # Docker
-bollard = "0.19"
+bollard = "0.21"
 
 # Config
-config = "0.14"
+config = "0.15"
 
 # Crypto
 argon2 = "0.5"
-jsonwebtoken = "9"
-aes-gcm = "0.10"
+jsonwebtoken = "10"
+aes-gcm = "0.11"
 
 # CLI
 clap = { version = "4", features = ["derive", "env"] }
 
 # Rate limiting
-governor = "0.8"
+governor = "0.10"
 
 # Benchmarking
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 
 # Fuzzy matching
 fuzzy-matcher = "0.3"
@@ -119,6 +118,9 @@ base64 = "0.22"
 
 # Terminal
 portable-pty = "0.8"
+
+# Random
+rand = "0.10"
 
 # OpenTelemetry
 opentelemetry = "0.32"

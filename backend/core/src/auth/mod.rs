@@ -167,7 +167,7 @@ impl AuthService {
             return Err(AuthError::PasswordTooShort);
         }
 
-        let salt = SaltString::generate(&mut rand::thread_rng());
+        let salt = SaltString::generate(&mut rand::rng());
         let hash = Argon2::default()
             .hash_password(password.as_bytes(), &salt)
             .map_err(|e| AuthError::PasswordHash(e.to_string()))?
@@ -294,9 +294,9 @@ impl AuthService {
             .map_err(|_| AuthError::InvalidCredentials)?;
 
         // Generate three random salts
-        let salt1 = SaltString::generate(&mut rand::thread_rng());
-        let salt2 = SaltString::generate(&mut rand::thread_rng());
-        let salt3 = SaltString::generate(&mut rand::thread_rng());
+        let salt1 = SaltString::generate(&mut rand::rng());
+        let salt2 = SaltString::generate(&mut rand::rng());
+        let salt3 = SaltString::generate(&mut rand::rng());
 
         // Derive vault_key from passphrase
         let vault_key = Self::derive_key_from_passphrase(passphrase, salt1.as_str())?;
@@ -501,7 +501,7 @@ impl AuthService {
             return Err(AuthError::PasswordTooShort);
         }
 
-        let salt = SaltString::generate(&mut rand::thread_rng());
+        let salt = SaltString::generate(&mut rand::rng());
         let hash = Argon2::default()
             .hash_password(password.as_bytes(), &salt)
             .map_err(|e| AuthError::PasswordHash(e.to_string()))?

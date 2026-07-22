@@ -12,7 +12,6 @@ path = "src/main.rs"
 [dependencies]
 tokio.workspace = true
 axum.workspace = true
-axum-extra.workspace = true
 tower.workspace = true
 tower-http.workspace = true
 serde.workspace = true
@@ -31,7 +30,7 @@ serde_yaml = "0.9"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-native-tls", "builder", "hostname"] }
 base64 = "0.22"
 
-prometheus = { version = "0.13", features = ["process"] }
+prometheus = { version = "0.14", features = ["process"] }
 futures = "0.3"
 futures-util = "0.3"
 tokio-stream.workspace = true
