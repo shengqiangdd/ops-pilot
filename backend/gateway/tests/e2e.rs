@@ -96,4 +96,38 @@ async fn test_security_headers_present() {
     assert!(headers.contains_key("content-security-policy"));
     // X-Frame-Options
     assert!(headers.contains_key("x-frame-options"));
+    // X-Content-Type-Options
+    assert!(headers.contains_key("x-content-type-options"));
+    // X-XSS-Protection (newly added)
+    assert!(headers.contains_key("x-xss-protection"));
+}
+
+#[tokio::test]
+async fn test_security_header_values() {
+    let addr = setup_app().await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("http://{}/api/v1/health", addr))
+        .send()
+        .await
+        .unwrap();
+    
+    let headers = resp.headers();
+    
+    assert_eq!(
+        headers.get("x-content-type-options").and_then(|v| v.to_str().ok()),
+        Some("nosniff")
+    );
+    assert_eq!(
+        headers.get("x-frame-options").and_then(|v| v.to_str().ok()),
+        Some("DENY")
+    );
+    assert_eq!(
+        headers.get("x-xss-protection").and_then(|v| v.to_str().ok()),
+        Some("1; mode=block")
+    );
+    assert_eq!(
+        headers.get("referrer-policy").and_then(|v| v.to_str().ok()),
+        Some("same-origin")
+    );
 }
