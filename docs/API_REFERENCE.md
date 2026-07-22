@@ -1166,3 +1166,372 @@ When rate limited (429):
   }
 }
 ```
+
+---
+
+## API 端点一览 (v2)
+
+> 下表汇总了所有注册的 API 端点（包括 public 和 protected）。路由前缀已在路径中体现。
+
+### 公开端点（无需认证）
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/v1/health | 系统健康检查 |
+| GET | /api/docs/openapi.json | OpenAPI 规范 JSON |
+| GET | /api/docs/swagger-ui | Swagger UI 交互文档 |
+| GET | /api/auth/oauth2/providers | 列出 OAuth2 提供商 |
+| GET | /api/auth/oauth2/{provider} | OAuth2 登录跳转 |
+| GET | /api/auth/oauth2/{provider}/callback | OAuth2 回调 |
+| GET | /api/ws/events | WebSocket 事件流 |
+| GET | /api/metrics | Prometheus 指标 |
+| GET | /api/metrics/json | Prometheus 指标 (JSON) |
+| POST | /api/auth/login | 用户登录 |
+| POST | /api/auth/register | 用户注册 |
+
+### 认证 / 用户
+
+| 方法 | 路径 | 描述 | 权限 |
+|------|------|------|------|
+| GET | /api/users | 用户列表 | admin |
+| GET | /api/users/me | 当前用户信息 | 认证 |
+| POST | /api/users | 创建用户 | admin |
+| PUT | /api/users/{id}/role | 更新角色 | admin |
+| DELETE | /api/users/{id} | 删除用户 | admin |
+| PUT | /api/users/role/{id} | 更新用户角色 | admin |
+| GET | /api/roles | 角色列表 | admin |
+| POST | /api/roles | 创建角色 | admin |
+| PUT | /api/roles/{id} | 更新角色 | admin |
+| DELETE | /api/roles/{id} | 删除角色 | admin |
+
+### 主机管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/hosts | 主机列表 |
+| POST | /api/hosts | 创建主机 |
+| GET | /api/hosts/{id} | 主机详情 |
+| PUT | /api/hosts/{id} | 更新主机 |
+| DELETE | /api/hosts/{id} | 删除主机 |
+| POST | /api/hosts/batch/execute | 批量命令执行 |
+
+### Vault（凭据加密）
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/vault/status | 检查 vault 状态 |
+| POST | /api/vault/set-passphrase | 设置 vault 口令 |
+| POST | /api/vault/unlock | 解锁 vault |
+| POST | /api/vault/lock | 锁定 vault |
+
+### 模块管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/modules | 模块列表 |
+| GET | /api/modules/{name} | 模块详情 |
+| POST | /api/modules/{name}/enable | 启用模块 |
+| POST | /api/modules/{name}/disable | 停用模块 |
+| GET | /api/modules/{name}/health | 模块健康检查 |
+| GET | /api/health | 全部模块聚合健康状态 |
+
+### 安全扫描
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | /api/security/scan | 执行安全扫描 |
+| GET | /api/security/checks | 列出安全检查项 |
+
+### AI Agent
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | /api/agent/session | 创建 Agent 会话 |
+| POST | /api/agent/chat/{session_id} | 发送消息 |
+| DELETE | /api/agent/session/{session_id} | 关闭会话 |
+| POST | /api/agent/nl-query | 自然语言查询 |
+| POST | /api/agent/diagnose | 自动异常诊断 |
+
+### 告警规则
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/alert/rules | 告警规则列表 |
+| POST | /api/alert/rules | 创建规则 |
+| PUT | /api/alert/rules/{id} | 更新规则 |
+| DELETE | /api/alert/rules/{id} | 删除规则 |
+| GET | /api/alert/history | 告警历史 |
+| GET | /api/alert/diagnose/{id} | 告警诊断 |
+| POST | /api/alert/test-notify | 测试通知 |
+
+### 通知渠道
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/alert/channels | 通知渠道列表 |
+| POST | /api/alert/channels | 创建渠道 |
+| POST | /api/alert/channels/{id}/test | 测试渠道 |
+
+### 审计日志
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/audit/logs | 审计日志列表 |
+| GET | /api/audit/stats | 审计统计 |
+| GET | /api/audit/export | 导出 CSV |
+| GET | /api/audit/slow-queries | 慢查询列表 |
+
+### CMDB
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/cmdb/services | 服务列表 |
+| POST | /api/cmdb/services | 创建服务 |
+| GET | /api/cmdb/services/{id} | 服务详情 |
+| PUT | /api/cmdb/services/{id} | 更新服务 |
+| DELETE | /api/cmdb/services/{id} | 删除服务 |
+| POST | /api/cmdb/services/{id}/hosts | 添加主机 |
+| DELETE | /api/cmdb/services/{id}/hosts/{host_id} | 移除主机 |
+| GET | /api/cmdb/services/{id}/dependencies | 服务依赖 |
+| POST | /api/cmdb/services/{id}/dependencies | 添加依赖 |
+| GET | /api/cmdb/configs | 配置版本列表 |
+| POST | /api/cmdb/configs | 创建配置版本 |
+| GET | /api/cmdb/configs/{id} | 配置版本详情 |
+
+### 终端
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/terminal/{host_id} | WebSocket SSH 终端 (?token=) |
+
+### 备份恢复
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/backup/export | 导出系统备份 |
+| POST | /api/backup/import | 导入系统备份 |
+
+### CI/CD
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/cicd/templates | 流水线模板列表 |
+| POST | /api/cicd/templates | 创建模板 |
+| GET | /api/cicd/templates/{id} | 模板详情 |
+| DELETE | /api/cicd/templates/{id} | 删除模板 |
+| GET | /api/cicd/runs | 运行历史列表 |
+| POST | /api/cicd/runs | 触发运行 |
+| GET | /api/cicd/runs/{id} | 运行详情 |
+| POST | /api/cicd/runs/{id}/cancel | 取消运行 |
+| GET | /api/cicd/deployments | 部署列表 |
+| POST | /api/cicd/deployments | 创建部署 |
+| PUT | /api/cicd/deployments/{id}/rollback | 回滚部署 |
+
+### 定时任务
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/jobs | 任务列表 |
+| POST | /api/jobs | 创建任务 |
+| GET | /api/jobs/{id} | 任务详情 |
+| DELETE | /api/jobs/{id} | 删除任务 |
+| POST | /api/jobs/{id}/execute | 执行任务 |
+| GET | /api/jobs/{id}/runs | 执行历史 |
+| GET | /api/jobs/runs/{run_id} | 执行详情 |
+
+### 知识库
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | /api/knowledge/search | 搜索知识库 |
+| POST | /api/knowledge/extract | 提取知识 |
+
+### 运维手册
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | /api/runbook/create | 创建手册 |
+| POST | /api/runbook/execute | 执行手册 |
+
+### 全局搜索
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/search | 全局搜索 (?q=) |
+
+### 合规审计
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/compliance/frameworks | 合规框架列表 |
+| GET | /api/compliance/overview | 合规总览 |
+| GET | /api/compliance/report | 合规报告 |
+| POST | /api/compliance/scan | 执行合规扫描 |
+
+### 漏洞管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/vulnerabilities | 漏洞列表 |
+| POST | /api/vulnerabilities/scan | 漏洞扫描 |
+| GET | /api/vulnerabilities/stats | 漏洞统计 |
+| GET | /api/vulnerabilities/{id} | 漏洞详情 |
+| PUT | /api/vulnerabilities/{id} | 更新漏洞 |
+| DELETE | /api/vulnerabilities/{id} | 删除漏洞 |
+| POST | /api/vulnerabilities/{id}/verify | 验证修复 |
+
+### 系统诊断
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | /api/diagnostics/run | 运行诊断 |
+| GET | /api/diagnostics/history | 诊断历史 |
+| GET | /api/diagnostics/status | 系统状态 |
+| GET | /api/diagnostics/{id} | 诊断详情 |
+
+### 变更分析
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/change-analysis/events | 变更事件列表 |
+| POST | /api/change-analysis/events | 创建变更事件 |
+| GET | /api/change-analysis/events/{id} | 变更事件详情 |
+| PUT | /api/change-analysis/events/{id} | 审核变更事件 |
+| POST | /api/change-analysis/analyze | 变更风险分析 |
+| GET | /api/change-analysis/stats | 变更统计 |
+| GET | /api/change-analysis/related-incidents/{id} | 关联事件 |
+
+### 事件管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/incidents | 事件列表 |
+| GET | /api/incidents/stats | 事件统计 |
+| GET | /api/incidents/{id} | 事件详情 |
+| PUT | /api/incidents/{id} | 更新事件 |
+| POST | /api/incidents/{id}/assign | 分配事件 |
+
+### 集群管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/clusters | 集群列表 |
+| POST | /api/clusters | 注册集群 |
+| GET | /api/clusters/{id} | 集群详情 |
+| PUT | /api/clusters/{id} | 更新集群 |
+| DELETE | /api/clusters/{id} | 删除集群 |
+| GET | /api/clusters/{id}/status | 集群状态 |
+
+### 其他
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | /api/search | 全局搜索 |
+| GET | /api/timeline/events | 事件时间线 |
+| GET | /api/topo/graph | 拓扑图 |
+| POST | /api/topo/discover | 拓扑发现 |
+| GET | /api/monitor/metrics/{host_id} | 主机指标 |
+| POST | /api/monitor/collect | 采集指标 |
+| POST | /api/escalation/policies | 升级策略 |
+| POST | /api/escalation/trigger | 触发升级 |
+| POST | /api/fim/baseline | 创建 FIM 基线 |
+| GET | /api/fim/scan/{host_id} | FIM 扫描 |
+| POST | /api/baseline/check/{host_id} | 基线检查 |
+| GET | /api/baseline/report/{host_id} | 基线报告 |
+| GET | /api/sessions | 会话列表 |
+| POST | /api/sessions/record | 录制会话 |
+| GET | /api/sessions/{id}/replay | 回放会话 |
+| POST | /api/remediation/rules | 创建修复规则 |
+| GET | /api/remediation/rules | 修复规则列表 |
+| GET | /api/remediation/rules/{id} | 修复规则详情 |
+| PUT | /api/remediation/rules/{id} | 更新修复规则 |
+| DELETE | /api/remediation/rules/{id} | 删除修复规则 |
+| POST | /api/remediation/rules/{id}/test | 测试修复规则 |
+| GET | /api/remediation/executions | 修复执行记录 |
+| POST | /api/remediation/evaluate | 评估触发器 |
+| POST | /api/soar/playbooks | 创建剧本 |
+| GET | /api/soar/playbooks | 剧本列表 |
+| GET | /api/soar/playbooks/{id} | 剧本详情 |
+| PUT | /api/soar/playbooks/{id} | 更新剧本 |
+| DELETE | /api/soar/playbooks/{id} | 删除剧本 |
+| POST | /api/soar/playbooks/{id}/execute | 执行剧本 |
+| GET | /api/soar/executions | 执行记录 |
+| GET | /api/soar/executions/{id} | 执行详情 |
+| GET | /api/threats/overview | 威胁总览 |
+| GET | /api/threats/indicators | 威胁指标 |
+| GET | /api/threats/affected-assets | 受影响资产 |
+| POST | /api/anomaly/detect | 异常检测 |
+| GET | /api/anomaly/alert-trends | 告警趋势 |
+| GET | /api/rca/correlate/{alert_id} | RCA 告警关联 |
+| GET | /api/rca/causal-chain/{incident_id} | RCA 因果链 |
+| GET | /api/apm/services | APM 服务列表 |
+| GET | /api/apm/services/{id} | APM 服务详情 |
+| GET | /api/apm/services/{id}/traces | APM 链路追踪 |
+| GET | /api/apm/services/{id}/errors | APM 服务错误 |
+| GET | /api/apm/traces/{id} | APM 链路详情 |
+| GET | /api/apm/traces/recent-errors | APM 最近错误 |
+| GET | /api/apm/dashboard | APM 仪表盘 |
+| PUT | /api/apm/errors/{id} | 更新错误状态 |
+| GET | /api/finops/overview | FinOps 总览 |
+| GET | /api/finops/costs | FinOps 成本 |
+| GET | /api/finops/costs/by-service | 按服务成本 |
+| GET | /api/finops/costs/by-provider | 按提供商成本 |
+| GET | /api/finops/budgets | 预算列表 |
+| POST | /api/finops/budgets | 创建预算 |
+| DELETE | /api/finops/budgets/{id} | 删除预算 |
+| GET | /api/finops/forecast | 成本预测 |
+| GET | /api/oncall/schedules | 排班列表 |
+| POST | /api/oncall/schedules | 创建排班 |
+| GET | /api/oncall/schedules/{id} | 排班详情 |
+| PUT | /api/oncall/schedules/{id} | 更新排班 |
+| DELETE | /api/oncall/schedules/{id} | 删除排班 |
+| POST | /api/oncall/schedules/{id}/shifts | 创建轮班 |
+| GET | /api/oncall/shifts | 轮班列表 |
+| GET | /api/oncall/current | 当前值班人 |
+| POST | /api/oncall/overrides | 创建覆盖 |
+| GET | /api/oncall/escalations | 升级规则 |
+| POST | /api/otel/ingest | 导入 OpenTelemetry span |
+| GET | /api/otel/traces | 查询追踪 |
+| GET | /api/otel/traces/{trace_id} | 追踪树 |
+| GET | /api/otel/services | OTEL 服务列表 |
+| GET | /api/predictions/analyze | 预测分析 |
+| POST | /api/predictions/batch | 批量预测 |
+| GET | /api/predictions/risks | 风险列表 |
+| GET | /api/slos | SLO 列表 |
+| POST | /api/slos | 创建 SLO |
+| GET | /api/slos/burn-rate | 燃烧率告警 |
+| GET | /api/slos/{id} | SLO 详情 |
+| PUT | /api/slos/{id} | 更新 SLO |
+| DELETE | /api/slos/{id} | 删除 SLO |
+| POST | /api/slos/{id}/evaluate | 评估 SLO |
+| POST | /api/secrets/scan | 扫描密钥 |
+| GET | /api/secrets/results | 扫描结果 |
+| PUT | /api/secrets/results/{id} | 更新结果 |
+| GET | /api/secrets/stats | 扫描统计 |
+| GET | /api/gitops/status | GitOps 状态 |
+| POST | /api/gitops/sync | GitOps 同步 |
+| GET | /api/chaos/experiments | 混沌实验列表 |
+| POST | /api/chaos/experiments | 创建实验 |
+| GET | /api/chaos/experiments/{id} | 实验详情 |
+| PUT | /api/chaos/experiments/{id} | 更新实验 |
+| DELETE | /api/chaos/experiments/{id} | 删除实验 |
+| POST | /api/chaos/experiments/{id}/run | 运行实验 |
+| POST | /api/chaos/experiments/{id}/stop | 停止实验 |
+| GET | /api/chaos/executions | 执行记录 |
+| GET | /api/chaos/stats | 混沌统计 |
+| POST | /api/log-intel/sources | 日志源列表 |
+| GET | /api/log-intel/analyze | 日志分析 |
+| GET | /api/log-intel/patterns | 日志模式 |
+| GET | /api/log-intel/anomalies | 日志异常 |
+| PUT | /api/log-intel/anomalies/{id} | 更新日志异常 |
+| GET | /api/log-intel/stats | 日志智能统计 |
+| GET | /api/reports | 报告列表 |
+| POST | /api/reports | 生成报告 |
+| GET | /api/reports/{id} | 报告详情 |
+| GET | /api/reports/{id}/export | 导出报告 |
+| GET | /api/reports/schedule | 报告计划列表 |
+| POST | /api/reports/schedule | 创建报告计划 |
+| GET | /api/reports/generate | 生成报告 (v2) |
+| GET | /api/reports/list | 报告列表 (v2) |
+| GET | /api/reports/download/{id} | 下载报告 (v2) |
+| GET | /api/dashboard/overview | 仪表盘总览 |

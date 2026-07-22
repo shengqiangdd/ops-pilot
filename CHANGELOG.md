@@ -6,6 +6,40 @@
 
 ## [Unreleased]
 
+### ✨ 新增功能
+- PWA 离线支持 + Service Worker 注册
+- WebSocket 连接状态指示器 + 自动重连
+- 全局错误监控与错误日志收集
+- 快捷键面板 Mac/Win 兼容 + 搜索过滤
+- 登录页面美化 + OAuth 入口
+- 系统维护一键备份/恢复/清理向导
+- 定时任务调度页面
+- Email SMTP 发送支持
+
+### 🧪 测试
+- 后端集成测试扩展：auth(8) + health(6) + search(11) + e2e(5)
+- Playwright E2E 扩展：vault(9) + alerts(15) + hosts(10) + notifications(11) + search(9)
+- 前端 hooks 测试：useAlerts/useHosts/useKeyboardShortcuts
+- 前端 lib 测试：cn/health/metrics/pageStates
+
+### 🔒 安全
+- 安全头中间件（CSP/XSS/Frame/Referrer/HSTS）
+- 内容安全策略配置
+- 生产构建禁用 sourcemap
+
+### 📦 部署
+- Docker Compose 资源限制 + 日志轮转
+- .dockerignore 优化
+- Makefile 开发脚本
+- Helm chart CI lint 集成
+
+### 📚 文档
+- CONTRIBUTING.md 贡献指南
+- CODE_OF_CONDUCT.md 行为准则
+- SECURITY.md 安全策略
+- GitHub Issue/PR 模板
+- API 端点一览表
+
 ### Fixed 修复
 
 - **[P0]** 项目结构：`src/` 移到 `backend/` 下，对齐 Cargo.toml workspace 成员路径 —— 修复所有 CI 构建失败
