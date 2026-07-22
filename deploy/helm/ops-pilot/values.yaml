@@ -19,6 +19,8 @@ image:
   repository: ghcr.io/shengqiangdd/ops-pilot
   tag: "latest"
   pullPolicy: Always
+  # imagePullSecrets:
+  #   - name: regcred
 
 # ── Replicas ─────────────────────────────────────────────────────────────
 replicaCount: 1
@@ -82,6 +84,8 @@ env:
   LISTEN_ADDR: "0.0.0.0:3001"
   RUST_LOG: "ops_pilot=info,tower_http=info"
   TZ: "UTC"
+  STATIC_DIR: "static"
+  CORS_ORIGINS: "http://localhost:5173,http://localhost:3001"
 
 # ── Secrets (alternative to env for sensitive values) ──────────────────
 secrets:

@@ -2,28 +2,63 @@
 
 Release name: {{ .Release.Name }}
 Namespace: {{ .Release.Namespace }}
+Chart version: {{ .Chart.Version }}
 
 📋 Access the web UI:
 
 {{- if .Values.ingress.enabled }}
   🌐 https://{{ (index .Values.ingress.hosts 0).host }}
 {{- else }}
-  kubectl port-forward service/{{ include "ops-pilot.fullname" . }} 8080:{{ .Values.service.port }}
+  📡 Port-forward to localhost:
+      kubectl port-forward service/{{ include "ops-pilot.fullname" . }} 8080:{{ .Values.service.port }}
   🌐 http://localhost:8080
 {{- end }}
 
-📊 Metrics (if ServiceMonitor enabled):
-  Prometheus Operator will auto-discover /api/metrics
+🔍 Health check:
+    kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "ops-pilot.fullname" . }} -- curl -sf http://localhost:3001/api/v1/health
 
-🔐 Admin setup:
+📊 Metrics (Prometheus Operator):
+{{- if .Values.serviceMonitor.enabled }}
+  ✅ ServiceMonitor is enabled — Prometheus will auto-discover /api/metrics
+{{- else }}
+  ❌ ServiceMonitor is disabled. Enable with:
+      helm upgrade {{ .Release.Name }} deploy/helm/ops-pilot --set serviceMonitor.enabled=true
+{{- end }}
+
+🔐 First-time admin setup:
   1. Open the web UI and register an admin account
-  2. Set Vault Passphrase for credential encryption
+  2. After login, set a Vault Passphrase for credential encryption
+  3. Configure alert notification channels under Settings → Notifications
 
-📘 Documentation:
-  https://github.com/shengqiangdd/ops-pilot
+📘 Documentation & support:
+  • Source:      https://github.com/shengqiangdd/ops-pilot
+  • Issues:      https://github.com/shengqiangdd/ops-pilot/issues
 
 {{- if not .Values.env.JWT_SECRET }}
-⚠️  WARNING: JWT_SECRET is not set! Generate one with:
+⚠️  WARNING: JWT_SECRET is not set! Generate a strong random secret:
      openssl rand -hex 32
-  And set via helm upgrade --set env.JWT_SECRET=<value>
+  Then upgrade the release:
+     helm upgrade {{ .Release.Name }} deploy/helm/ops-pilot --set env.JWT_SECRET="$(openssl rand -hex 32)"
 {{- end }}
+
+{{- if not .Values.env.OPSPILOT_MASTER_KEY }}
+⚠️  WARNING: OPSPILOT_MASTER_KEY is not set. Generate one with:
+     openssl rand -hex 32
+  And set via:
+     helm upgrade {{ .Release.Name }} deploy/helm/ops-pilot --set env.OPSPILOT_MASTER_KEY="$(openssl rand -hex 32)"
+{{- end }}
+
+{{- if not .Values.persistence.enabled }}
+⚠️  WARNING: Persistence is disabled — data will be lost on pod restart!
+     helm upgrade {{ .Release.Name }} deploy/helm/ops-pilot --set persistence.enabled=true
+{{- end }}
+
+📦 Useful commands:
+  # View pod logs
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "ops-pilot.name" . }} --tail=100 -f
+
+  # Scale replicas
+  kubectl scale -n {{ .Release.Namespace }} deploy/{{ include "ops-pilot.fullname" . }} --replicas=3
+
+  # Get admin password (if stored in secrets)
+  kubectl get secret -n {{ .Release.Namespace }} {{ include "ops-pilot.fullname" . }} -o jsonpath='{.data.JWT_SECRET}' | base64 -d

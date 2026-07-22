@@ -124,6 +124,35 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
 
   # ═══════════════════════════════════════════════════════════════════════
+  # Helm: lint and template validation (runs on every PR/push)
+  # ═══════════════════════════════════════════════════════════════════════
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: helm lint
+        run: helm lint deploy/helm/ops-pilot
+
+      - name: helm template (ensure all templates render)
+        run: helm template ops-pilot deploy/helm/ops-pilot
+
+      - name: helm template with sample values
+        run: |
+          helm template ops-pilot deploy/helm/ops-pilot \
+            --set env.JWT_SECRET="ci-test-secret" \
+            --set env.OPSPILOT_MASTER_KEY="ci-test-key" \
+            --set ingress.enabled=true \
+            --set autoscaling.enabled=true \
+            --set persistence.enabled=true
+
+  # ═══════════════════════════════════════════════════════════════════════
   # Docker image (tagged releases, or main after tests pass)
   # ═══════════════════════════════════════════════════════════════════════
   docker:
@@ -203,7 +232,7 @@ jobs:
   summary:
     name: Summary
     runs-on: ubuntu-latest
-    needs: [frontend, rust, docker, helm-release]
+    needs: [frontend, rust, helm-lint, docker, helm-release]
     if: always()
 
     steps:
@@ -214,5 +243,6 @@ jobs:
           echo '|-----|--------|' >> $GITHUB_STEP_SUMMARY
           echo '| Frontend   | ${{ needs.frontend.result }} |' >> $GITHUB_STEP_SUMMARY
           echo '| Rust       | ${{ needs.rust.result }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| Helm Lint  | ${{ needs.helm-lint.result }} |' >> $GITHUB_STEP_SUMMARY
           echo '| Docker     | ${{ needs.docker.result }} |' >> $GITHUB_STEP_SUMMARY
-          echo '| Helm       | ${{ needs.helm-release.result }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| Helm Chart | ${{ needs.helm-release.result }} |' >> $GITHUB_STEP_SUMMARY

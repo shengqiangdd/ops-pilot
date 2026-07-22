@@ -8,6 +8,7 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![GitHub Release](https://img.shields.io/github/v/release/shengqiangdd/ops-pilot?logo=github)
 [![GHCR](https://img.shields.io/badge/GHCR-ops--pilot-blue?logo=docker)](https://github.com/shengqiangdd/ops-pilot/pkgs/container/ops-pilot)
+[![Security Policy](https://img.shields.io/badge/Security-Policy-brightgreen?logo=shield)](SECURITY.md)
 
 ## 架构总览
 

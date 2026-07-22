@@ -482,6 +482,28 @@ tags:
     description: WebSSH terminal
   - name: Docs
     description: API documentation (Swagger UI, OpenAPI spec)
+  - name: Backup
+    description: System backup and restore
+  - name: Search
+    description: Global search
+  - name: WebSocket
+    description: Real-time WebSocket events
+  - name: Metrics
+    description: Prometheus metrics
+  - name: Change Analysis
+    description: Change risk analysis
+  - name: Incidents
+    description: Incident management
+  - name: Compliance
+    description: Compliance audit
+  - name: Vulnerabilities
+    description: Vulnerability management
+  - name: Diagnostics
+    description: System diagnostics
+  - name: Clusters
+    description: Multi-cluster management
+  - name: Anomaly
+    description: Anomaly detection
 
 paths:
   # ── OAuth2 ────────────────────────────────────────────────────────
@@ -1985,3 +2007,492 @@ paths:
       responses:
         '200':
           description: Run details with steps
+
+  # ── Backup ─────────────────────────────────────────────────────
+  /api/backup/export:
+    get:
+      tags: [Backup]
+      summary: Export all system config as JSON backup
+      responses:
+        '200':
+          description: Backup JSON with all tables
+
+  /api/backup/import:
+    post:
+      tags: [Backup]
+      summary: Import system config from JSON backup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Import results
+
+  # ── Search ─────────────────────────────────────────────────────
+  /api/search:
+    get:
+      tags: [Search]
+      summary: Global search across hosts, alerts, knowledge, runbooks
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results grouped by type
+
+  # ── WebSocket Events ──────────────────────────────────────────
+  /api/ws/events:
+    get:
+      tags: [WebSocket]
+      summary: Real-time event stream over WebSocket
+      security: []
+      responses:
+        '101':
+          description: WebSocket upgrade
+
+  # ── Metrics ───────────────────────────────────────────────────
+  /api/metrics/json:
+    get:
+      tags: [Metrics]
+      summary: Get Prometheus metrics in JSON format
+      responses:
+        '200':
+          description: Metrics in JSON
+
+  # ── Change Analysis ───────────────────────────────────────────
+  /api/change-analysis/events:
+    get:
+      tags: [Change Analysis]
+      summary: List change events
+      responses:
+        '200':
+          description: Change events list
+    post:
+      tags: [Change Analysis]
+      summary: Create change event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Change event created
+
+  /api/change-analysis/events/{id}:
+    get:
+      tags: [Change Analysis]
+      summary: Get change event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Change event detail
+    put:
+      tags: [Change Analysis]
+      summary: Review change event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Change event updated
+
+  /api/change-analysis/analyze:
+    post:
+      tags: [Change Analysis]
+      summary: Analyze change risk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Change risk analysis
+
+  /api/change-analysis/stats:
+    get:
+      tags: [Change Analysis]
+      summary: Get change analysis stats
+      responses:
+        '200':
+          description: Change statistics
+
+  /api/change-analysis/related-incidents/{id}:
+    get:
+      tags: [Change Analysis]
+      summary: Get incidents related to a change
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Related incidents
+
+  # ── Incidents ─────────────────────────────────────────────────
+  /api/incidents:
+    get:
+      tags: [Incidents]
+      summary: List incidents
+      responses:
+        '200':
+          description: Incident list
+
+  /api/incidents/stats:
+    get:
+      tags: [Incidents]
+      summary: Incident statistics
+      responses:
+        '200':
+          description: Incident stats
+
+  /api/incidents/{id}:
+    get:
+      tags: [Incidents]
+      summary: Get incident detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Incident detail
+    put:
+      tags: [Incidents]
+      summary: Update incident
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Incident updated
+
+  /api/incidents/{id}/assign:
+    post:
+      tags: [Incidents]
+      summary: Assign incident
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Incident assigned
+
+  # ── Compliance ────────────────────────────────────────────────
+  /api/compliance/frameworks:
+    get:
+      tags: [Compliance]
+      summary: List compliance frameworks
+      responses:
+        '200':
+          description: Compliance frameworks
+
+  /api/compliance/overview:
+    get:
+      tags: [Compliance]
+      summary: Compliance overview
+      responses:
+        '200':
+          description: Compliance overview
+
+  /api/compliance/report:
+    get:
+      tags: [Compliance]
+      summary: Compliance report
+      responses:
+        '200':
+          description: Compliance report
+
+  /api/compliance/scan:
+    post:
+      tags: [Compliance]
+      summary: Run compliance scan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Scan results
+
+  # ── Vulnerabilities ──────────────────────────────────────────
+  /api/vulnerabilities:
+    get:
+      tags: [Vulnerabilities]
+      summary: List vulnerabilities
+      responses:
+        '200':
+          description: Vulnerability list
+
+  /api/vulnerabilities/stats:
+    get:
+      tags: [Vulnerabilities]
+      summary: Vulnerability statistics
+      responses:
+        '200':
+          description: Vulnerability stats
+
+  /api/vulnerabilities/scan:
+    post:
+      tags: [Vulnerabilities]
+      summary: Run vulnerability scan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Scan results
+
+  /api/vulnerabilities/{id}:
+    get:
+      tags: [Vulnerabilities]
+      summary: Get vulnerability detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vulnerability detail
+    put:
+      tags: [Vulnerabilities]
+      summary: Update vulnerability
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vulnerability updated
+    delete:
+      tags: [Vulnerabilities]
+      summary: Delete vulnerability
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Vulnerability deleted
+
+  /api/vulnerabilities/{id}/verify:
+    post:
+      tags: [Vulnerabilities]
+      summary: Verify vulnerability fix
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Verification result
+
+  # ── Diagnostics ──────────────────────────────────────────────
+  /api/diagnostics/run:
+    post:
+      tags: [Diagnostics]
+      summary: Run system diagnostics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Diagnostic results
+
+  /api/diagnostics/history:
+    get:
+      tags: [Diagnostics]
+      summary: List diagnostic history
+      responses:
+        '200':
+          description: Diagnostic history
+
+  /api/diagnostics/status:
+    get:
+      tags: [Diagnostics]
+      summary: System status overview
+      responses:
+        '200':
+          description: System status
+
+  /api/diagnostics/{id}:
+    get:
+      tags: [Diagnostics]
+      summary: Get diagnostic detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Diagnostic detail
+
+  # ── Clusters ──────────────────────────────────────────────────
+  /api/clusters:
+    get:
+      tags: [Clusters]
+      summary: List clusters
+      responses:
+        '200':
+          description: Cluster list
+    post:
+      tags: [Clusters]
+      summary: Register cluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Cluster registered
+
+  /api/clusters/{id}:
+    get:
+      tags: [Clusters]
+      summary: Get cluster detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cluster detail
+    put:
+      tags: [Clusters]
+      summary: Update cluster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cluster updated
+    delete:
+      tags: [Clusters]
+      summary: Delete cluster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Cluster deleted
+
+  /api/clusters/{id}/status:
+    get:
+      tags: [Clusters]
+      summary: Get cluster status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cluster status
+
+  # ── Anomaly Detection ────────────────────────────────────────
+  /api/anomaly/detect:
+    post:
+      tags: [Anomaly]
+      summary: Detect anomaly from metrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Anomaly detection result
+
+  /api/anomaly/alert-trends:
+    get:
+      tags: [Anomaly]
+      summary: Get alert trend analysis
+      responses:
+        '200':
+          description: Alert trends
+
+  # ── Alert Diagnose ───────────────────────────────────────────
+  /api/alert/diagnose/{id}:
+    get:
+      tags: [Alert Rules]
+      summary: Diagnose alert by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert diagnosis
+
+  /api/alert/test-notify:
+    post:
+      tags: [Alert Rules]
+      summary: Test notification delivery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Notification test result
